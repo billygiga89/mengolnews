@@ -1,0 +1,163 @@
+﻿@page "/noticia"
+@using MengolNews.Models
+@using System.Text.Json
+@inject NavigationManager Nav
+@inject MengolNews.Services.NewsApiService NewsService
+@inject HttpClient Http
+
+<PageTitle>@(noticia?.Titulo ?? "Notícia") | MengolNews</PageTitle>
+
+<section class="section">
+    @if (carregando)
+    {
+        <div class="news-open skeleton-detalhe">
+            <div class="skeleton-img-detalhe"></div>
+            <div class="skeleton-line title" style="width:60%; height:28px; margin: 16px 0;"></div>
+            <div class="skeleton-line" style="width:100%;"></div>
+            <div class="skeleton-line" style="width:95%;"></div>
+            <div class="skeleton-line" style="width:90%;"></div>
+            <div class="skeleton-line short" style="width:70%;"></div>
+        </div>
+    }
+    else if (naoEncontrada)
+    {
+        <div class="news-open" style="text-align:center; padding: 3rem;">
+            <p>⚠️ Notícia não encontrada.</p>
+            <button @onclick="Voltar">⬅ Voltar</button>
+        </div>
+    }
+    else if (noticia != null)
+    {
+        <article class="news-open">
+            @if (!string.IsNullOrWhiteSpace(noticia.Imagem))
+            {
+                <img src="@noticia.Imagem"
+                     alt="@noticia.Titulo"
+                     class="news-open-img"
+                     onerror="this.src='/images/escudo.png'; this.onerror=null;" />
+            }
+
+            <span class="news-tag">@noticia.Fonte • @noticia.Data.ToShortDateString()</span>
+            <h1 class="news-open-title">@noticia.Titulo</h1>
+
+            @if (carregandoConteudo)
+            {
+                <div style="margin: 1rem 0;">
+                    <div class="skeleton-line" style="width:100%;"></div>
+                    <div class="skeleton-line" style="width:95%;"></div>
+                    <div class="skeleton-line" style="width:88%;"></div>
+                    <div class="skeleton-line short" style="width:60%;"></div>
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(conteudoCompleto))
+            {
+                @foreach (var paragrafo in conteudoCompleto
+                        .Split("\n\n")
+                        .Where(p => !string.IsNullOrWhiteSpace(p)))
+                {
+                    <p>@paragrafo</p>
+                }
+            }
+            else if (!string.IsNullOrEmpty(noticia.Descricao))
+            {
+                <p class="news-open-desc">@noticia.Descricao</p>
+            }
+
+            <div class="news-open-actions">
+                <button @onclick="Voltar">⬅ Voltar</button>
+                <a href="@noticia.Link"
+                   target="_blank"
+                   rel="noopener">
+                    🔗 Ver no site original
+                </a>
+            </div>
+        </article>
+    }
+</section>
+
+@code {
+    private Noticia? noticia;
+    private string? conteudoCompleto;
+    private bool carregando = true;
+    private bool carregandoConteudo = false;
+    private bool naoEncontrada = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(Nav.Uri);
+
+        var query = uri.Query.TrimStart('?');
+        var parametros = query.Split('&')
+            .Select(p => p.Split('='))
+            .Where(p => p.Length == 2)
+            .ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]));
+
+        if (!parametros.TryGetValue("url", out var link) || string.IsNullOrWhiteSpace(link))
+        {
+            naoEncontrada = true;
+            carregando = false;
+            return;
+        }
+
+        var todas = await NewsService.GetNoticiasAsync();
+        noticia = todas.FirstOrDefault(n => n.Link == link);
+
+        carregando = false;
+
+        if (noticia == null)
+        {
+            naoEncontrada = true;
+            return;
+        }
+
+        await InvokeAsync(StateHasChanged);
+        await CarregarConteudoCompleto(link);
+    }
+
+    private async Task CarregarConteudoCompleto(string link)
+    {
+        carregandoConteudo = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var urlEncoded = Uri.EscapeDataString(link);
+            var response = await Http.GetAsync($"api/noticias/conteudo?url={urlEncoded}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("conteudo", out var prop))
+                    conteudoCompleto = prop.GetString();
+            }
+        }
+        catch
+        {
+            // Silencioso — fallback para descrição já exibida
+        }
+        finally
+        {
+            carregandoConteudo = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Voltar()
+    {
+        Nav.NavigateTo("/noticias");
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,44 @@
+﻿@using MengolNews.Models
+
+<article class="news-card" @onclick="AbrirNoticia">
+    <img src="@ImagemFinal"
+         alt="@Noticia.Titulo"
+         loading="lazy"
+         @onerror="OnImageError" />
+
+    <div class="news-content">
+        <span class="news-tag">@Noticia.Fonte</span>
+        <h3>@Noticia.Titulo</h3>
+        <!-- DESCRIÇÃO REMOVIDA -->
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public Noticia Noticia { get; set; } = default!;
+
+    private string ImagemFinal =>
+        string.IsNullOrWhiteSpace(Noticia.Imagem)
+            ? "/images/flamengo.png"
+            : Noticia.Imagem;
+
+    private void OnImageError()
+    {
+        Noticia.Imagem = "/images/flamengo.png";
+        StateHasChanged();
+    }
+
+    private void AbrirNoticia()
+    {
+        var url = Uri.EscapeDataString(Noticia.Link);
+        NavigationManager.NavigateTo($"/noticia?url={url}");
+    }
+
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+}
+
+
+
+
+
+

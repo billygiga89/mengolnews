@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36804.6
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MengolNews", "MengolNews\MengolNews.csproj", "{C2C077DA-1FF6-426A-AAAC-9697FB073D19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MengolNews.Api", "MengolNews.Api\MengolNews.Api.csproj", "{183C5261-B8F8-4B2D-A02F-1D8D02255130}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C2C077DA-1FF6-426A-AAAC-9697FB073D19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2C077DA-1FF6-426A-AAAC-9697FB073D19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2C077DA-1FF6-426A-AAAC-9697FB073D19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2C077DA-1FF6-426A-AAAC-9697FB073D19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{183C5261-B8F8-4B2D-A02F-1D8D02255130}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{183C5261-B8F8-4B2D-A02F-1D8D02255130}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{183C5261-B8F8-4B2D-A02F-1D8D02255130}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{183C5261-B8F8-4B2D-A02F-1D8D02255130}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {003CA0EA-E294-4AD0-8BCF-F2800B4758C1}
+	EndGlobalSection
+EndGlobal

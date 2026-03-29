@@ -1,0 +1,132 @@
+﻿@page "/noticias"
+@inject MengolNews.Services.NewsApiService NewsService
+@inject IJSRuntime JS
+@using Microsoft.JSInterop
+@using MengolNews.Components
+@using MengolNews.Models
+@using System.Linq
+@implements IDisposable
+
+<PageTitle>Notícias do Flamengo | MengolNews</PageTitle>
+
+<section class="section">
+    <h1>Últimas notícias</h1>
+</section>
+
+@if (isLoading)
+{
+    <section class="news-list section">
+        @for (int i = 0; i < 6; i++)
+        {
+            <SkeletonNewsCard />
+        }
+    </section>
+}
+else if (noticiasVisiveis.Any())
+{
+    <section class="news-list section">
+        @foreach (var noticia in noticiasVisiveis)
+        {
+            <NewsCard Noticia="noticia" />
+        }
+
+        @* Sentinel só aparece se ainda tiver mais notícias *@
+        @if (PodeCarregarMais)
+        {
+            <div class="scroll-sentinel" @ref="sentinel"></div>
+        }
+    </section>
+}
+else
+{
+    <p>Nenhuma notícia encontrada.</p>
+}
+
+@code {
+    private List<Noticia?> todas = new();
+    private List<Noticia?> noticiasVisiveis = new();
+    private int paginaAtual = 0;
+    private const int PageSize = 6;
+    private bool isLoading = true;
+    private bool carregandoMais = false;
+    private bool observerIniciado = false;
+    private ElementReference sentinel;
+    private DotNetObjectReference<Noticias>? objRef;
+
+    private bool PodeCarregarMais =>
+        noticiasVisiveis.Count < todas.Count;
+
+    protected override async Task OnInitializedAsync()
+    {
+        todas = await NewsService.GetNoticiasAsync();
+
+        todas = todas
+            .Where(n => n != null && !string.IsNullOrWhiteSpace(n.Link))
+            .GroupBy(n => n!.Link)
+            .Select(g => g.First())
+            .OrderByDescending(n => n!.Data)
+            .ToList();
+
+        Console.WriteLine($"TOTAL DE NOTÍCIAS: {todas.Count}");
+
+        CarregarMais();
+        isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Inicia o observer só uma vez e só se tiver sentinel no DOM
+        if (!observerIniciado && PodeCarregarMais)
+        {
+            try
+            {
+                objRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("infiniteScroll.observe", sentinel, objRef);
+                observerIniciado = true;
+            }
+            catch
+            {
+                // Ignora erro de JS interop
+            }
+        }
+    }
+
+    private void CarregarMais()
+    {
+        if (carregandoMais || !PodeCarregarMais)
+            return;
+
+        carregandoMais = true;
+
+        var novas = todas
+            .Skip(paginaAtual * PageSize)
+            .Take(PageSize)
+            .ToList();
+
+        if (novas.Any())
+        {
+            noticiasVisiveis.AddRange(novas);
+            paginaAtual++;
+        }
+
+        carregandoMais = false;
+    }
+
+    [JSInvokable]
+    public async Task OnScrollChegouNoFim()
+    {
+        if (carregandoMais || !PodeCarregarMais)
+            return;
+
+        Console.WriteLine("🔥 CHEGOU NO FIM DO SCROLL");
+        CarregarMais();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}
+
+

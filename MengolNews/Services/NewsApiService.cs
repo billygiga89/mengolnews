@@ -1,0 +1,51 @@
+﻿using MengolNews.Models;
+using System.Net.Http.Json;
+using System.Text.Json;
+
+namespace MengolNews.Services
+{
+	public class NewsApiService
+	{
+		private readonly HttpClient _http;
+
+		private List<Noticia>? cache;
+		private DateTime cacheTime;
+
+		private readonly TimeSpan cacheDuration = TimeSpan.FromMinutes(5);
+
+		public NewsApiService(HttpClient http)
+		{
+			_http = http;
+		}
+
+		public async Task<List<Noticia>> GetNoticiasAsync()
+		{
+			if (cache != null && DateTime.Now - cacheTime < cacheDuration)
+				return cache;
+
+			try
+			{
+				using var response = await _http.GetAsync("api/noticias");
+
+				if (!response.IsSuccessStatusCode)
+					return cache ?? new List<Noticia>();
+
+				var stream = await response.Content.ReadAsStreamAsync();
+
+				cache = await JsonSerializer.DeserializeAsync<List<Noticia>>(stream,
+					new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+					?? new List<Noticia>();
+
+				cacheTime = DateTime.Now;
+				return cache;
+			}
+			catch
+			{
+				return cache ?? new List<Noticia>();
+			}
+		}
+	}
+}
+
+
+
