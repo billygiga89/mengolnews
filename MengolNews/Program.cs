@@ -4,20 +4,17 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
-
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// HttpClient apontando SOMENTE para a API
-builder.Services.AddScoped(sp =>
-{
-	var client = new HttpClient
-	{
-		BaseAddress = new Uri("https://localhost:7221/"),
-		Timeout = TimeSpan.FromSeconds(30)
-	};
+// URL da API vinda do appsettings.json
+var apiUrl = builder.Configuration["ApiBaseUrl"]
+			 ?? "https://localhost:7221/";
 
-	return client;
+builder.Services.AddScoped(sp => new HttpClient
+{
+	BaseAddress = new Uri(apiUrl),
+	Timeout = TimeSpan.FromSeconds(30)
 });
 
 // Serviço que consome a API
