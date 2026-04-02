@@ -42,6 +42,11 @@ namespace MengolNews.Api.Controllers
 				// 🔥 ALGUNS SITES EXIGEM
 				request.Headers.Add("Origin", "https://www.google.com");
 
+				request.Headers.Referrer = new Uri(new Uri(url).GetLeftPart(UriPartial.Authority));
+				request.Headers.Add("Sec-Fetch-Dest", "image");
+				request.Headers.Add("Sec-Fetch-Mode", "no-cors");
+				request.Headers.Add("Sec-Fetch-Site", "cross-site");
+
 				using var response = await _http.SendAsync(
 					request,
 					HttpCompletionOption.ResponseHeadersRead

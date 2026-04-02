@@ -38,7 +38,7 @@ namespace MengolNews.Api.Services
 				GetEspnNoticias(),
 				GetPlacarNoticias(),
 				GetFalandoDeFlaRss(),
-				GetBrazilFootyNoticias(),
+				//GetBrazilFootyNoticias(),
 			};
 
 			var resultados = await Task.WhenAll(tarefas.Select(async t =>
@@ -86,7 +86,7 @@ namespace MengolNews.Api.Services
 			=> LerRss("https://placar.com.br/feed", "PLACAR", filtrarFlamengo: true);
 
 		private Task<List<NoticiaDto>> GetFalandoDeFlaRss()
-			=> LerRss("https://falandodeflamengo.wordpress.com/feed/", "FALANDO DE FLA", filtrarFlamengo: false);
+			=> LerRss("https://falandodeflamengo.wordpress.com/feed/", "FALANDO DE FLA", filtrarFlamengo: true);
 
 		private Task<List<NoticiaDto>> GetBrazilFootyNoticias()
 			=> LerRss("https://brazilfooty.com/feed", "BRAZIL FOOTY", filtrarFlamengo: false);
@@ -179,7 +179,7 @@ namespace MengolNews.Api.Services
 							? DateTime.UtcNow
 							: item.PublishDate.UtcDateTime,
 						Imagem = string.IsNullOrWhiteSpace(imagem)
-							? "/images/escudo.png"
+							? "/images/Flamengo.png"
 							: imagem
 					};
 				});

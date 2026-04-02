@@ -18,13 +18,13 @@
     public Noticia Noticia { get; set; } = default!;
 
     private string ImagemFinal =>
-        string.IsNullOrWhiteSpace(Noticia.Imagem)
-            ? "/images/flamengo.png"
-            : Noticia.Imagem;
+    string.IsNullOrWhiteSpace(Noticia.Imagem)
+        ? "/images/Flamengo.png"
+        : Noticia.Imagem;
 
     private void OnImageError()
     {
-        Noticia.Imagem = "/images/flamengo.png";
+        Noticia.Imagem = "/images/Flamengo.png";
         StateHasChanged();
     }
 

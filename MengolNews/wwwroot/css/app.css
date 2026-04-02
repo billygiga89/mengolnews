@@ -105,6 +105,14 @@ html, body {
             width: 100%;
         }
 
+        .header nav a.active {
+            color: #fff;
+        }
+
+            .header nav a.active::after {
+                width: 100%;
+            }
+
 /* =====================
    SOCIAL ICONS
 ===================== */
@@ -379,26 +387,76 @@ html, body {
         transition: color 0.2s;
     }
 
-    .news-open-actions a:hover {
-        color: #fff;
-    }
+        .news-open-actions a:hover {
+            color: #fff;
+        }
 
 /* =====================
    FOOTER
 ===================== */
 .footer {
-    background: rgba(0,0,0,0.4);
-    border-top: 2px solid #C8102E;
-    padding: 20px 16px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.5) 100%);
+    border-top: 1px solid rgba(200,16,46,0.3);
+    padding: 40px 20px 24px;
     text-align: center;
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.5);
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+    .footer-logo img {
+        height: 32px;
+        filter: drop-shadow(0 2px 6px rgba(200,16,46,0.5));
+    }
+
+    .footer-logo span {
+        font-size: 1.2rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: #fff;
+    }
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+    .footer-links a {
+        color: rgba(255,255,255,0.5);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+
+        .footer-links a:hover {
+            color: #fff;
+        }
+
+.footer-divider {
+    width: 40px;
+    height: 2px;
+    background: #C8102E;
+    margin: 0 auto 16px;
+    border-radius: 2px;
+}
+
+.footer-copy {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.3);
 }
 
 /* =====================
    SKELETON SHIMMER
 ===================== */
-@keyframes shimmer {
+@@keyframes shimmer {
     0% {
         background-position: 200% 0;
     }
@@ -531,8 +589,7 @@ html, body {
 /* =====================
    RESPONSIVO
 ===================== */
-@media (max-width: 768px) {
-    /* Header mobile: brand em cima, nav + ícones embaixo */
+@@media (max-width: 768px) {
     .header .container {
         flex-direction: column;
         align-items: flex-start;
@@ -585,7 +642,7 @@ html, body {
     }
 }
 
-@media (max-width: 480px) {
+@@media (max-width: 480px) {
     .header nav a {
         font-size: 0.85rem;
         margin-right: 12px;

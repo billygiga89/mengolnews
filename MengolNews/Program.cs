@@ -11,6 +11,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 var apiUrl = builder.Configuration["ApiBaseUrl"]
 			 ?? "https://localhost:7221/";
 
+
 builder.Services.AddScoped(sp => new HttpClient
 {
 	BaseAddress = new Uri(apiUrl),
@@ -19,7 +20,6 @@ builder.Services.AddScoped(sp => new HttpClient
 
 // Serviço que consome a API
 builder.Services.AddScoped<NewsApiService>();
-
 
 await builder.Build().RunAsync();
 
