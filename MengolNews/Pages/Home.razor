@@ -1,9 +1,7 @@
 ﻿@page "/"
-
 @inject MengolNews.Services.NewsApiService NewsService
 @inject NavigationManager Nav
 @using NoticiaModel = MengolNews.Models.Noticia
-
 @using MengolNews.Components
 @using MengolNews.Models
 
@@ -11,42 +9,46 @@
 
 @if (isLoading)
 {
-    <section class="news-list section">
-        @for (int i = 0; i < 6; i++)
-        {
-            <SkeletonNewsCard />
-        }
-    </section>
+    <div class="content">
+        <section class="news-list section">
+            @for (int i = 0; i < 6; i++)
+            {
+                <SkeletonNewsCard />
+            }
+        </section>
+    </div>
 }
-
 else if (!isLoading && noticias.Any())
 {
-    <!-- DESTAQUE -->
-    <section class="hero section"
-             style="cursor:pointer;"
-             @onclick="() => AbrirNoticia(noticias[0])">
+    <div class="content">
 
-        <img src="@ImagemHero" alt="@noticias[0].Titulo" />
+        <!-- DESTAQUE -->
+        <section class="hero section"
+                 style="cursor:pointer;"
+                 @onclick="() => AbrirNoticia(noticias[0])">
+            <img src="@ImagemHero" alt="@noticias[0].Titulo" />
+            <div class="hero-content">
+                <span class="hero-tag">@noticias[0].Fonte</span>
+                <h1>@noticias[0].Titulo</h1>
+                <time>@noticias[0].Data.ToShortDateString()</time>
+            </div>
+        </section>
 
-        <div class="hero-content">
-            <span class="hero-tag">@noticias[0].Fonte</span>
-            <h1>@noticias[0].Titulo</h1>
-            <time>@noticias[0].Data.ToShortDateString()</time>
-        </div>
-    </section>
+        <!-- OUTRAS NOTÍCIAS -->
+        <section class="news-list section">
+            @foreach (var noticia in noticias.Skip(1))
+            {
+                <NewsCard Noticia="noticia" />
+            }
+        </section>
 
-
-	<!-- OUTRAS -->
-	<section class="news-list section">
-		@foreach (var noticia in noticias.Skip(1))
-		{
-			<NewsCard Noticia="noticia" />
-		}
-	</section>
+    </div>
 }
 else
 {
-	<p>Nenhuma notícia encontrada.</p>
+    <div class="content">
+        <p>Nenhuma notícia encontrada.</p>
+    </div>
 }
 
 @code {
@@ -56,13 +58,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-
-        await InvokeAsync(StateHasChanged); // 🔥 mostra loading imediatamente
+        await InvokeAsync(StateHasChanged);
 
         try
         {
             var dados = await NewsService.GetNoticiasAsync();
-
             noticias = dados
                 .OrderByDescending(n => n.Data)
                 .ToList();
@@ -75,7 +75,6 @@ else
         finally
         {
             isLoading = false;
-
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -87,10 +86,11 @@ else
     }
 
     private string ImagemHero =>
-    noticias.Any() && !string.IsNullOrWhiteSpace(noticias[0].Imagem)
-        ? noticias[0].Imagem!
-        : "/images/Flamengo.png";
+        noticias.Any() && !string.IsNullOrWhiteSpace(noticias[0].Imagem)
+            ? noticias[0].Imagem!
+            : "/images/Flamengo.png";
 }
+
 
 
 
