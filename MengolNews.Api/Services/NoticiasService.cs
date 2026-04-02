@@ -10,7 +10,7 @@ namespace MengolNews.Api.Services
 	{
 		private readonly HttpClient _http;
 
-		// CACHE (instância — compatível com Singleton)
+		// CACHE
 		private List<NoticiaDto>? _cache;
 		private DateTime _ultimaAtualizacao;
 		private static readonly TimeSpan _cacheDuracao = TimeSpan.FromMinutes(10);
@@ -21,6 +21,7 @@ namespace MengolNews.Api.Services
 		public NoticiasService(HttpClient http)
 		{
 			_http = http;
+			_http.Timeout = TimeSpan.FromSeconds(15); // ✅ timeout para feeds lentos
 			_http.DefaultRequestHeaders.UserAgent.ParseAdd(
 				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
 			);
@@ -36,19 +37,24 @@ namespace MengolNews.Api.Services
 			var tarefas = new List<Task<List<NoticiaDto>>>
 			{
 				GetEspnNoticias(),
-				GetPlacarNoticias(),
-				GetFalandoDeFlaRss(),
-				//GetBrazilFootyNoticias(),
+				GetGeGloboNoticias(),
+				GetColunaDoFla(),
+				GetUrubuInterativo(),
+				GetFlaNoticiasRss(),
+				GetLanceNoticias(),
 			};
 
 			var resultados = await Task.WhenAll(tarefas.Select(async t =>
 			{
-				try { return await t; }
+				try
+				{
+					var r = await t;
+					Console.WriteLine($"✅ Fonte retornou {r.Count} notícias");
+					return r;
+				}
 				catch (Exception ex)
 				{
-#if DEBUG
-					Console.WriteLine($"Erro em fonte: {ex.Message}");
-#endif
+					Console.WriteLine($"❌ Erro em fonte: {ex.Message}");
 					return new List<NoticiaDto>();
 				}
 			}));
@@ -79,17 +85,25 @@ namespace MengolNews.Api.Services
            FONTES
         ======================= */
 
+		// ✅ Grandes portais (filtro por Flamengo pois o feed é geral)
 		private Task<List<NoticiaDto>> GetEspnNoticias()
 			=> LerRss("https://www.espn.com.br/rss/flamengo.xml", "ESPN", filtrarFlamengo: true);
 
-		private Task<List<NoticiaDto>> GetPlacarNoticias()
-			=> LerRss("https://placar.com.br/feed", "PLACAR", filtrarFlamengo: true);
+		private Task<List<NoticiaDto>> GetGeGloboNoticias()
+			=> LerRss("https://ge.globo.com/rss/flamengo.xml", "GE GLOBO", filtrarFlamengo: false);
 
-		private Task<List<NoticiaDto>> GetFalandoDeFlaRss()
-			=> LerRss("https://falandodeflamengo.wordpress.com/feed/", "FALANDO DE FLA", filtrarFlamengo: true);
+		private Task<List<NoticiaDto>> GetLanceNoticias()
+			=> LerRss("https://www.lance.com.br/flamengo.rss", "LANCE!", filtrarFlamengo: false);
 
-		private Task<List<NoticiaDto>> GetBrazilFootyNoticias()
-			=> LerRss("https://brazilfooty.com/feed", "BRAZIL FOOTY", filtrarFlamengo: false);
+		// ✅ Sites específicos do Flamengo (sem filtro necessário)
+		private Task<List<NoticiaDto>> GetColunaDoFla()
+			=> LerRss("https://colunadofla.com/feed", "COLUNA DO FLA", filtrarFlamengo: false);
+
+		private Task<List<NoticiaDto>> GetUrubuInterativo()
+			=> LerRss("https://urubuinterativo.com/feed", "URUBU INTERATIVO", filtrarFlamengo: false);
+
+		private Task<List<NoticiaDto>> GetFlaNoticiasRss()
+			=> LerRss("https://flanoticias.com.br/feed", "FLA NOTÍCIAS", filtrarFlamengo: false);
 
 		/* =======================
            LEITOR RSS
@@ -116,12 +130,13 @@ namespace MengolNews.Api.Services
 
 				using var response = await _http.SendAsync(request);
 
-#if DEBUG
 				Console.WriteLine($"[{fonte}] Status: {(int)response.StatusCode}");
-#endif
 
 				if (!response.IsSuccessStatusCode)
+				{
+					Console.WriteLine($"[{fonte}] ❌ Falhou com status {(int)response.StatusCode}");
 					return lista;
+				}
 
 				using var stream = await response.Content.ReadAsStreamAsync();
 				using var reader = XmlReader.Create(stream);
@@ -140,11 +155,12 @@ namespace MengolNews.Api.Services
 					if (filtrarFlamengo && !EhRelacionadoAoFlamengo(titulo, descricaoBruta))
 						continue;
 
-					// ✅ Limpa HTML e textos automáticos do WordPress
 					var descricao = LimparTextoRss(LimparHtml(descricaoBruta));
 
 					itensBase.Add((item, titulo, descricao, link));
 				}
+
+				Console.WriteLine($"[{fonte}] ✅ {itensBase.Count} itens após filtro");
 
 				// Scraping de imagem em paralelo com limite de concorrência
 				var tarefasImagem = itensBase.Select(async entry =>
@@ -186,11 +202,13 @@ namespace MengolNews.Api.Services
 
 				lista = (await Task.WhenAll(tarefasImagem)).ToList();
 			}
+			catch (TaskCanceledException)
+			{
+				Console.WriteLine($"[{fonte}] ⏱️ Timeout — fonte demorou demais, pulando");
+			}
 			catch (Exception ex)
 			{
-#if DEBUG
-				Console.WriteLine($"Erro ao ler RSS {fonte}: {ex.Message}");
-#endif
+				Console.WriteLine($"[{fonte}] ❌ Erro: {ex.Message}");
 			}
 
 			return lista;
@@ -225,11 +243,15 @@ namespace MengolNews.Api.Services
 
 				if (url.Contains("espn.com.br"))
 					paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'article-body')]//p");
-				else if (url.Contains("placar.com.br"))
+				else if (url.Contains("ge.globo.com"))
 					paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'content-text')]//p");
-				else if (url.Contains("wordpress.com") || url.Contains("falandodeflamengo"))
+				else if (url.Contains("lance.com.br"))
+					paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'content')]//p");
+				else if (url.Contains("colunadofla.com"))
 					paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'entry-content')]//p");
-				else if (url.Contains("brazilfooty.com"))
+				else if (url.Contains("urubuinterativo.com"))
+					paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'entry-content')]//p");
+				else if (url.Contains("flanoticias.com.br"))
 					paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'entry-content')]//p");
 				else
 					paragrafos = doc.DocumentNode.SelectNodes("//article//p | //div[contains(@class,'content')]//p");
@@ -242,7 +264,6 @@ namespace MengolNews.Api.Services
 						.Where(t => t.Length > 50)
 				);
 
-				// ✅ Limpa textos automáticos do conteúdo também
 				return LimparTextoRss(conteudo);
 			}
 			catch
