@@ -411,6 +411,8 @@ html, body {
 
     .footer-logo img {
         height: 32px;
+        max-width: 32px;
+        object-fit: contain;
         filter: drop-shadow(0 2px 6px rgba(200,16,46,0.5));
     }
 
