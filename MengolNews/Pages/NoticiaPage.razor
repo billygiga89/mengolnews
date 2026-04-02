@@ -34,7 +34,7 @@
                 <img src="@noticia.Imagem"
                      alt="@noticia.Titulo"
                      class="news-open-img"
-                     onerror="this.src='/images/escudo.png'; this.onerror=null;" />
+                     onerror="this.src='/images/Flamengo.png'; this.classList.add('news-open-img-fallback'); this.onerror=null;" />
             }
 
             <span class="news-tag">@noticia.Fonte • @noticia.Data.ToShortDateString()</span>
@@ -149,15 +149,3 @@
         Nav.NavigateTo("/noticias");
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

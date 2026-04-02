@@ -332,6 +332,14 @@ html, body {
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
 
+.news-open-img-fallback {
+    max-height: 180px;
+    object-fit: contain;
+    opacity: 0.3;
+    display: block;
+    margin: 0 auto;
+}
+
 .news-open .news-tag {
     color: #aaa;
     margin: 12px 0 4px;
