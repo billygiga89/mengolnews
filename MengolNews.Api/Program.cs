@@ -5,26 +5,27 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 
-// ?? HttpClient GLOBAL (PROXY + SERVICES)
+// HttpClient GLOBAL
 builder.Services.AddHttpClient("default", client =>
 {
 	client.Timeout = TimeSpan.FromSeconds(15);
 })
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
-	AllowAutoRedirect = true // ?? ESSENCIAL para imagens
+	AllowAutoRedirect = true
 });
 
-// ?? Service usando o HttpClient configurado
+// Services
 builder.Services.AddHttpClient<NoticiasService>();
+builder.Services.AddHttpClient<VideosService>();
 
-// ?? CORS (mais flexível pra DEV)
+// CORS
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowBlazor", policy =>
 	{
 		policy
-			.AllowAnyOrigin() // ?? libera tudo pra evitar bloqueio
+			.AllowAnyOrigin()
 			.AllowAnyHeader()
 			.AllowAnyMethod();
 	});
@@ -34,11 +35,8 @@ var app = builder.Build();
 
 // Pipeline
 app.UseHttpsRedirection();
-
 app.UseCors("AllowBlazor");
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
