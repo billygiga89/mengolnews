@@ -20,5 +20,6 @@ builder.Services.AddScoped(sp => new HttpClient
 // Serviço que consome a API
 builder.Services.AddScoped<NewsApiService>();
 
+
 await builder.Build().RunAsync();
 
