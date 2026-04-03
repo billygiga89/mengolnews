@@ -195,7 +195,7 @@ namespace MengolNews.Api.Services
 							? DateTime.UtcNow
 							: item.PublishDate.UtcDateTime,
 						Imagem = string.IsNullOrWhiteSpace(imagem)
-							? "/images/Flamengo.png"
+							? ""
 							: imagem
 					};
 				});

@@ -5,11 +5,9 @@
          alt="@Noticia.Titulo"
          loading="lazy"
          @onerror="OnImageError" />
-
     <div class="news-content">
         <span class="news-tag">@Noticia.Fonte</span>
         <h3>@Noticia.Titulo</h3>
-        <!-- DESCRIÇÃO REMOVIDA -->
     </div>
 </article>
 
@@ -17,14 +15,34 @@
     [Parameter, EditorRequired]
     public Noticia Noticia { get; set; } = default!;
 
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+
+    private static readonly string[] ImagensFlamengo = new[]
+    {
+        "/images/flamengo01.jpg",
+        "/images/flamengo02.jpg",
+        "/images/flamengo03.jpg",
+        "/images/flamengo04.jpg",
+        "/images/flamengo05.jpg",
+        "/images/flamengo06.jpg",
+        "/images/flamengo07.jpg",
+        "/images/flamengo08.jpg",
+        "/images/flamengo09.png",
+    };
+
+    private static readonly Random _rng = new();
+
+    private readonly string _imagemFallback =
+        ImagensFlamengo[_rng.Next(ImagensFlamengo.Length)];
+
     private string ImagemFinal =>
-    string.IsNullOrWhiteSpace(Noticia.Imagem)
-        ? "/images/Flamengo.png"
-        : Noticia.Imagem;
+        string.IsNullOrWhiteSpace(Noticia.Imagem)
+            ? _imagemFallback
+            : Noticia.Imagem;
 
     private void OnImageError()
     {
-        Noticia.Imagem = "/images/Flamengo.png";
+        Noticia.Imagem = _imagemFallback;
         StateHasChanged();
     }
 
@@ -33,10 +51,7 @@
         var url = Uri.EscapeDataString(Noticia.Link);
         NavigationManager.NavigateTo($"/noticia?url={url}");
     }
-
-    [Inject] NavigationManager NavigationManager { get; set; } = default!;
 }
-
 
 
 
