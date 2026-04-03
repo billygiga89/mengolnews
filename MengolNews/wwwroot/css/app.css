@@ -1,4 +1,4 @@
-/* =====================
+﻿/* =====================
    RESET / BASE
 ===================== */
 html, body {
@@ -312,7 +312,7 @@ html, body {
 }
 
 /* =====================
-   NOT�CIA ABERTA
+   NOTÍCIA ABERTA
 ===================== */
 .news-open {
     max-width: 860px;
@@ -648,7 +648,7 @@ html, body {
             text-align: center;
         }
 
-    /* HERO � fix principal */
+    /* HERO — fix principal */
     .hero {
         height: 260px; /* menor, proporcional ao mobile */
         min-height: 220px;
@@ -662,7 +662,7 @@ html, body {
     .hero-content {
         bottom: 14px;
         left: 14px;
-        right: 14px; /* evita t�tulo vazar para fora */
+        right: 14px; /* evita título vazar para fora */
         max-width: 100%;
     }
 
@@ -676,7 +676,7 @@ html, body {
         font-size: 0.65rem;
     }
 
-    /* NEWS GRID � 1 coluna no mobile */
+    /* NEWS GRID — 1 coluna no mobile */
     .news-list {
         grid-template-columns: 1fr;
         gap: 14px;
@@ -686,7 +686,7 @@ html, body {
         height: 220px; /* era 290px, muito alto em 1 coluna */
     }
 
-    /* NOT�CIA ABERTA */
+    /* NOTÍCIA ABERTA */
     .news-open {
         padding: 1rem;
         margin: 0.75rem;
@@ -751,11 +751,428 @@ html, body {
     }
 }
 
-/* FORA do @media � estado padr�o desktop */
+/* FORA do @media — estado padrão desktop */
 .social-icons-mobile {
     display: none;
 }
 
 .social-icons-desktop {
     display: flex;
+}
+
+/* ══════════════════════════════════════
+   SÉRIE A — MengolNews dark theme
+   ══════════════════════════════════════ */
+
+.seriea-wrapper {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+    color: #f0f0f0;
+}
+
+/* Header */
+.seriea-header {
+    margin-bottom: 1.5rem;
+}
+
+    .seriea-header h1 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #fff;
+        margin: 0 0 .25rem;
+    }
+
+        .seriea-header h1 .accent {
+            color: #c8102e;
+        }
+
+.seriea-subtitle {
+    color: #888;
+    font-size: .9rem;
+    margin: 0;
+}
+
+/* Tabs */
+.seriea-tabs {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+}
+
+.seriea-tab {
+    padding: .5rem 1.5rem;
+    border-radius: 999px;
+    border: 1px solid #444;
+    background: transparent;
+    color: #ccc;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+    .seriea-tab.active,
+    .seriea-tab:hover {
+        background: #c8102e;
+        border-color: #c8102e;
+        color: #fff;
+    }
+
+/* Tabela */
+.table-scroll {
+    overflow-x: auto;
+    border-radius: 12px;
+}
+
+.seriea-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+    background: #1e0e0e;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+    .seriea-table thead tr {
+        background: #c8102e;
+    }
+
+    .seriea-table th {
+        padding: .65rem .7rem;
+        color: #fff;
+        font-weight: 700;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        text-align: center;
+    }
+
+        .seriea-table th.left {
+            text-align: left;
+        }
+
+    .seriea-table tbody tr {
+        border-bottom: 1px solid #2a1010;
+        transition: background .15s;
+    }
+
+        .seriea-table tbody tr:hover {
+            background: #2a1212;
+        }
+
+    .seriea-table td {
+        padding: .55rem .7rem;
+        text-align: center;
+        color: #ddd;
+    }
+
+    /* Faixas de zona */
+    .seriea-table tr.zone-lib td:first-child {
+        border-left: 3px solid #3b82f6;
+    }
+
+    .seriea-table tr.zone-sul td:first-child {
+        border-left: 3px solid #f59e0b;
+    }
+
+    .seriea-table tr.zone-rel td:first-child {
+        border-left: 3px solid #ef4444;
+    }
+
+/* Badge de posição */
+.pos-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: .78rem;
+    font-weight: 700;
+    background: #2e1010;
+    color: #ccc;
+}
+
+    .pos-badge.zone-lib {
+        background: #1e3a5f;
+        color: #93c5fd;
+    }
+
+    .pos-badge.zone-sul {
+        background: #3d2800;
+        color: #fcd34d;
+    }
+
+    .pos-badge.zone-rel {
+        background: #3d0f0f;
+        color: #fca5a5;
+    }
+
+/* Time */
+.td-team {
+    text-align: left !important;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    white-space: nowrap;
+    color: #fff;
+    font-weight: 500;
+}
+
+.team-crest {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* Flamengo destaque */
+.row-fla {
+    background: rgba(200,16,46,.12) !important;
+}
+
+    .row-fla td {
+        color: #fff !important;
+        font-weight: 600;
+    }
+
+.fla-tag {
+    background: #c8102e;
+    color: #fff;
+    font-size: .6rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 2px;
+}
+
+/* Pontos e saldo */
+.td-pts {
+    font-weight: 800;
+    color: #fff !important;
+    font-size: .95rem;
+}
+
+.pos-gd {
+    color: #4ade80 !important;
+    font-weight: 600;
+}
+
+.neg-gd {
+    color: #f87171 !important;
+    font-weight: 600;
+}
+
+/* Legenda */
+.zone-legend {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: .85rem;
+    font-size: .78rem;
+    color: #888;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.lz {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+    .lz.lib {
+        background: #3b82f6;
+    }
+
+    .lz.sul {
+        background: #f59e0b;
+    }
+
+    .lz.rel {
+        background: #ef4444;
+    }
+
+/* ── Partidas ── */
+.matchday-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: 1rem;
+    color: #ddd;
+}
+
+    .matchday-nav button {
+        background: #c8102e;
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 34px;
+        height: 34px;
+        font-size: 1.4rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: background .2s;
+    }
+
+        .matchday-nav button:disabled {
+            background: #3a1a1a;
+            color: #555;
+            cursor: default;
+        }
+
+    .matchday-nav strong {
+        color: #fff;
+    }
+
+.matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: .85rem;
+}
+
+.match-card {
+    background: #1e0e0e;
+    border: 1px solid #2e1010;
+    border-radius: 12px;
+    padding: .9rem 1rem;
+    transition: border-color .2s, transform .15s;
+    position: relative;
+}
+
+    .match-card:hover {
+        border-color: #c8102e;
+        transform: translateY(-2px);
+    }
+
+    .match-card.fla-match {
+        border-color: rgba(200,16,46,.5);
+    }
+
+    .match-card.live {
+        border-color: #c8102e;
+        animation: pulse-border 1.5s ease-in-out infinite;
+    }
+
+@keyframes pulse-border {
+    0%, 100% {
+        border-color: #c8102e;
+    }
+
+    50% {
+        border-color: #ff4d6d;
+    }
+}
+
+.live-pill {
+    display: inline-block;
+    background: #c8102e;
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-bottom: .5rem;
+    letter-spacing: .05em;
+}
+
+.match-dt {
+    font-size: .73rem;
+    color: #666;
+    margin-bottom: .5rem;
+}
+
+.match-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.mteam {
+    flex: 1;
+    font-size: .88rem;
+    font-weight: 700;
+    color: #f0f0f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+    .mteam.away {
+        text-align: right;
+    }
+
+.match-score {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    background: #2e1010;
+    border-radius: 8px;
+    padding: .3rem .6rem;
+    flex-shrink: 0;
+}
+
+.score-val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.score-sep {
+    color: #666;
+    font-size: .9rem;
+}
+
+.score-vs {
+    font-size: .8rem;
+    color: #555;
+    font-weight: 600;
+    letter-spacing: .05em;
+}
+
+.match-status {
+    margin-top: .45rem;
+    font-size: .7rem;
+    color: #555;
+    text-align: center;
+}
+
+/* Skeleton */
+.sk-list {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+}
+
+.sk-row {
+    height: 48px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #1e0e0e 25%, #2a1010 50%, #1e0e0e 75%);
+    background-size: 200% 100%;
+    animation: shimmer-dark 1.3s infinite;
+}
+
+@keyframes shimmer-dark {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.seriea-error {
+    text-align: center;
+    padding: 2rem;
+    color: #c8102e;
+    font-weight: 600;
 }

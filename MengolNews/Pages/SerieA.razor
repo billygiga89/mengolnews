@@ -1,0 +1,241 @@
+﻿@* MengolNews/Pages/SerieA.razor *@
+@page "/serie-a"
+@inject HttpClient Http
+@using System.Text.Json
+@inject IConfiguration Config
+
+<PageTitle>Série A — MengolNews</PageTitle>
+
+<div class="seriea-wrapper">
+
+    <div class="seriea-header">
+        <h1>🏆 Brasileirão <span class="accent">Série A</span> 2026</h1>
+        <p class="seriea-subtitle">Tabela e partidas atualizadas</p>
+    </div>
+
+    <div class="seriea-tabs">
+        <button class="seriea-tab @(activeTab == "tabela" ? "active" : "")"
+                @onclick='() => SetTab("tabela")'>
+            Tabela
+        </button>
+        <button class="seriea-tab @(activeTab == "partidas" ? "active" : "")"
+                @onclick='() => SetTab("partidas")'>
+            Partidas
+        </button>
+    </div>
+
+    @if (loading)
+    {
+        <div class="sk-list">
+            @for (int i = 0; i < 8; i++)
+            {
+                <div class="sk-row"></div>
+            }
+        </div>
+    }
+    else if (error != null)
+    {
+        <div class="seriea-error">⚠️ @error</div>
+    }
+
+    @* ── TABELA ── *@
+    else if (activeTab == "tabela" && standings != null)
+    {
+        <div class="table-scroll">
+            <table class="seriea-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th class="left">Time</th>
+                        <th title="Pontos">PTS</th>
+                        <th title="Jogos">J</th>
+                        <th title="Vitórias">V</th>
+                        <th title="Empates">E</th>
+                        <th title="Derrotas">D</th>
+                        <th title="Saldo de gols">SG</th>
+                        <th title="Gols pró">GP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var team in standings)
+                    {
+                        var pos = team.GetProperty("position").GetInt32();
+                        var pts = team.GetProperty("points").GetInt32();
+                        var played = team.GetProperty("playedGames").GetInt32();
+                        var won = team.GetProperty("won").GetInt32();
+                        var draw = team.GetProperty("draw").GetInt32();
+                        var lost = team.GetProperty("lost").GetInt32();
+                        var gd = team.GetProperty("goalDifference").GetInt32();
+                        var gf = team.GetProperty("goalsFor").GetInt32();
+                        var name = team.GetProperty("team").GetProperty("shortName").GetString() ?? "?";
+                        var crest = team.GetProperty("team").GetProperty("crest").GetString() ?? "";
+                        var isFla = name.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
+
+                        var zoneClass = pos <= 6 ? "zone-lib"
+                        : pos <= 12 ? "zone-sul"
+                        : pos >= 17 ? "zone-rel" : "";
+
+                        <tr class="@zoneClass @(isFla ? "row-fla" : "")">
+                            <td class="td-pos">
+                                <span class="pos-badge @zoneClass">@pos</span>
+                            </td>
+                            <td class="td-team">
+                                @if (!string.IsNullOrEmpty(crest))
+                                {
+                                    <img src="@crest" class="team-crest"
+                                         onerror="this.style.display='none'" alt="" />
+                                }
+                                <span>@name</span>
+                                @if (isFla)
+                                {
+                                    <span class="fla-tag">FLA</span>
+                                }
+                            </td>
+                            <td class="td-pts">@pts</td>
+                            <td>@played</td>
+                            <td>@won</td>
+                            <td>@draw</td>
+                            <td>@lost</td>
+                            <td class="@(gd > 0 ? "pos-gd" : gd < 0 ? "neg-gd" : "")">
+                                @(gd > 0 ? "+" : "")@gd
+                            </td>
+                            <td>@gf</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="zone-legend">
+            <div class="legend-item"><span class="lz lib"></span> Libertadores</div>
+            <div class="legend-item"><span class="lz sul"></span> Sul-Americana</div>
+            <div class="legend-item"><span class="lz rel"></span> Rebaixamento</div>
+        </div>
+    }
+
+    @* ── PARTIDAS ── *@
+    else if (activeTab == "partidas" && matches != null)
+    {
+        <div class="matchday-nav">
+            <button @onclick="PrevMatchday" disabled="@(selectedMatchday <= 1)">&#8249;</button>
+            <span>Rodada <strong>@selectedMatchday</strong></span>
+            <button @onclick="NextMatchday" disabled="@(selectedMatchday >= 38)">&#8250;</button>
+        </div>
+
+        <div class="matches-grid">
+            @foreach (var m in matches)
+            {
+                var status = m.GetProperty("status").GetString();
+                var home = m.GetProperty("homeTeam").GetProperty("shortName").GetString() ?? "?";
+                var away = m.GetProperty("awayTeam").GetProperty("shortName").GetString() ?? "?";
+                var ft = m.GetProperty("score").GetProperty("fullTime");
+                var hg = ft.GetProperty("home").ValueKind == JsonValueKind.Null ? "-" : ft.GetProperty("home").GetInt32().ToString();
+                var ag = ft.GetProperty("away").ValueKind == JsonValueKind.Null ? "-" : ft.GetProperty("away").GetInt32().ToString();
+                var utc = m.GetProperty("utcDate").GetString()!;
+                var dt = DateTime.Parse(utc).ToLocalTime();
+                var isLive = status == "IN_PLAY" || status == "PAUSED";
+                var isDone = status == "FINISHED";
+                var hasFla = home.Contains("Flamengo", StringComparison.OrdinalIgnoreCase)
+                || away.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
+
+                <div class="match-card @(isLive ? "live" : "") @(hasFla ? "fla-match" : "")">
+                    @if (isLive)
+                    {
+                        <div class="live-pill">● AO VIVO</div>
+                    }
+                    @if (!isLive)
+                    {
+                        <div class="match-dt">@dt.ToString("dd/MM · HH:mm")</div>
+                    }
+
+                    <div class="match-body">
+                        <span class="mteam home">@home</span>
+
+                        <div class="match-score">
+                            @if (isDone || isLive)
+                            {
+                                <span class="score-val">@hg</span>
+                                <span class="score-sep">×</span>
+                                <span class="score-val">@ag</span>
+                            }
+                            else
+                            {
+                                <span class="score-vs">VS</span>
+                            }
+                        </div>
+
+                        <span class="mteam away">@away</span>
+                    </div>
+
+                    @if (isDone)
+                    {
+                        <div class="match-status">Encerrado</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    string activeTab = "tabela";
+    bool loading = true;
+    string? error;
+    List<JsonElement>? standings;
+    List<JsonElement>? matches;
+    int selectedMatchday = 1;
+
+    // Ajuste se usar BaseAddress configurado no Program.cs do Blazor
+    string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
+
+    protected override async Task OnInitializedAsync()
+        => await LoadStandings();
+
+    async Task SetTab(string tab)
+    {
+        if (activeTab == tab) return;
+        activeTab = tab;
+        if (tab == "partidas" && matches == null)
+            await LoadMatches();
+    }
+
+    async Task LoadStandings()
+    {
+        loading = true; error = null;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<JsonElement>($"{Api}api/seriea/standings");
+            var table = res.GetProperty("standings")[0].GetProperty("table");
+            standings = table.EnumerateArray().ToList();
+        }
+        catch (Exception ex) { error = "Não foi possível carregar a tabela. " + ex.Message; }
+        finally { loading = false; }
+    }
+
+    async Task LoadMatches()
+    {
+        loading = true; error = null;
+        try
+        {
+            var res = await Http.GetFromJsonAsync<JsonElement>(
+                $"{Api}api/seriea/matches?matchday={selectedMatchday}");
+            matches = res.GetProperty("matches").EnumerateArray().ToList();
+        }
+        catch (Exception ex) { error = "Não foi possível carregar as partidas. " + ex.Message; }
+        finally { loading = false; }
+    }
+
+    async Task PrevMatchday()
+    {
+        if (selectedMatchday <= 1) return;
+        selectedMatchday--; matches = null;
+        await LoadMatches();
+    }
+
+    async Task NextMatchday()
+    {
+        if (selectedMatchday >= 38) return;
+        selectedMatchday++; matches = null;
+        await LoadMatches();
+    }
+}

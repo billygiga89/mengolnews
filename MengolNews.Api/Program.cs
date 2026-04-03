@@ -19,6 +19,10 @@ builder.Services.AddHttpClient("default", client =>
 builder.Services.AddHttpClient<NoticiasService>();
 builder.Services.AddHttpClient<VideosService>();
 
+// Adicionar junto com os outros serviços:
+builder.Services.AddMemoryCache(); // se ainda não tiver
+builder.Services.AddHttpClient<SerieAService>();
+
 // CORS
 builder.Services.AddCors(options =>
 {
