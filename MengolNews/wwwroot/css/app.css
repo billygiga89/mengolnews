@@ -34,7 +34,7 @@ html, body {
     box-shadow: 0 4px 24px rgba(0,0,0,0.4);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000;
 }
 
     .header .container {
@@ -66,56 +66,16 @@ html, body {
     }
 
 /* =====================
-   NAV
+   SOCIAL ICONS — estado padrão desktop
 ===================== */
-.header nav {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin-left: auto;
+.social-icons-mobile {
+    display: none;
 }
 
-    .header nav a {
-        color: rgba(255,255,255,0.9);
-        margin-left: 18px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.95rem;
-        position: relative;
-        transition: color 0.2s;
-        white-space: nowrap;
-    }
+.social-icons-desktop {
+    display: flex;
+}
 
-        .header nav a:hover {
-            color: #fff;
-        }
-
-        .header nav a::after {
-            content: "";
-            position: absolute;
-            bottom: -6px;
-            width: 0;
-            height: 2px;
-            background: rgba(255,255,255,0.8);
-            left: 0;
-            transition: width 0.2s;
-        }
-
-        .header nav a:hover::after {
-            width: 100%;
-        }
-
-        .header nav a.active {
-            color: #fff;
-        }
-
-            .header nav a.active::after {
-                width: 100%;
-            }
-
-/* =====================
-   SOCIAL ICONS
-===================== */
 .social-icons {
     display: flex;
     align-items: center;
@@ -142,6 +102,89 @@ html, body {
     .social-icons svg {
         width: 20px;
         height: 20px;
+    }
+
+/* =====================
+   NAV
+===================== */
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-left: auto;
+}
+
+    .nav a {
+        color: rgba(255,255,255,0.9);
+        margin-left: 18px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        position: relative;
+        transition: color 0.2s;
+        white-space: nowrap;
+    }
+
+        .nav a:hover {
+            color: #fff;
+        }
+
+        .nav a::after {
+            content: "";
+            position: absolute;
+            bottom: -6px;
+            width: 0;
+            height: 2px;
+            background: rgba(255,255,255,0.8);
+            left: 0;
+            transition: width 0.2s;
+        }
+
+        .nav a:hover::after {
+            width: 100%;
+        }
+
+        .nav a.active {
+            color: #fff;
+        }
+
+            .nav a.active::after {
+                width: 100%;
+            }
+
+/* =====================
+   HAMBURGUER
+===================== */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    margin-left: auto;
+}
+
+    .hamburger span {
+        display: block;
+        width: 24px;
+        height: 2px;
+        background: #fff;
+        border-radius: 2px;
+        transition: all .3s;
+    }
+
+    .hamburger.open span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+    }
+
+    .hamburger.open span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .hamburger.open span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
     }
 
 /* =====================
@@ -466,7 +509,7 @@ html, body {
 /* =====================
    SKELETON SHIMMER
 ===================== */
-@@keyframes shimmer {
+@keyframes shimmer {
     0% {
         background-position: 200% 0;
     }
@@ -597,14 +640,14 @@ html, body {
 }
 
 /* =====================
-   RESPONSIVO
+   RESPONSIVO — TABLET/MOBILE
 ===================== */
-
 @media (max-width: 768px) {
+
     /* HEADER */
     .header .container {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
         gap: 0;
         padding: 10px 16px;
     }
@@ -612,62 +655,86 @@ html, body {
     .brand {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         width: 100%;
-        padding-bottom: 8px;
+        gap: 8px;
+        padding-bottom: 0;
     }
 
+    /* Redes sociais mobile — aparecem na brand */
     .social-icons-mobile {
-        display: flex;
+        display: flex !important;
         margin-left: auto;
-        padding-left: 12px;
+        padding-left: 10px;
         border-left: none;
-        gap: 14px;
+        gap: 12px;
     }
 
+    /* Redes sociais desktop — somem */
     .social-icons-desktop {
-        display: none;
+        display: none !important;
     }
 
-    .header nav {
-        width: 100%;
-        display: flex;
-        flex-wrap: nowrap;
-        justify-content: space-around;
-        align-items: center;
+    /* Hamburguer aparece */
+    .hamburger {
+        display: flex !important;
+        margin-left: 10px;
+    }
+
+    /* Nav fica escondida por padrão */
+    .nav {
+        display: none !important;
+        flex-direction: column;
+        align-items: flex-start;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #c8102e;
+        padding: 1rem;
+        gap: .75rem;
+        z-index: 999;
         margin-left: 0;
-        gap: 0;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        padding-top: 8px;
     }
 
-        .header nav a {
-            margin-left: 0;
-            font-size: 0.88rem;
-            flex: 1;
-            text-align: center;
+        /* Nav abre quando tem a classe nav-open */
+        .nav.nav-open {
+            display: flex !important;
         }
 
-    /* HERO — fix principal */
+        .nav a {
+            margin-left: 0;
+            font-size: 1rem;
+            padding: .4rem 0;
+            border-bottom: 1px solid rgba(255,255,255,.15);
+            width: 100%;
+            white-space: normal;
+        }
+
+            .nav a::after {
+                display: none;
+            }
+
+    /* HERO */
     .hero {
-        height: 260px; /* menor, proporcional ao mobile */
+        height: 260px;
         min-height: 220px;
         border-radius: 10px;
     }
 
         .hero img {
-            object-position: center center; /* melhor para escudos/fotos */
+            object-position: center center;
         }
 
     .hero-content {
         bottom: 14px;
         left: 14px;
-        right: 14px; /* evita título vazar para fora */
+        right: 14px;
         max-width: 100%;
     }
 
         .hero-content h1 {
-            font-size: 1.2rem; /* era 1.5rem, ainda grande demais */
+            font-size: 1.2rem;
             margin: 6px 0 4px;
             line-height: 1.2;
         }
@@ -676,14 +743,14 @@ html, body {
         font-size: 0.65rem;
     }
 
-    /* NEWS GRID — 1 coluna no mobile */
+    /* NEWS GRID */
     .news-list {
         grid-template-columns: 1fr;
         gap: 14px;
     }
 
     .news-card {
-        height: 220px; /* era 290px, muito alto em 1 coluna */
+        height: 220px;
     }
 
     /* NOTÍCIA ABERTA */
@@ -714,11 +781,6 @@ html, body {
 }
 
 @media (max-width: 480px) {
-    .header nav a {
-        font-size: 0.78rem;
-        padding: 2px 0;
-    }
-
     .social-icons svg {
         width: 18px;
         height: 18px;
@@ -744,26 +806,15 @@ html, body {
         padding: 12px;
     }
 
-    /* Footer mais compacto */
     .footer-links {
         flex-wrap: wrap;
         gap: 12px;
     }
 }
 
-/* FORA do @media — estado padrão desktop */
-.social-icons-mobile {
-    display: none;
-}
-
-.social-icons-desktop {
-    display: flex;
-}
-
 /* ══════════════════════════════════════
    SÉRIE A — MengolNews dark theme
    ══════════════════════════════════════ */
-
 .seriea-wrapper {
     max-width: 860px;
     margin: 0 auto;
@@ -771,7 +822,6 @@ html, body {
     color: #f0f0f0;
 }
 
-/* Header */
 .seriea-header {
     margin-bottom: 1.5rem;
 }
@@ -794,7 +844,6 @@ html, body {
     margin: 0;
 }
 
-/* Tabs */
 .seriea-tabs {
     display: flex;
     gap: .5rem;
@@ -820,7 +869,6 @@ html, body {
         color: #fff;
     }
 
-/* Tabela */
 .table-scroll {
     overflow-x: auto;
     border-radius: 12px;
@@ -868,7 +916,6 @@ html, body {
         color: #ddd;
     }
 
-    /* Faixas de zona */
     .seriea-table tr.zone-lib td:first-child {
         border-left: 3px solid #3b82f6;
     }
@@ -881,7 +928,6 @@ html, body {
         border-left: 3px solid #ef4444;
     }
 
-/* Badge de posição */
 .pos-badge {
     display: inline-flex;
     align-items: center;
@@ -910,7 +956,6 @@ html, body {
         color: #fca5a5;
     }
 
-/* Time */
 .td-team {
     text-align: left !important;
     display: flex;
@@ -928,7 +973,6 @@ html, body {
     flex-shrink: 0;
 }
 
-/* Flamengo destaque */
 .row-fla {
     background: rgba(200,16,46,.12) !important;
 }
@@ -948,7 +992,6 @@ html, body {
     margin-left: 2px;
 }
 
-/* Pontos e saldo */
 .td-pts {
     font-weight: 800;
     color: #fff !important;
@@ -965,7 +1008,6 @@ html, body {
     font-weight: 600;
 }
 
-/* Legenda */
 .zone-legend {
     display: flex;
     gap: 1.25rem;
@@ -999,7 +1041,6 @@ html, body {
         background: #ef4444;
     }
 
-/* ── Partidas ── */
 .matchday-nav {
     display: flex;
     align-items: center;
@@ -1146,7 +1187,6 @@ html, body {
     text-align: center;
 }
 
-/* Skeleton */
 .sk-list {
     display: flex;
     flex-direction: column;
@@ -1176,4 +1216,20 @@ html, body {
     padding: 2rem;
     color: #c8102e;
     font-weight: 600;
+}
+
+
+/* Fix ícones duplicados */
+.social-icons-mobile {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .social-icons-mobile {
+        display: flex !important;
+    }
+
+    .social-icons-desktop {
+        display: none !important;
+    }
 }
