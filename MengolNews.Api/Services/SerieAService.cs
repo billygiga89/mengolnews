@@ -50,11 +50,22 @@ public class SerieAService
 
 		var res = await _http.SendAsync(CreateRequest(url));
 		res.EnsureSuccessStatusCode();
-
 		var data = JsonSerializer.Deserialize<JsonElement>(
 			await res.Content.ReadAsStringAsync());
 
-		_cache.Set(cacheKey, data, TimeSpan.FromMinutes(10));
+		// Se tem jogo ao vivo ou de hoje → cache curto (1 min)
+		// Caso contrário → cache normal (30 min)
+		var temJogoAtivo = data.GetProperty("matches").EnumerateArray().Any(m =>
+		{
+			var status = m.GetProperty("status").GetString();
+			var utc = m.GetProperty("utcDate").GetString();
+			var isHoje = DateTime.TryParse(utc, out var dt) && dt.Date == DateTime.UtcNow.Date;
+			return isHoje && (status == "IN_PLAY" || status == "PAUSED" || status == "FINISHED");
+		});
+
+		var duracao = temJogoAtivo ? TimeSpan.FromMinutes(1) : TimeSpan.FromMinutes(30);
+		_cache.Set(cacheKey, data, duracao);
+
 		return data;
 	}
 }
