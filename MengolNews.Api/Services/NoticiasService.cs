@@ -37,10 +37,10 @@ namespace MengolNews.Api.Services
 			var tarefas = new List<Task<List<NoticiaDto>>>
 			{
 				GetEspnNoticias(),
-				GetGeGloboNoticias(),
+				GetNetFla(),
 				GetColunaDoFla(),
 				GetUrubuInterativo(),
-				GetFlaNoticiasRss(),
+				GetFlamengoRj(),
 				GetLanceNoticias(),
 			};
 
@@ -89,21 +89,25 @@ namespace MengolNews.Api.Services
 		private Task<List<NoticiaDto>> GetEspnNoticias()
 			=> LerRss("https://www.espn.com.br/rss/flamengo.xml", "ESPN", filtrarFlamengo: true);
 
-		private Task<List<NoticiaDto>> GetGeGloboNoticias()
-			=> LerRss("https://ge.globo.com/rss/flamengo.xml", "GE GLOBO", filtrarFlamengo: false);
-
-		private Task<List<NoticiaDto>> GetLanceNoticias()
-			=> LerRss("https://www.lance.com.br/flamengo.rss", "LANCE!", filtrarFlamengo: false);
 
 		// ✅ Sites específicos do Flamengo (sem filtro necessário)
 		private Task<List<NoticiaDto>> GetColunaDoFla()
 			=> LerRss("https://colunadofla.com/feed", "COLUNA DO FLA", filtrarFlamengo: false);
 
 		private Task<List<NoticiaDto>> GetUrubuInterativo()
-			=> LerRss("https://urubuinterativo.com/feed", "URUBU INTERATIVO", filtrarFlamengo: false);
+			=> LerRss("https://noticiasfla.com.br/feed", "NOTÍCIAS FLA", filtrarFlamengo: false);
 
-		private Task<List<NoticiaDto>> GetFlaNoticiasRss()
-			=> LerRss("https://flanoticias.com.br/feed", "FLA NOTÍCIAS", filtrarFlamengo: false);
+		// Lance — URL nova
+		private Task<List<NoticiaDto>> GetLanceNoticias()
+			=> LerRss("https://br.bolavip.com/rss/flamengo", "BOLAVIP", filtrarFlamengo: false);
+
+		// GE Globo — substituir por Netfla
+		private Task<List<NoticiaDto>> GetNetFla()
+			=> LerRss("https://netfla.com.br/feed", "NETFLA", filtrarFlamengo: false);
+
+		// Fla Notícias — substituir por Flamengo RJ
+		private Task<List<NoticiaDto>> GetFlamengoRj()
+			 => LerRss("https://urubuinterativo.com/feed/", "URUBU INTERATIVO", filtrarFlamengo: false);
 
 		/* =======================
            LEITOR RSS
@@ -139,7 +143,9 @@ namespace MengolNews.Api.Services
 				}
 
 				using var stream = await response.Content.ReadAsStreamAsync();
-				using var reader = XmlReader.Create(stream);
+				//using var reader = XmlReader.Create(stream);
+				var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse };
+				using var reader = XmlReader.Create(stream, settings);
 
 				var feed = SyndicationFeed.Load(reader);
 				if (feed == null) return lista;
