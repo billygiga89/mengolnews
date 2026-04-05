@@ -288,7 +288,9 @@ namespace MengolNews.Api.Services
 		{
 			try
 			{
-				var web = new HtmlWeb();
+				//var web = new HtmlWeb();
+				var web = new HtmlWeb { };
+				web.PreRequest += req => { req.Timeout = 5000; return true; };
 				var doc = await web.LoadFromWebAsync(url);
 
 				var ogImage = doc.DocumentNode
@@ -413,6 +415,8 @@ namespace MengolNews.Api.Services
 				@"Acesse o .+ e confira.*",
 				@"Veja (mais |)n[oa] .+\.",
 				@"Publicado (primeiro |)em .+\.",
+				@"^ATENÇÃO:\s*",          
+				@"\s*ATENÇÃO:\s*$",
 			};
 
 			var resultado = texto;

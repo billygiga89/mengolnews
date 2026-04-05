@@ -16,12 +16,15 @@ builder.Services.AddHttpClient("default", client =>
 });
 
 // Services
-builder.Services.AddHttpClient<NoticiasService>();
+//builder.Services.AddHttpClient<NoticiasService>();
 builder.Services.AddHttpClient<VideosService>();
 
 // Adicionar junto com os outros serviços:
 builder.Services.AddMemoryCache(); // se ainda não tiver
 builder.Services.AddHttpClient<SerieAService>();
+
+builder.Services.AddSingleton<NoticiasService>();
+builder.Services.AddHostedService<CacheWarmupService>();
 
 // CORS
 builder.Services.AddCors(options =>
