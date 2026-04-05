@@ -67,7 +67,7 @@
                         var lost = team.GetProperty("lost").GetInt32();
                         var gd = team.GetProperty("goalDifference").GetInt32();
                         var gf = team.GetProperty("goalsFor").GetInt32();
-                        var name = team.GetProperty("team").GetProperty("shortName").GetString() ?? "?";
+                        var name = FixNome(team.GetProperty("team").GetProperty("shortName").GetString());
                         var crest = team.GetProperty("team").GetProperty("crest").GetString() ?? "";
                         var isFla = name.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
 
@@ -126,11 +126,11 @@
             @foreach (var m in matches)
             {
                 var status = m.GetProperty("status").GetString();
-                var home = m.GetProperty("homeTeam").GetProperty("shortName").GetString() ?? "?";
-                var away = m.GetProperty("awayTeam").GetProperty("shortName").GetString() ?? "?";
-                var ft = m.GetProperty("score").GetProperty("fullTime");
-                var hg = ft.GetProperty("home").ValueKind == JsonValueKind.Null ? "-" : ft.GetProperty("home").GetInt32().ToString();
-                var ag = ft.GetProperty("away").ValueKind == JsonValueKind.Null ? "-" : ft.GetProperty("away").GetInt32().ToString();
+                var home = FixNome(m.GetProperty("homeTeam").GetProperty("shortName").GetString());
+                var away = FixNome(m.GetProperty("awayTeam").GetProperty("shortName").GetString());
+                var placar = ResolverPlacar(m);
+                var hg = placar.HasValue ? placar.Value.hg.ToString() : "-";
+                var ag = placar.HasValue ? placar.Value.ag.ToString() : "-";
                 var utc = m.GetProperty("utcDate").GetString()!;
                 var dt = DateTime.Parse(utc).ToLocalTime();
                 var isLive = status == "IN_PLAY" || status == "PAUSED";
@@ -152,7 +152,7 @@
                         <span class="mteam home">@home</span>
 
                         <div class="match-score">
-                            @if (isDone || isLive)
+                            @if ((isDone || isLive) && placar.HasValue)
                             {
                                 <span class="score-val">@hg</span>
                                 <span class="score-sep">×</span>
@@ -171,6 +171,10 @@
                     {
                         <div class="match-status">Encerrado</div>
                     }
+                    @if (isLive && !placar.HasValue)
+                    {
+                        <div class="match-status">Intervalo</div>
+                    }
                 </div>
             }
         </div>
@@ -185,8 +189,43 @@
     List<JsonElement>? matches;
     int selectedMatchday = 1;
 
-    // Ajuste se usar BaseAddress configurado no Program.cs do Blazor
     string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
+
+    private static readonly Dictionary<string, string> NomesFix = new()
+    {
+        { "Mineiro", "Atlético-MG" },
+        { "Paranaense", "Athletico-PR" },
+        { "Clube do Remo", "Remo" }
+    };
+
+    private string FixNome(string? nome)
+    {
+        if (nome == null) return "?";
+        return NomesFix.TryGetValue(nome, out var fix) ? fix : nome;
+    }
+
+    // Resolve placar com fallback para halfTime quando a API zera fullTime no intervalo
+    private (int hg, int ag)? ResolverPlacar(JsonElement m)
+    {
+        var score = m.GetProperty("score");
+
+        var ft = score.GetProperty("fullTime");
+        if (ft.GetProperty("home").ValueKind != JsonValueKind.Null &&
+            ft.GetProperty("away").ValueKind != JsonValueKind.Null)
+        {
+            return (ft.GetProperty("home").GetInt32(), ft.GetProperty("away").GetInt32());
+        }
+
+        // Fallback: halfTime (API zera fullTime durante o intervalo)
+        if (score.TryGetProperty("halfTime", out var ht) &&
+            ht.GetProperty("home").ValueKind != JsonValueKind.Null &&
+            ht.GetProperty("away").ValueKind != JsonValueKind.Null)
+        {
+            return (ht.GetProperty("home").GetInt32(), ht.GetProperty("away").GetInt32());
+        }
+
+        return null;
+    }
 
     protected override async Task OnInitializedAsync()
         => await LoadStandings();
@@ -205,6 +244,11 @@
         try
         {
             var res = await Http.GetFromJsonAsync<JsonElement>($"{Api}api/seriea/standings");
+
+            if (res.TryGetProperty("season", out var season) &&
+                season.TryGetProperty("currentMatchday", out var cmd))
+                selectedMatchday = cmd.GetInt32();
+
             var table = res.GetProperty("standings")[0].GetProperty("table");
             standings = table.EnumerateArray().ToList();
         }

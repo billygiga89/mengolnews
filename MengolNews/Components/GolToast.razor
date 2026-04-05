@@ -1,0 +1,163 @@
+﻿@using System.Text.Json
+@inject HttpClient Http
+@inject IConfiguration Config
+@implements IAsyncDisposable
+
+@if (toasts.Any())
+{
+    <div class="gol-toast-container">
+        @foreach (var toast in toasts)
+        {
+            <div class="gol-toast @(toast.Saindo ? "saindo" : "")">
+                ⚽ <strong>GOL!</strong> @toast.Mensagem
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private record ToastItem(string Id, string Mensagem, bool Saindo = false);
+
+    private List<ToastItem> toasts = new();
+
+    // placar anterior: chave = "HomeTeam|AwayTeam", valor = "hg|ag"
+    private Dictionary<string, string> placarAnterior = new();
+
+    private int rodadaAtual = 0;
+    private PeriodicTimer? timer;
+    private CancellationTokenSource cts = new();
+
+    string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarRodadaAtual();
+        
+        if (rodadaAtual > 0)
+        {
+            // Primeira carga: só salva o placar, sem notificar
+            await AtualizarPlacar(notificar: false);
+
+            // Polling a cada 30 segundos
+            timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+            _ = IniciarPolling();
+        }
+    }
+
+    private async Task CarregarRodadaAtual()
+    {
+        try
+        {
+            var res = await Http.GetFromJsonAsync<JsonElement>($"{Api}api/seriea/standings");
+            if (res.TryGetProperty("season", out var season) &&
+                season.TryGetProperty("currentMatchday", out var cmd))
+                rodadaAtual = cmd.GetInt32();
+        }
+        catch { }
+    }
+
+    private async Task IniciarPolling()
+    {
+        try
+        {
+            while (await timer!.WaitForNextTickAsync(cts.Token))
+                await AtualizarPlacar(notificar: true);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task AtualizarPlacar(bool notificar)
+    {
+        try
+        {
+            var res = await Http.GetFromJsonAsync<JsonElement>(
+                $"{Api}api/seriea/matches?matchday={rodadaAtual}");
+
+            var partidas = res.GetProperty("matches").EnumerateArray();
+
+            foreach (var m in partidas)
+            {
+                var status = m.GetProperty("status").GetString();
+                var isAtivo = status == "IN_PLAY" || status == "PAUSED" || status == "FINISHED";
+                if (!isAtivo) continue;
+
+                var home = m.GetProperty("homeTeam").GetProperty("shortName").GetString() ?? "?";
+                var away = m.GetProperty("awayTeam").GetProperty("shortName").GetString() ?? "?";
+
+                // Tenta fullTime primeiro, cai para halfTime se nulo (bug da API no intervalo)
+                var placar = ResolverPlacar(m);
+                if (placar == null) continue;
+
+                var (hg, ag) = placar.Value;
+                var chave = $"{home}|{away}";
+                var placarAtual = $"{hg}|{ag}";
+
+                if (placarAnterior.TryGetValue(chave, out var anterior))
+                {
+                    if (notificar && anterior != placarAtual)
+                    {
+                        var partsAnt = anterior.Split('|');
+                        var hgAnt = int.Parse(partsAnt[0]);
+                        var agAnt = int.Parse(partsAnt[1]);
+
+                        // Só notifica se o placar realmente aumentou (evita falso positivo do bug da API)
+                        if (hg > hgAnt || ag > agAnt)
+                            await ExibirToast($"{home} {hg} × {ag} {away}");
+                    }
+                }
+
+                placarAnterior[chave] = placarAtual;
+            }
+        }
+        catch { }
+    }
+
+    private (int hg, int ag)? ResolverPlacar(JsonElement m)
+    {
+        var score = m.GetProperty("score");
+
+        // Tenta fullTime
+        var ft = score.GetProperty("fullTime");
+        if (ft.GetProperty("home").ValueKind != JsonValueKind.Null &&
+            ft.GetProperty("away").ValueKind != JsonValueKind.Null)
+        {
+            return (ft.GetProperty("home").GetInt32(), ft.GetProperty("away").GetInt32());
+        }
+
+        // Fallback: halfTime (API zera fullTime no intervalo)
+        if (score.TryGetProperty("halfTime", out var ht) &&
+            ht.GetProperty("home").ValueKind != JsonValueKind.Null &&
+            ht.GetProperty("away").ValueKind != JsonValueKind.Null)
+        {
+            return (ht.GetProperty("home").GetInt32(), ht.GetProperty("away").GetInt32());
+        }
+
+        return null;
+    }
+
+    private async Task ExibirToast(string mensagem)
+    {
+        var toast = new ToastItem(Guid.NewGuid().ToString(), mensagem);
+        toasts.Add(toast);
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(7000);
+
+        var idx = toasts.FindIndex(t => t.Id == toast.Id);
+        if (idx >= 0)
+        {
+            toasts[idx] = toast with { Saindo = true };
+            await InvokeAsync(StateHasChanged);
+        }
+
+        await Task.Delay(500);
+        toasts.RemoveAll(t => t.Id == toast.Id);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        cts.Cancel();
+        timer?.Dispose();
+    }
+}

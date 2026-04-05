@@ -149,7 +149,15 @@ namespace MengolNews.Api.Services
 				foreach (var item in feed.Items)
 				{
 					var titulo = item.Title?.Text ?? "";
-					var descricaoBruta = item.Summary?.Text ?? "";
+					// Tenta pegar content:encoded (conteúdo completo) antes do Summary (resumo)
+					var contentEncoded = item.ElementExtensions
+						.ReadElementExtensions<XmlElement>("encoded", "http://purl.org/rss/1.0/modules/content/")
+						.FirstOrDefault()?.InnerText ?? "";
+
+					var descricaoBruta = !string.IsNullOrWhiteSpace(contentEncoded)
+						? contentEncoded
+						: item.Summary?.Text ?? "";
+
 					var link = item.Links.FirstOrDefault()?.Uri.ToString() ?? "";
 
 					if (filtrarFlamengo && !EhRelacionadoAoFlamengo(titulo, descricaoBruta))
@@ -260,7 +268,7 @@ namespace MengolNews.Api.Services
 
 				var conteudo = string.Join("\n\n",
 					paragrafos
-						.Select(p => p.InnerText.Trim())
+						.Select(p => System.Net.WebUtility.HtmlDecode(p.InnerText.Trim()))
 						.Where(t => t.Length > 50)
 				);
 
