@@ -121,7 +121,20 @@
         if (ft.GetProperty("home").ValueKind != JsonValueKind.Null &&
             ft.GetProperty("away").ValueKind != JsonValueKind.Null)
         {
-            return (ft.GetProperty("home").GetInt32(), ft.GetProperty("away").GetInt32());
+            var hg = ft.GetProperty("home").GetInt32();
+            var ag = ft.GetProperty("away").GetInt32();
+
+            // ✅ ÚNICO CHANGE: ignora fullTime 0×0 se não for FINISHED
+            // (API zera o fullTime no início do 2º tempo antes de atualizar)
+            var status = m.GetProperty("status").GetString();
+            if (hg == 0 && ag == 0 && status != "FINISHED")
+            {
+                // cai para halfTime abaixo
+            }
+            else
+            {
+                return (hg, ag);
+            }
         }
 
         // Fallback: halfTime (API zera fullTime no intervalo)

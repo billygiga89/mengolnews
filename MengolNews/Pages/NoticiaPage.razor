@@ -8,6 +8,7 @@
 <PageTitle>@(noticia?.Titulo ?? "Notícia") | MengolNews</PageTitle>
 
 <section class="section">
+
     @if (carregando)
     {
         <div class="news-open skeleton-detalhe">
@@ -38,6 +39,14 @@
             }
 
             <span class="news-tag">@noticia.Fonte • @noticia.Data.ToShortDateString()</span>
+            <div class="news-open-actions">
+                <button @onclick="Voltar">⬅ Voltar</button>
+                <a href="@noticia.Link"
+                   target="_blank"
+                   rel="noopener">
+                    🔗 Ver no site original
+                </a>
+            </div>
             <h1 class="news-open-title">@noticia.Titulo</h1>
 
             @if (carregandoConteudo)
