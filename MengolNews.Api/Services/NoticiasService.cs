@@ -1,5 +1,6 @@
 using HtmlAgilityPack;
 using MengolNews.Api.Models;
+using System.Net;
 using System.ServiceModel.Syndication;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -411,9 +412,20 @@ namespace MengolNews.Api.Services
 		private string LimparTextoRss(string texto)
 		{
 			if (string.IsNullOrWhiteSpace(texto)) return "";
-
+			// 1. Decodifica entidades HTML (' → ' | " → ")
+			texto = WebUtility.HtmlDecode(texto);
+			// 2. Remove lixo de redes sociais / créditos
 			var padroes = new[]
 			{
+				// Créditos tipo "Reprodução/GE TV | @geglobo"
+				@"Reprodu[çc][aã]o\s*/[^\n\.]{0,60}",
+				// Links de imagem do Twitter: pic.twitter.com/xxxxx
+				@"pic\.twitter\.com\/\S+",
+				// Tweets embutidos: "— Conta (@handle) Mês DD, YYYY"
+				@"—\s*[^\(@\n]+\(@\w+\)\s+\w+\s+\d{1,2},\s+\d{4}",
+				// Menções soltas: @handle
+				@"@\w{3,}",
+				// Padrões originais
 				@"O post .+ apareceu primeiro em .+\.",
 				@"The post .+ appeared first on .+\.",
 				@"Continua após a publicidade.*",
@@ -421,15 +433,36 @@ namespace MengolNews.Api.Services
 				@"Acesse o .+ e confira.*",
 				@"Veja (mais |)n[oa] .+\.",
 				@"Publicado (primeiro |)em .+\.",
-				@"^ATENÇÃO:\s*",          
+				@"^ATENÇÃO:\s*",
 				@"\s*ATENÇÃO:\s*$",
+				// Links internos de navegação dos sites de origem
+				@"🔴?\s*Veja o retrospecto completo de .+",
+				@"🔴?\s*Quer saber quem joga\?.+",
+				@"🔴?\s*Veja também .+",
+				@"📅?\s*Veja também .+",
+				// Genéricos que cobrem variações futuras
+				@"[\p{So}\p{Sm}]\s*(Veja|Confira|Leia|Quer).{0,80}",
+				@"Veja (o retrospecto|também|mais sobre).{0,80}",
+				@"Quer saber .{0,80}\?[^\n]*",
+				@"Confira (o elenco|o calendário|a tabela).{0,80}",
+				@"Fique Atento!.{0,200}",
+				@"Qual o horário .+\?",
+				@"Como assistir .+\?",
+				@"Onde comprar .+\?",
 			};
 
 			var resultado = texto;
-			foreach (var padrao in padroes)
-				resultado = Regex.Replace(resultado, padrao, "", RegexOptions.IgnoreCase).Trim();
 
-			return resultado;
+			foreach (var padrao in padroes)
+				resultado = Regex.Replace(resultado, padrao, "", RegexOptions.IgnoreCase | RegexOptions.Multiline).Trim();
+			// 3. Remove linhas que ficaram só com emoji após limpeza
+			resultado = Regex.Replace(resultado, @"^\s*[\p{So}\p{Cs}\p{Sm}]+\s*$", "",
+				RegexOptions.Multiline);
+			// 4. Colapsa espaços/quebras excessivas
+			resultado = Regex.Replace(resultado, @"[ \t]{2,}", " ");
+			resultado = Regex.Replace(resultado, @"\n{3,}", "\n\n");
+
+			return resultado.Trim();
 		}
 	}
 }
