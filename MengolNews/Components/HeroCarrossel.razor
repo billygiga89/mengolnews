@@ -1,0 +1,75 @@
+﻿@using NoticiaModel = MengolNews.Models.Noticia
+@using MengolNews.Models
+@using MengolNews.Components
+@inject NavigationManager Nav
+@implements IDisposable
+
+@if (Noticias == null || !Noticias.Any())
+{
+    <section class="hero section">
+        <img src="/images/Flamengo.png" alt="MengolNews" />
+    </section>
+}
+else
+{
+    var n = Noticias[indiceAtual];
+    var imagem = !string.IsNullOrWhiteSpace(n.Imagem) ? n.Imagem! : "/images/Flamengo.png";
+
+    <section class="hero section hero-carrossel"
+             style="cursor:pointer;"
+             @onclick="() => AbrirNoticia(n)">
+        <img src="@imagem" alt="@n.Titulo" />
+        <div class="hero-content">
+            <span class="hero-tag">@n.Fonte</span>
+            <h1>@n.Titulo</h1>
+            <time>@n.Data.ToShortDateString()</time>
+        </div>
+
+        <!-- Indicadores -->
+        <div class="hero-dots" @onclick:stopPropagation="true">
+            @for (int i = 0; i < TotalSlides; i++)
+            {
+                var idx = i;
+                <button class="hero-dot @(i == indiceAtual ? "active" : "")"
+                        @onclick="() => IrPara(idx)">
+                </button>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public List<NoticiaModel> Noticias { get; set; } = new();
+
+    int indiceAtual = 0;
+    int TotalSlides => Math.Min(Noticias.Count, 5);
+    System.Threading.Timer? timer;
+
+    protected override void OnParametersSet()
+    {
+        if (Noticias.Any() && timer == null)
+        {
+            timer = new System.Threading.Timer(_ =>
+            {
+                indiceAtual = (indiceAtual + 1) % TotalSlides;
+                InvokeAsync(StateHasChanged);
+            }, null, 5000, 5000);
+        }
+    }
+
+    void IrPara(int idx)
+    {
+        indiceAtual = idx;
+        // Reinicia o timer ao clicar
+        timer?.Change(5000, 5000);
+        StateHasChanged();
+    }
+
+    void AbrirNoticia(NoticiaModel n)
+    {
+        var url = Uri.EscapeDataString(n.Link);
+        Nav.NavigateTo($"/noticia?url={url}");
+    }
+
+    public void Dispose() => timer?.Dispose();
+}

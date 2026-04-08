@@ -23,7 +23,7 @@ else if (!isLoading && noticias.Any())
     <div class="content">
 
         <!-- DESTAQUE -->
-        <section class="hero section"
+        @* <section class="hero section"
                  style="cursor:pointer;"
                  @onclick="() => AbrirNoticia(noticias[0])">
             <img src="@ImagemHero" alt="@noticias[0].Titulo" />
@@ -32,7 +32,13 @@ else if (!isLoading && noticias.Any())
                 <h1>@noticias[0].Titulo</h1>
                 <time>@noticias[0].Data.ToShortDateString()</time>
             </div>
-        </section>
+        </section> *@
+
+        <!-- DESTAQUE -->
+        <HeroCarrossel Noticias="noticias" />
+
+        <!-- PRÓXIMO JOGO -->   
+        <ProximoJogo />        
 
         <!-- OUTRAS NOTÍCIAS -->
         <section class="news-list section">

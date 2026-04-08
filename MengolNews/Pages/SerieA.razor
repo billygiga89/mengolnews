@@ -204,7 +204,6 @@
         return NomesFix.TryGetValue(nome, out var fix) ? fix : nome;
     }
 
-    // Resolve placar com fallback para halfTime quando a API zera fullTime no intervalo
     private (int hg, int ag)? ResolverPlacar(JsonElement m)
     {
         var score = m.GetProperty("score");
@@ -216,7 +215,6 @@
             return (ft.GetProperty("home").GetInt32(), ft.GetProperty("away").GetInt32());
         }
 
-        // Fallback: halfTime (API zera fullTime durante o intervalo)
         if (score.TryGetProperty("halfTime", out var ht) &&
             ht.GetProperty("home").ValueKind != JsonValueKind.Null &&
             ht.GetProperty("away").ValueKind != JsonValueKind.Null)
@@ -225,6 +223,13 @@
         }
 
         return null;
+    }
+
+    // Verifica se todas as partidas da rodada estão encerradas
+    bool RodadaEncerrada()
+    {
+        if (matches == null || matches.Count == 0) return false;
+        return matches.All(m => m.GetProperty("status").GetString() == "FINISHED");
     }
 
     protected override async Task OnInitializedAsync()
@@ -264,6 +269,14 @@
             var res = await Http.GetFromJsonAsync<JsonElement>(
                 $"{Api}api/seriea/matches?matchday={selectedMatchday}");
             matches = res.GetProperty("matches").EnumerateArray().ToList();
+
+            // Se todas encerradas e não é a última rodada, avança automaticamente
+            if (RodadaEncerrada() && selectedMatchday < 38)
+            {
+                selectedMatchday++;
+                matches = null;
+                await LoadMatches();
+            }
         }
         catch (Exception ex) { error = "Não foi possível carregar as partidas. " + ex.Message; }
         finally { loading = false; }
