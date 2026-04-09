@@ -38,7 +38,14 @@
                      onerror="this.src='/images/Flamengo.png'; this.classList.add('news-open-img-fallback'); this.onerror=null;" />
             }
 
-            <span class="news-tag">@noticia.Fonte • @noticia.Data.ToShortDateString()</span>
+            <span class="news-tag">@noticia.Fonte</span>
+            <div class="news-open-meta">
+                <span class="news-open-date">@noticia.Data.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"))</span>
+            </div>
+
+            <h1 class="news-open-title">@noticia.Titulo</h1>
+            <hr class="news-open-divider" />
+
             <div class="news-open-actions">
                 <button @onclick="Voltar">⬅ Voltar</button>
                 <a href="@noticia.Link"
@@ -47,11 +54,10 @@
                     🔗 Ver no site original
                 </a>
             </div>
-            <h1 class="news-open-title">@noticia.Titulo</h1>
 
             @if (carregandoConteudo)
             {
-                <div style="margin: 1rem 0;">
+                <div style="margin: 1.5rem 0;">
                     <div class="skeleton-line" style="width:100%;"></div>
                     <div class="skeleton-line" style="width:95%;"></div>
                     <div class="skeleton-line" style="width:88%;"></div>
@@ -72,7 +78,7 @@
                 <p class="news-open-desc">@noticia.Descricao</p>
             }
 
-            <div class="news-open-actions">
+            <div class="news-open-actions" style="margin-top: 2.5rem;">
                 <button @onclick="Voltar">⬅ Voltar</button>
                 <a href="@noticia.Link"
                    target="_blank"

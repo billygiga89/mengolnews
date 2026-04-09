@@ -22,7 +22,7 @@ namespace MengolNews.Api.Services
 		public NoticiasService(HttpClient http)
 		{
 			_http = http;
-			_http.Timeout = TimeSpan.FromSeconds(15); // ✅ timeout para feeds lentos
+			_http.Timeout = TimeSpan.FromSeconds(15);
 			_http.DefaultRequestHeaders.UserAgent.ParseAdd(
 				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
 			);
@@ -64,6 +64,7 @@ namespace MengolNews.Api.Services
 				.SelectMany(r => r.Take(15))
 				.GroupBy(n => n.Titulo.ToLower().Trim())
 				.Select(g => g.First())
+				.Where(n => n.Data >= DateTime.Now.AddDays(-30))
 				.OrderByDescending(n => n.Data)
 				.Take(50)
 				.ToList();
@@ -83,30 +84,51 @@ namespace MengolNews.Api.Services
 		}
 
 		/* =======================
+           TIMEZONE BRASÍLIA
+        ======================= */
+
+		private static DateTime ConverterParaBrasilia(DateTime utc)
+		{
+			try
+			{
+				// Windows
+				var tz = TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
+				return TimeZoneInfo.ConvertTimeFromUtc(utc, tz);
+			}
+			catch
+			{
+				try
+				{
+					// Linux/Docker
+					var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+					return TimeZoneInfo.ConvertTimeFromUtc(utc, tz);
+				}
+				catch
+				{
+					return utc.AddHours(-3); // fallback manual
+				}
+			}
+		}
+
+		/* =======================
            FONTES
         ======================= */
 
-		// ✅ Grandes portais (filtro por Flamengo pois o feed é geral)
 		private Task<List<NoticiaDto>> GetEspnNoticias()
 			=> LerRss("https://www.espn.com.br/rss/flamengo.xml", "ESPN", filtrarFlamengo: true);
 
-
-		// ✅ Sites específicos do Flamengo (sem filtro necessário)
 		private Task<List<NoticiaDto>> GetColunaDoFla()
 			=> LerRss("https://colunadofla.com/feed", "COLUNA DO FLA", filtrarFlamengo: false);
 
 		private Task<List<NoticiaDto>> GetUrubuInterativo()
 			=> LerRss("https://noticiasfla.com.br/feed", "NOTÍCIAS FLA", filtrarFlamengo: false);
 
-		// Lance — URL nova
 		private Task<List<NoticiaDto>> GetLanceNoticias()
 			=> LerRss("https://br.bolavip.com/rss/flamengo", "BOLAVIP", filtrarFlamengo: false);
 
-		// GE Globo — substituir por Netfla
 		private Task<List<NoticiaDto>> GetNetFla()
 			=> LerRss("https://netfla.com.br/feed", "NETFLA", filtrarFlamengo: false);
 
-		// Fla Notícias — substituir por Flamengo RJ
 		private Task<List<NoticiaDto>> GetFlamengoRj()
 			 => LerRss("https://urubuinterativo.com/feed/", "URUBU INTERATIVO", filtrarFlamengo: false);
 
@@ -144,7 +166,6 @@ namespace MengolNews.Api.Services
 				}
 
 				using var stream = await response.Content.ReadAsStreamAsync();
-				//using var reader = XmlReader.Create(stream);
 				var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse };
 				using var reader = XmlReader.Create(stream, settings);
 
@@ -156,7 +177,6 @@ namespace MengolNews.Api.Services
 				foreach (var item in feed.Items)
 				{
 					var titulo = item.Title?.Text ?? "";
-					// Tenta pegar content:encoded (conteúdo completo) antes do Summary (resumo)
 					var contentEncoded = item.ElementExtensions
 						.ReadElementExtensions<XmlElement>("encoded", "http://purl.org/rss/1.0/modules/content/")
 						.FirstOrDefault()?.InnerText ?? "";
@@ -177,7 +197,6 @@ namespace MengolNews.Api.Services
 
 				Console.WriteLine($"[{fonte}] ✅ {itensBase.Count} itens após filtro");
 
-				// Scraping de imagem em paralelo com limite de concorrência
 				var tarefasImagem = itensBase.Select(async entry =>
 				{
 					var (item, titulo, descricao, link) = entry;
@@ -199,6 +218,11 @@ namespace MengolNews.Api.Services
 						}
 					}
 
+					// ✅ Converte data para horário de Brasília
+					var dataUtc = item.PublishDate.UtcDateTime == DateTime.MinValue
+						? DateTime.UtcNow
+						: item.PublishDate.UtcDateTime;
+
 					return new NoticiaDto
 					{
 						Titulo = titulo,
@@ -206,12 +230,8 @@ namespace MengolNews.Api.Services
 						Conteudo = descricao,
 						Link = link,
 						Fonte = fonte,
-						Data = item.PublishDate.UtcDateTime == DateTime.MinValue
-							? DateTime.UtcNow
-							: item.PublishDate.UtcDateTime,
-						Imagem = string.IsNullOrWhiteSpace(imagem)
-							? ""
-							: imagem
+						Data = ConverterParaBrasilia(dataUtc),
+						Imagem = string.IsNullOrWhiteSpace(imagem) ? "" : imagem
 					};
 				});
 
@@ -295,7 +315,6 @@ namespace MengolNews.Api.Services
 		{
 			try
 			{
-				//var web = new HtmlWeb();
 				var web = new HtmlWeb { };
 				web.PreRequest += req => { req.Timeout = 5000; return true; };
 				var doc = await web.LoadFromWebAsync(url);
@@ -412,20 +431,13 @@ namespace MengolNews.Api.Services
 		private string LimparTextoRss(string texto)
 		{
 			if (string.IsNullOrWhiteSpace(texto)) return "";
-			// 1. Decodifica entidades HTML (' → ' | " → ")
 			texto = WebUtility.HtmlDecode(texto);
-			// 2. Remove lixo de redes sociais / créditos
 			var padroes = new[]
 			{
-				// Créditos tipo "Reprodução/GE TV | @geglobo"
 				@"Reprodu[çc][aã]o\s*/[^\n\.]{0,60}",
-				// Links de imagem do Twitter: pic.twitter.com/xxxxx
 				@"pic\.twitter\.com\/\S+",
-				// Tweets embutidos: "— Conta (@handle) Mês DD, YYYY"
 				@"—\s*[^\(@\n]+\(@\w+\)\s+\w+\s+\d{1,2},\s+\d{4}",
-				// Menções soltas: @handle
 				@"@\w{3,}",
-				// Padrões originais
 				@"O post .+ apareceu primeiro em .+\.",
 				@"The post .+ appeared first on .+\.",
 				@"Continua após a publicidade.*",
@@ -435,12 +447,10 @@ namespace MengolNews.Api.Services
 				@"Publicado (primeiro |)em .+\.",
 				@"^ATENÇÃO:\s*",
 				@"\s*ATENÇÃO:\s*$",
-				// Links internos de navegação dos sites de origem
 				@"🔴?\s*Veja o retrospecto completo de .+",
 				@"🔴?\s*Quer saber quem joga\?.+",
 				@"🔴?\s*Veja também .+",
 				@"📅?\s*Veja também .+",
-				// Genéricos que cobrem variações futuras
 				@"[\p{So}\p{Sm}]\s*(Veja|Confira|Leia|Quer).{0,80}",
 				@"Veja (o retrospecto|também|mais sobre).{0,80}",
 				@"Quer saber .{0,80}\?[^\n]*",
@@ -455,10 +465,8 @@ namespace MengolNews.Api.Services
 
 			foreach (var padrao in padroes)
 				resultado = Regex.Replace(resultado, padrao, "", RegexOptions.IgnoreCase | RegexOptions.Multiline).Trim();
-			// 3. Remove linhas que ficaram só com emoji após limpeza
-			resultado = Regex.Replace(resultado, @"^\s*[\p{So}\p{Cs}\p{Sm}]+\s*$", "",
-				RegexOptions.Multiline);
-			// 4. Colapsa espaços/quebras excessivas
+
+			resultado = Regex.Replace(resultado, @"^\s*[\p{So}\p{Cs}\p{Sm}]+\s*$", "", RegexOptions.Multiline);
 			resultado = Regex.Replace(resultado, @"[ \t]{2,}", " ");
 			resultado = Regex.Replace(resultado, @"\n{3,}", "\n\n");
 
