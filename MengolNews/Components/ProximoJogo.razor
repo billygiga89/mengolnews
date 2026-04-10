@@ -1,76 +1,68 @@
 ﻿@inject HttpClient Http
 @inject IConfiguration Config
 @using System.Text.Json
-
 @if (jogo != null)
 {
     <div class="proximo-jogo-card">
         <div class="pj-label">⚽ Próximo jogo do Flamengo</div>
         <div class="pj-body">
-            <span class="pj-time home">@jogo.Value.home</span>
+            <span class="pj-time home">
+                <span class="pj-sigla">@jogo.Value.home[..3].ToUpper()</span>
+                @jogo.Value.home
+            </span>
             <div class="pj-vs">
                 <span class="pj-data">@jogo.Value.data.ToString("dd/MM · HH:mm")</span>
                 <span class="pj-x">VS</span>
                 <span class="pj-comp">@jogo.Value.comp</span>
             </div>
-            <span class="pj-time away">@jogo.Value.away</span>
+            <span class="pj-time away">
+                <span class="pj-sigla">@jogo.Value.away[..3].ToUpper()</span>
+                @jogo.Value.away
+            </span>
         </div>
     </div>
 }
-
 @code {
     (string home, string away, DateTime data, string comp)? jogo;
-
     string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
-
     private static readonly Dictionary<string, string> NomesFix = new()
     {
         { "Mineiro", "Atlético-MG" },
         { "Paranaense", "Athletico-PR" },
         { "Clube do Remo", "Remo" }
     };
-
     private string FixNome(string? nome)
     {
         if (nome == null) return "?";
         return NomesFix.TryGetValue(nome, out var fix) ? fix : nome;
     }
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Busca a rodada atual primeiro
             var standings = await Http.GetFromJsonAsync<JsonElement>($"{Api}api/seriea/standings");
             int rodadaAtual = 1;
             if (standings.TryGetProperty("season", out var season) &&
                 season.TryGetProperty("currentMatchday", out var cmd))
                 rodadaAtual = cmd.GetInt32();
-
             var agora = DateTime.UtcNow;
             var statusEncerrado = new[] { "FINISHED", "POSTPONED", "CANCELLED", "AWARDED" };
-
-            // Começa da rodada atual, não da 1
             for (int rodada = rodadaAtual; rodada <= 38; rodada++)
             {
                 var res = await Http.GetFromJsonAsync<JsonElement>(
                     $"{Api}api/seriea/matches?matchday={rodada}");
                 var partidas = res.GetProperty("matches").EnumerateArray().ToList();
-
                 var proximo = partidas.FirstOrDefault(m =>
                 {
                     var status = m.GetProperty("status").GetString();
                     if (statusEncerrado.Contains(status)) return false;
-
                     var utc = m.GetProperty("utcDate").GetString()!;
                     if (DateTime.Parse(utc) < agora) return false;
-
                     var home = FixNome(m.GetProperty("homeTeam").GetProperty("shortName").GetString());
                     var away = FixNome(m.GetProperty("awayTeam").GetProperty("shortName").GetString());
                     return home.Contains("Flamengo", StringComparison.OrdinalIgnoreCase)
                         || away.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
                 });
-
                 if (proximo.ValueKind != JsonValueKind.Undefined)
                 {
                     var home = FixNome(proximo.GetProperty("homeTeam").GetProperty("shortName").GetString());
@@ -80,7 +72,6 @@
                     var comp = proximo.TryGetProperty("competition", out var c)
                         ? c.GetProperty("name").GetString() ?? "Brasileirão"
                         : "Brasileirão";
-
                     jogo = (home, away, dt, comp);
                     break;
                 }

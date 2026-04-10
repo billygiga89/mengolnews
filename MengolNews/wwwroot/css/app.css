@@ -708,18 +708,28 @@ html, body {
 
 @media (max-width: 600px) {
     .sobre-hero {
-        flex-direction: row; /* era column — mantém lado a lado */
+        flex-direction: column;
         align-items: center;
-        text-align: left;
-        gap: 12px;
+        text-align: center;
+        gap: 8px;
         width: 100%;
+        margin-bottom: 0;
+        margin-left: 0;
+        padding: 0;
     }
 
     .sobre-escudo {
-        height: 90px; /* reduz o GIF no mobile */
-        width: 90px;
-        margin: 0; /* era margin: 0 auto */
+        height: auto;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto 0 -20px;
+        display: block;
         flex-shrink: 0;
+    }
+
+    .sobre-container {
+        gap: 10px;
+        padding: 0 16px; /* ← evita vazar nas bordas */
     }
 }
 
@@ -1466,14 +1476,27 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
+.pj-sigla {
+    display: none; /* ← esconde no desktop */
+}
 
 @media (max-width: 480px) {
-    .pj-time {
-        font-size: 0.60rem; /* reduz até caber sem cortar */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: clip; /* sem "..." */
+    .pj-body {
+        justify-content: space-around;
     }
+
+    .pj-time {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        text-align: center;
+    }
+        .pj-time.away {
+            text-align: center; /* sobrescreve o right */
+        }
 
     .pj-vs {
         flex-shrink: 0;
@@ -1489,6 +1512,19 @@ html, body {
 
     .pj-comp {
         font-size: 0.55rem;
+    }
+    .pj-sigla {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        color: rgba(255,255,255,0.7);
     }
 }
 
