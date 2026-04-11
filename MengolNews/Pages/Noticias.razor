@@ -11,6 +11,13 @@
 
 <section class="section">
     <h1>Últimas notícias</h1>
+    <div class="busca-wrapper">
+        <input class="busca-input"
+               type="search"
+               placeholder="Buscar notícia..."
+               @bind="termoBusca"
+               @bind:event="oninput" />
+    </div>
 </section>
 
 @if (isLoading)
@@ -22,16 +29,14 @@
         }
     </section>
 }
-else if (noticiasVisiveis.Any())
+else if (NoticiasFiltradas.Any())
 {
     <section class="news-list section">
-        @foreach (var noticia in noticiasVisiveis)
+        @foreach (var noticia in NoticiasFiltradas)
         {
             <NewsCard Noticia="noticia" />
         }
-
-        @* Sentinel só aparece se ainda tiver mais notícias *@
-        @if (PodeCarregarMais)
+        @if (PodeCarregarMais && string.IsNullOrWhiteSpace(termoBusca))
         {
             <div class="scroll-sentinel" @ref="sentinel"></div>
         }
@@ -39,12 +44,13 @@ else if (noticiasVisiveis.Any())
 }
 else
 {
-    <p>Nenhuma notícia encontrada.</p>
+    <p>Nenhuma notícia encontrada para "<strong>@termoBusca</strong>".</p>
 }
 
 @code {
     private List<Noticia?> todas = new();
     private List<Noticia?> noticiasVisiveis = new();
+    private string termoBusca = "";
     private int paginaAtual = 0;
     private const int PageSize = 6;
     private bool isLoading = true;
@@ -56,10 +62,15 @@ else
     private bool PodeCarregarMais =>
         noticiasVisiveis.Count < todas.Count;
 
+    // Quando tem busca ativa, mostra todas filtradas; senão, mostra o scroll infinito normal
+    private IEnumerable<Noticia?> NoticiasFiltradas =>
+        string.IsNullOrWhiteSpace(termoBusca)
+            ? noticiasVisiveis
+            : todas.Where(n => n!.Titulo.Contains(termoBusca, StringComparison.OrdinalIgnoreCase));
+
     protected override async Task OnInitializedAsync()
     {
         todas = await NewsService.GetNoticiasAsync();
-
         todas = todas
             .Where(n => n != null && !string.IsNullOrWhiteSpace(n.Link))
             .GroupBy(n => n!.Link)
@@ -67,15 +78,12 @@ else
             .OrderByDescending(n => n!.Data)
             .ToList();
 
-        Console.WriteLine($"TOTAL DE NOTÍCIAS: {todas.Count}");
-
         CarregarMais();
         isLoading = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Inicia o observer só uma vez e só se tiver sentinel no DOM
         if (!observerIniciado && PodeCarregarMais)
         {
             try
@@ -84,41 +92,27 @@ else
                 await JS.InvokeVoidAsync("infiniteScroll.observe", sentinel, objRef);
                 observerIniciado = true;
             }
-            catch
-            {
-                // Ignora erro de JS interop
-            }
+            catch { }
         }
     }
 
     private void CarregarMais()
     {
-        if (carregandoMais || !PodeCarregarMais)
-            return;
-
+        if (carregandoMais || !PodeCarregarMais) return;
         carregandoMais = true;
-
-        var novas = todas
-            .Skip(paginaAtual * PageSize)
-            .Take(PageSize)
-            .ToList();
-
+        var novas = todas.Skip(paginaAtual * PageSize).Take(PageSize).ToList();
         if (novas.Any())
         {
             noticiasVisiveis.AddRange(novas);
             paginaAtual++;
         }
-
         carregandoMais = false;
     }
 
     [JSInvokable]
     public async Task OnScrollChegouNoFim()
     {
-        if (carregandoMais || !PodeCarregarMais)
-            return;
-
-        Console.WriteLine("🔥 CHEGOU NO FIM DO SCROLL");
+        if (carregandoMais || !PodeCarregarMais) return;
         CarregarMais();
         await InvokeAsync(StateHasChanged);
     }
@@ -128,5 +122,3 @@ else
         objRef?.Dispose();
     }
 }
-
-

@@ -42,7 +42,7 @@ else if (!isLoading && noticias.Any())
 
         <!-- OUTRAS NOTÍCIAS -->
         <section class="news-list section">
-            @foreach (var noticia in noticias.Skip(1))
+            @foreach (var noticia in noticias.Skip(1).Take(9))
             {
                 <NewsCard Noticia="noticia" />
             }

@@ -1,10 +1,12 @@
-﻿/* =====================
+﻿@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* =====================
    RESET / BASE
 ===================== */
 html, body {
     height: 100%;
     margin: 0;
-    font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    font-family: 'Source Serif 4', Georgia, serif;
 }
 
 /* BACKGROUND GLOBAL */
@@ -225,7 +227,7 @@ html, body {
         position: absolute;
         inset: 0;
         z-index: 1;
-        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.1) 100%);
+        background: linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(10,0,0,0.75) 35%, transparent 65%), linear-gradient(to right, rgba(200,16,46,0.18) 0%, transparent 60%);
     }
 
 .hero-content {
@@ -248,11 +250,12 @@ html, body {
 }
 
 .hero-content h1 {
-    font-size: 2.4rem;
-    font-weight: 900;
+    font-size: 3rem;
+    font-weight: 400; /* Bebas Neue já é bold por natureza */
+    font-family: 'Bebas Neue', sans-serif;
     margin: 12px 0 8px;
     line-height: 1.15;
-    letter-spacing: -0.5px;
+    letter-spacing: 1px;
     text-shadow: 0 4px 24px rgba(0,0,0,0.9), 0 2px 6px rgba(0,0,0,0.8);
 }
 
@@ -282,9 +285,24 @@ html, body {
 ===================== */
 .news-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
+
+@media (max-width: 960px) {
+    .news-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+    .news-list .news-card:last-child:nth-child(3n - 1) {
+        grid-column: span 1;
+    }
+
+    /* Quando sobra 1 card na última linha, centraliza */
+    .news-list .news-card:last-child:nth-child(3n + 1) {
+        grid-column: 2;
+    }
 
 .news-card {
     position: relative;
@@ -371,7 +389,7 @@ html, body {
     width: 100%;
     max-height: 480px;
     object-fit: cover;
-    object-position: center top;
+    object-position: center center;
     border-radius: 16px;
     box-shadow: 0 12px 48px rgba(0,0,0,0.6);
     margin-bottom: 0;
@@ -407,10 +425,11 @@ html, body {
 
 /* Título */
 .news-open-title {
-    font-size: 2.4rem;
-    font-weight: 900;
+    font-size: 2.8rem;
+    font-weight: 400;
+    font-family: 'Bebas Neue', sans-serif;
     line-height: 1.15;
-    letter-spacing: -1px;
+    letter-spacing: 1px;
     margin: 0 0 28px;
     color: #fff;
 }
@@ -828,7 +847,7 @@ html, body {
     }
 
         .hero-content h1 {
-            font-size: 1.2rem;
+            font-size: 1.75rem;
             margin: 6px 0 4px;
             line-height: 1.2;
         }
@@ -1416,9 +1435,9 @@ html, body {
     border-radius: 14px;
     padding: 14px 20px;
     margin-bottom: 8px;
-    box-sizing: border-box; /* ← garante que padding não estoura */
-    width: 100%; /* ← ocupa só o espaço disponível */
-    overflow: hidden; /* ← corta qualquer coisa que vaze */
+    box-sizing: border-box;
+    width: 100%;
+    overflow: hidden;
 }
 
 .pj-label {
@@ -1427,7 +1446,7 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: rgba(255,255,255,0.5);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .pj-body {
@@ -1439,92 +1458,89 @@ html, body {
 }
 
 .pj-time {
-    font-size: 1rem;
-    font-weight: 800;
-    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     flex: 1;
-    min-width: 0; /* ← ESSE é o fix principal */
+    min-width: 0;
 }
 
-    .pj-time.away {
-        text-align: right;
-    }
+.pj-escudo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+
+.pj-nome {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.pj-time.away .pj-nome {
+    text-align: center;
+}
 
 .pj-vs {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
     flex-shrink: 0;
 }
 
 .pj-x {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.4);
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
 }
 
 .pj-data {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: #C8102E;
 }
 
 .pj-comp {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     color: rgba(255,255,255,0.3);
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
-.pj-sigla {
-    display: none; /* ← esconde no desktop */
+
+.pj-countdown {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.07);
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
 @media (max-width: 480px) {
-    .pj-body {
-        justify-content: space-around;
+    .pj-escudo {
+        width: 38px;
+        height: 38px;
     }
 
-    .pj-time {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.7rem;
-        white-space: nowrap;
-        text-align: center;
-    }
-        .pj-time.away {
-            text-align: center; /* sobrescreve o right */
-        }
-
-    .pj-vs {
-        flex-shrink: 0;
+    .pj-nome {
+        font-size: 0.75rem;
     }
 
     .pj-data {
         font-size: 0.72rem;
     }
 
-    .pj-x {
-        font-size: 0.75rem;
-    }
-
-    .pj-comp {
-        font-size: 0.55rem;
-    }
-    .pj-sigla {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.08);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.6rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        color: rgba(255,255,255,0.7);
+    .pj-countdown {
+        font-size: 0.68rem;
     }
 }
 
@@ -1596,5 +1612,103 @@ html, body {
 @media (max-width: 768px) {
     .header-info {
         display: none;
+    }
+}
+
+/* =====================
+   SHARE BUTTONS
+===================== */
+.news-share {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 3;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.news-card:hover .news-share {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s;
+    text-decoration: none;
+}
+
+    .share-btn:hover {
+        transform: scale(1.15);
+        opacity: 1 !important;
+    }
+
+    .share-btn.whatsapp {
+        background: #25D366;
+    }
+
+    .share-btn.twitter {
+        background: #000;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .share-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: #fff;
+    }
+
+/* Mobile: share sempre visível */
+@media (max-width: 768px) {
+    .news-share {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =====================
+   BUSCA
+===================== */
+.busca-wrapper {
+    margin-top: 14px;
+}
+
+.busca-input {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    box-sizing: border-box;
+}
+
+    .busca-input::placeholder {
+        color: rgba(255,255,255,0.35);
+    }
+
+    .busca-input:focus {
+        border-color: rgba(200,16,46,0.6);
+        background: rgba(255,255,255,0.09);
+    }
+
+@media (max-width: 768px) {
+    .busca-input {
+        max-width: 100%;
     }
 }
