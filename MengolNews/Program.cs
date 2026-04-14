@@ -15,7 +15,7 @@ var apiUrl = builder.Configuration["ApiBaseUrl"]
 builder.Services.AddScoped(sp => new HttpClient
 {
 	BaseAddress = new Uri(apiUrl),
-	Timeout = TimeSpan.FromSeconds(30)
+	Timeout = TimeSpan.FromSeconds(90) //era 30
 });
 
 // Serviço que consome a API

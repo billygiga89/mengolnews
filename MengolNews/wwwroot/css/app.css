@@ -12,7 +12,11 @@ html, body {
 /* BACKGROUND GLOBAL */
 #app {
     min-height: 100vh;
-    background: radial-gradient(ellipse at top left, rgba(200,16,46,0.35) 0%, transparent 45%), radial-gradient(ellipse at bottom right, rgba(200,16,46,0.25) 0%, transparent 45%), radial-gradient(ellipse at center, rgba(30,0,0,0.6) 0%, transparent 70%), linear-gradient(160deg, #1a1a1a 0%, #0f0f0f 40%, #0a0a0a 100%);
+    background-image: radial-gradient(ellipse at top left, rgba(200,16,46,0.35) 0%, transparent 45%), radial-gradient(ellipse at bottom right, rgba(200,16,46,0.25) 0%, transparent 45%), linear-gradient(160deg, rgba(10,0,0,0.72) 0%, rgba(5,0,0,0.78) 100%), url('/images/ctFLA.jpeg');
+    background-size: auto, auto, auto, cover;
+    background-position: top left, bottom right, center, center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: #fff;
 }
 
@@ -373,6 +377,14 @@ html, body {
     letter-spacing: -0.2px;
 }
 
+.scroll-sentinel {
+    grid-column: 1 / -1;
+    height: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+}
+
 /* =====================
    NOTÍCIA ABERTA
 ===================== */
@@ -647,108 +659,252 @@ html, body {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
     padding-top: 0;
 }
 
 .sobre-hero {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 16px;
-    margin-bottom: -60px; /* puxa os cards pra cima */
-    padding-left: 0;
+    gap: 20px;
+    margin-bottom: -10px;
 }
 
 .sobre-escudo {
-    height: 260px;
-    width: 260px;
+    height: auto;
+    width: 160px;
     object-fit: contain;
-    border-radius: 0;
-    /*flex-shrink: 0;*/
-    filter: drop-shadow(0 4px 12px rgba(200,16,46,0.6));
-    margin-top: 0;
+    flex-shrink: 0;
+    filter: drop-shadow(0 4px 16px rgba(200,16,46,0.5));
+}
+
+.sobre-hero-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
 }
 
 .sobre-titulo {
-    font-size: 2rem;
+    font-size: 2.6rem;
     font-weight: 900;
     margin: 0;
-    letter-spacing: -0.5px;
+    letter-spacing: -1px;
+    color: #fff;
 }
 
 .sobre-subtitulo {
-    color: rgba(255,255,255,0.5);
-    margin: 4px 0 0;
+    color: rgba(255,255,255,0.45);
+    margin: 0;
     font-size: 1rem;
+}
+
+.sobre-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+    justify-content: flex-start;
+}
+
+.sobre-badge {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
 }
 
 .sobre-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 1.5rem;
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    transition: border-color 0.2s;
 }
 
-    .sobre-card h2 {
-        margin: 0 0 12px;
-        font-size: 1.2rem;
-        font-weight: 800;
+    .sobre-card:hover {
+        border-color: rgba(200,16,46,0.2);
     }
 
-    .sobre-card p {
-        color: rgba(255,255,255,0.75);
-        line-height: 1.8;
-        margin: 0 0 10px;
+.sobre-card-icon {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+}
+
+.sobre-card h2 {
+    margin: 0 0 14px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.sobre-card p {
+    color: rgba(255,255,255,0.7);
+    line-height: 1.8;
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+}
+
+    .sobre-card p:last-child {
+        margin-bottom: 0;
     }
 
-        .sobre-card p:last-child {
-            margin-bottom: 0;
-        }
+.sobre-tech-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
 
-.sobre-tech {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.sobre-tech-item {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    color: rgba(255,255,255,0.75);
-    font-size: 0.95rem;
+    align-items: flex-start;
+    gap: 12px;
 }
+
+    .sobre-tech-item div {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .sobre-tech-item strong {
+        font-size: 1rem;
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .sobre-tech-item small {
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.4);
+    }
+
+.tech-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+    .tech-dot.blazor {
+        background: #7b2fff;
+    }
+
+    .tech-dot.aspnet {
+        background: #512bd4;
+    }
+
+    .tech-dot.rss {
+        background: #C8102E;
+    }
+
+    .tech-dot.deploy {
+        background: #f6821f;
+    }
+
+.sobre-card-canal {
+    border-color: rgba(200,16,46,0.25);
+    background: rgba(200,16,46,0.06);
+}
+
+.sobre-canal-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+    .sobre-canal-content h2 {
+        margin-bottom: 6px;
+    }
+
+    .sobre-canal-content p {
+        margin: 0;
+        max-width: 460px;
+    }
+
+.sobre-canal-btn {
+    background: #C8102E;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.15s;
+}
+
+    .sobre-canal-btn:hover {
+        background: #a50d26;
+        transform: translateY(-1px);
+    }
 
 .sobre-card-destaque {
-    border-color: rgba(200,16,46,0.4);
+    border-color: rgba(200,16,46,0.3);
     background: rgba(200,16,46,0.07);
     text-align: center;
-    font-weight: 700;
-    font-size: 1.05rem;
+}
+
+    .sobre-card-destaque p {
+        font-size: 1rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.85);
+        line-height: 1.7;
+        margin: 0;
+    }
+
+    .sobre-card-destaque strong {
+        color: #fff;
+    }
+
+/* Sobre — reduz espaço do section (mantém igual ao original) */
+.section:has(.sobre-container) {
+    margin: 0;
+    padding-top: 0;
+}
+
+.content:has(.sobre-container) {
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.section:has(.sobre-container)::after {
+    display: none;
 }
 
 @media (max-width: 600px) {
     .sobre-hero {
         flex-direction: column;
-        align-items: center;
-        text-align: center;
+        align-items: flex-start;
         gap: 8px;
-        width: 100%;
         margin-bottom: 0;
-        margin-left: 0;
-        padding: 0;
     }
 
     .sobre-escudo {
-        height: auto;
         width: 100%;
-        max-width: 320px;
-        margin: 0 auto 0 -20px;
-        display: block;
-        flex-shrink: 0;
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-left: -20px;
+    }
+
+    .sobre-hero-text {
+        align-items: flex-start;
+    }
+
+    .sobre-badges {
+        justify-content: flex-start;
     }
 
     .sobre-container {
         gap: 10px;
-        padding: 0 16px; /* ← evita vazar nas bordas */
+        padding: 0 16px;
     }
 }
 
@@ -1430,7 +1586,7 @@ html, body {
    PRÓXIMO JOGO
 ===================== */
 .proximo-jogo-card {
-    background: rgba(200,16,46,0.1);
+    background: /*rgba(200,16,46,0.1)*/ rgba(0,0,0,0.6);
     border: 1px solid rgba(200,16,46,0.35);
     border-radius: 14px;
     padding: 14px 20px;
@@ -1710,5 +1866,359 @@ html, body {
 @media (max-width: 768px) {
     .busca-input {
         max-width: 100%;
+    }
+}
+
+/* =====================
+   VÍDEOS
+===================== */
+.videos-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+}
+
+.videos-header {
+    margin-bottom: 2rem;
+}
+
+    .videos-header h1 {
+        font-size: clamp(1.4rem, 4vw, 2rem);
+        font-weight: 800;
+        color: #fff;
+        margin: 0 0 .25rem;
+    }
+
+    .videos-header .accent {
+        color: #C8102E;
+    }
+
+.videos-subtitle {
+    color: rgba(255,255,255,0.4);
+    font-size: .88rem;
+    margin: 0;
+}
+
+/* GRID */
+.videos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 960px) {
+    .videos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 560px) {
+    .videos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* CARD */
+.video-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+    .video-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+        border-color: rgba(200,16,46,0.35);
+    }
+
+/* THUMB */
+.video-thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    background: #0a0a0a;
+}
+
+    .video-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+        display: block;
+    }
+
+.video-card:hover .video-thumb img {
+    transform: scale(1.06);
+}
+
+.video-thumb-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%);
+    transition: opacity 0.25s ease;
+}
+
+.video-card:hover .video-thumb-overlay {
+    opacity: 0.7;
+}
+
+/* BOTÃO PLAY */
+.video-play-btn {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 2;
+}
+
+    .video-play-btn svg {
+        width: 52px;
+        height: 52px;
+        background: rgba(200,16,46,0.9);
+        border-radius: 50%;
+        padding: 12px 10px 12px 14px;
+        box-shadow: 0 4px 24px rgba(200,16,46,0.5);
+        transition: transform 0.2s ease, background 0.2s;
+    }
+
+.video-card:hover .video-play-btn {
+    opacity: 1;
+}
+
+    .video-card:hover .video-play-btn svg {
+        transform: scale(1.1);
+        background: #C8102E;
+    }
+
+/* INFO */
+.video-info {
+    padding: .9rem 1rem 1rem;
+}
+
+.video-titulo {
+    font-size: .92rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.45;
+    margin: 0 0 .5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    letter-spacing: -0.1px;
+}
+
+.video-data {
+    font-size: .75rem;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+/* SKELETON */
+.video-card-skeleton {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.vsk-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+}
+
+.vsk-info {
+    padding: .9rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.vsk-line {
+    height: 13px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+}
+
+    .vsk-line.long {
+        width: 85%;
+    }
+
+    .vsk-line.short {
+        width: 40%;
+    }
+
+/* ERRO */
+.videos-erro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 4rem;
+    color: rgba(255,255,255,0.4);
+    font-size: .95rem;
+}
+
+.btn-retry {
+    padding: .5rem 1.5rem;
+    background: #C8102E;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: .88rem;
+    font-weight: 700;
+    transition: background 0.2s, transform 0.15s;
+}
+
+    .btn-retry:hover {
+        background: #a50d26;
+        transform: translateY(-1px);
+    }
+
+/* =====================
+   MODAL DE VÍDEO
+===================== */
+.vmodal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.vmodal {
+    background: #111;
+    border: 1px solid rgba(200,16,46,0.25);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 880px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
+    animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.vmodal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/*.vmodal-tag {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: #C8102E;
+}*/
+
+.vmodal-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: .85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+    .vmodal-close:hover {
+        background: #C8102E;
+        color: #fff;
+        border-color: #C8102E;
+    }
+
+.vmodal-iframe {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+}
+
+    .vmodal-iframe iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+.vmodal-info {
+    padding: .85rem 1.1rem 1rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.vmodal-titulo {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 .3rem;
+    line-height: 1.4;
+}
+
+.vmodal-data {
+    font-size: .75rem;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .videos-page {
+        padding: 1.5rem 1rem 3rem;
+    }
+
+    .vmodal {
+        border-radius: 14px;
+    }
+
+    .vmodal-titulo {
+        font-size: .88rem;
     }
 }

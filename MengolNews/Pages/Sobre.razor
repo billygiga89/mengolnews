@@ -1,56 +1,112 @@
 ﻿@page "/sobre"
-
 <PageTitle>Sobre | MengolNews</PageTitle>
 
 <section class="section">
     <div class="sobre-container">
 
+        <!-- HERO -->
         <div class="sobre-hero">
             <img src="/images/meuLogo.gif" alt="MengolNews" class="sobre-escudo" />
-            <div>
-                <h1 class="sobre-titulo">Sobre o MengolNews</h1>
-                <p class="sobre-subtitulo">Feito por um Mengão da Gema 🔴⚫</p>
+            <div class="sobre-hero-text">
+                <h1 class="sobre-titulo">MengolNews</h1>
+                <p class="sobre-subtitulo">Conteúdo Rubro-Negro com alma de torcedor</p>
+                <div class="sobre-badges">
+                    <span class="sobre-badge">🎬 Criador de Conteúdo</span>
+                    <span class="sobre-badge">💻 Desenvolvedor</span>
+                    <span class="sobre-badge">🔴⚫ Flamenguista</span>
+                </div>
             </div>
         </div>
 
+        <!-- SOBRE O PROJETO -->
         <div class="sobre-card">
-            <h2>🎥 Quem sou eu</h2>
+            <div class="sobre-card-icon">🎯</div>
+            <h2>O Projeto</h2>
             <p>
-                Sou youtuber e tenho um canal dedicado ao Flamengo — o maior clube do Brasil.
-                Meu conteúdo é feito pra torcida Rubro-Negra, com paixão e sem filtro.
+                O MengolNews é uma plataforma independente de notícias e conteúdo dedicada ao Flamengo,
+                desenvolvida por um criador de conteúdo e entusiasta de tecnologia da Nação Rubro-Negra.
+            </p>
+            <p>
+                A proposta é simples: reunir em um só lugar as principais notícias do Mengão,
+                vídeos exclusivos do canal e informações atualizadas do Brasileirão — tudo com
+                a identidade e a paixão que a torcida merece.
             </p>
         </div>
 
+        <!-- ORIGEM -->
         <div class="sobre-card">
-            <h2>💻 Por que criei o MengolNews</h2>
+            <div class="sobre-card-icon">💡</div>
+            <h2>Como surgiu</h2>
             <p>
-                Além de youtuber, sou estudante de programação e criei o MengolNews como um projeto didático
-                para aprender na prática. A ideia foi unir duas paixões: o Flamengo e o desenvolvimento de software.
+                Este projeto nasceu da união de duas paixões: o Flamengo e o desenvolvimento de software.
+                Como estudante de programação, o MengolNews foi criado para aprender na prática —
+                construindo algo real, útil e com propósito.
             </p>
             <p>
-                O site foi desenvolvido em <strong>Blazor WebAssembly</strong> com uma API em <strong>ASP.NET Core</strong>,
-                consumindo feeds RSS de portais esportivos para trazer as notícias mais recentes do Mengão em tempo real.
+                Cada funcionalidade do site foi desenvolvida do zero, desde a API que agrega
+                as notícias em tempo real até a interface que você está vendo agora.
             </p>
         </div>
 
+        <!-- STACK -->
         <div class="sobre-card">
-            <h2>⚙️ Tecnologias usadas</h2>
-            <ul class="sobre-tech">
-                <li>🔵 Blazor WebAssembly</li>
-                <li>🟣 ASP.NET Core (API)</li>
-                <li>📡 RSS Feed (ESPN, Placar, e mais)</li>
-                <li>☁️ Cloudflare Pages (deploy)</li>
-            </ul>
+            <div class="sobre-card-icon">⚙️</div>
+            <h2>Tecnologias</h2>
+            <div class="sobre-tech-grid">
+                <div class="sobre-tech-item">
+                    <span class="tech-dot blazor"></span>
+                    <div>
+                        <strong>Blazor WebAssembly</strong>
+                        <small>Frontend em .NET rodando no browser</small>
+                    </div>
+                </div>
+                <div class="sobre-tech-item">
+                    <span class="tech-dot aspnet"></span>
+                    <div>
+                        <strong>ASP.NET Core</strong>
+                        <small>API REST com cache e proxy de imagens</small>
+                    </div>
+                </div>
+                <div class="sobre-tech-item">
+                    <span class="tech-dot rss"></span>
+                    <div>
+                        <strong>RSS & YouTube API</strong>
+                        <small>Notícias e vídeos em tempo real</small>
+                    </div>
+                </div>
+                <div class="sobre-tech-item">
+                    <span class="tech-dot deploy"></span>
+                    <div>
+                        <strong>Cloudflare + Render</strong>
+                        <small>Deploy contínuo via GitHub Actions</small>
+                    </div>
+                </div>
+            </div>
         </div>
 
+        <!-- CANAL -->
+        <div class="sobre-card sobre-card-canal">
+            <div class="sobre-canal-content">
+                <div>
+                    <h2>🎬 Canal no YouTube</h2>
+                    <p>
+                        Análises, reações e conteúdo Rubro-Negro sem filtro.
+                        Se você é da Nação, o canal foi feito pra você.
+                    </p>
+                </div>
+                <a href="https://www.youtube.com/&#64;MengolOficial" target="_blank" rel="noopener" class="sobre-canal-btn">
+                    Acessar canal ↗
+                </a>
+            </div>
+        </div>
+
+        <!-- DESTAQUE FINAL -->
         <div class="sobre-card sobre-card-destaque">
             <p>
-                🔴⚫ Este projeto é uma prova de que dá pra aprender programação fazendo algo que você ama.
-                Mengão até morrer!
+                🔴⚫ Uma prova de que tecnologia e paixão andam juntas.<br />
+                <strong>Mengão até morrer!</strong>
             </p>
         </div>
 
     </div>
 </section>
-
-

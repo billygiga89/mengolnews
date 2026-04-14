@@ -62,11 +62,14 @@
             ? _imagemFallback
             : Noticia.Imagem;
 
+    private string UrlNoSite =>
+    $"https://www.mengolnews.com.br/noticia?url={Uri.EscapeDataString(Noticia.Link)}";
+
     private string WhatsappUrl =>
-        $"https://wa.me/?text={Uri.EscapeDataString(Noticia.Titulo + " " + Noticia.Link)}";
+        $"https://wa.me/?text={Uri.EscapeDataString(Noticia.Titulo + " " + UrlNoSite)}";
 
     private string TwitterUrl =>
-        $"https://twitter.com/intent/tweet?text={Uri.EscapeDataString(Noticia.Titulo)}&url={Uri.EscapeDataString(Noticia.Link)}";
+        $"https://twitter.com/intent/tweet?text={Uri.EscapeDataString(Noticia.Titulo)}&url={Uri.EscapeDataString(UrlNoSite)}";
 
     private void OnImageError()
     {

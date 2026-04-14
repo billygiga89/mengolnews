@@ -189,6 +189,10 @@
     List<JsonElement>? matches;
     int selectedMatchday = 1;
 
+    // Flag que indica se a navegação foi feita manualmente pelo usuário.
+    // Quando true, desativa o avanço automático de rodada encerrada.
+    bool navegacaoManual = false;
+
     string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
 
     private static readonly Dictionary<string, string> NomesFix = new()
@@ -240,7 +244,10 @@
         if (activeTab == tab) return;
         activeTab = tab;
         if (tab == "partidas" && matches == null)
+        {
+            navegacaoManual = false; // carga inicial → permite avanço automático
             await LoadMatches();
+        }
     }
 
     async Task LoadStandings()
@@ -270,8 +277,8 @@
                 $"{Api}api/seriea/matches?matchday={selectedMatchday}");
             matches = res.GetProperty("matches").EnumerateArray().ToList();
 
-            // Se todas encerradas e não é a última rodada, avança automaticamente
-            if (RodadaEncerrada() && selectedMatchday < 38)
+            // Avança automaticamente APENAS na carga inicial (não quando usuário navega manualmente)
+            if (!navegacaoManual && RodadaEncerrada() && selectedMatchday < 38)
             {
                 selectedMatchday++;
                 matches = null;
@@ -285,14 +292,18 @@
     async Task PrevMatchday()
     {
         if (selectedMatchday <= 1) return;
-        selectedMatchday--; matches = null;
+        navegacaoManual = true; // usuário navegou → desativa avanço automático
+        selectedMatchday--;
+        matches = null;
         await LoadMatches();
     }
 
     async Task NextMatchday()
     {
         if (selectedMatchday >= 38) return;
-        selectedMatchday++; matches = null;
+        navegacaoManual = true; // usuário navegou → desativa avanço automático
+        selectedMatchday++;
+        matches = null;
         await LoadMatches();
     }
 }

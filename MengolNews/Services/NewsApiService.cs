@@ -23,26 +23,34 @@ namespace MengolNews.Services
 			if (cache != null && DateTime.Now - cacheTime < cacheDuration)
 				return cache;
 
-			try
+			const int maxTentativas = 3;
+			for (int tentativa = 1; tentativa <= maxTentativas; tentativa++)
 			{
-				using var response = await _http.GetAsync("api/noticias");
+				try
+				{
+					using var response = await _http.GetAsync("api/noticias");
+					if (!response.IsSuccessStatusCode)
+					{
+						if (tentativa < maxTentativas)
+							await Task.Delay(TimeSpan.FromSeconds(2));
+						continue;
+					}
 
-				if (!response.IsSuccessStatusCode)
-					return cache ?? new List<Noticia>();
-
-				var stream = await response.Content.ReadAsStreamAsync();
-
-				cache = await JsonSerializer.DeserializeAsync<List<Noticia>>(stream,
-					new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-					?? new List<Noticia>();
-
-				cacheTime = DateTime.Now;
-				return cache;
+					var stream = await response.Content.ReadAsStreamAsync();
+					cache = await JsonSerializer.DeserializeAsync<List<Noticia>>(stream,
+						new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+						?? new List<Noticia>();
+					cacheTime = DateTime.Now;
+					return cache;
+				}
+				catch
+				{
+					if (tentativa < maxTentativas)
+						await Task.Delay(TimeSpan.FromSeconds(3 * tentativa));
+				}
 			}
-			catch
-			{
-				return cache ?? new List<Noticia>();
-			}
+
+			return cache ?? new List<Noticia>();
 		}
 	}
 }
