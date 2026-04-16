@@ -1,0 +1,346 @@
+﻿@* Components/CampoVirtual.razor *@
+@using System.Text.Json
+@inject IJSRuntime JS
+
+<div class="campo-wrapper">
+
+    @* ── Placar ── *@
+    <div class="placar">
+        <div class="time-placar">
+            @if (!string.IsNullOrEmpty(HomeTeamCrest))
+            {
+                <img src="@HomeTeamCrest" class="escudo" alt="@HomeTeam" />
+            }
+            <span class="time-nome">@HomeTeam</span>
+            <span class="gols">@HomeScore</span>
+        </div>
+        <div class="placar-centro">
+            <span class="minuto">@Minuto'</span>
+            <span class="status-badge @StatusClass">@Status</span>
+        </div>
+        <div class="time-placar">
+            <span class="gols">@AwayScore</span>
+            <span class="time-nome">@AwayTeam</span>
+            @if (!string.IsNullOrEmpty(AwayTeamCrest))
+            {
+                <img src="@AwayTeamCrest" class="escudo" alt="@AwayTeam" />
+            }
+        </div>
+    </div>
+
+    @* ── Campo SVG ── *@
+    <div class="campo-svg-container">
+        <svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg" class="campo-svg">
+            <!-- Grama com gradiente 3D -->
+            <defs>
+                <linearGradient id="gramadao" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#2d7a2d" />
+                    <stop offset="50%" stop-color="#3a9e3a" />
+                    <stop offset="100%" stop-color="#2d7a2d" />
+                </linearGradient>
+                <linearGradient id="listraGrama" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#35913590" />
+                    <stop offset="100%" stop-color="#2d7a2d00" />
+                </linearGradient>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                    <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                <filter id="shadow">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000066" />
+                </filter>
+            </defs>
+
+            <!-- Base do campo -->
+            <rect width="800" height="520" fill="url(#gramadao)" rx="8" />
+
+            <!-- Listras do gramado -->
+            @for (int i = 0; i < 8; i++)
+            {
+                var x = i * 100;
+                <rect x="@x" y="0" width="50" height="520" fill="#ffffff08" />
+            }
+
+            <!-- Bordas do campo -->
+            <rect x="30" y="20" width="740" height="480" fill="none" stroke="white" stroke-width="2.5" opacity="0.9" />
+
+            <!-- Linha central -->
+            <line x1="400" y1="20" x2="400" y2="500" stroke="white" stroke-width="2" opacity="0.9" />
+
+            <!-- Círculo central -->
+            <circle cx="400" cy="260" r="70" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+            <circle cx="400" cy="260" r="4" fill="white" opacity="0.9" />
+
+            <!-- Área grande HOME (esquerda) -->
+            <rect x="30" y="160" width="130" height="200" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+            <!-- Área pequena HOME -->
+            <rect x="30" y="205" width="55" height="110" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+            <!-- Pênalti HOME -->
+            <circle cx="110" cy="260" r="4" fill="white" opacity="0.9" />
+            <!-- Arco da área HOME -->
+            <path d="M 160 210 A 70 70 0 0 1 160 310" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+
+            <!-- Gol HOME -->
+            <rect x="18" y="225" width="12" height="70" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+
+            <!-- Área grande AWAY (direita) -->
+            <rect x="640" y="160" width="130" height="200" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+            <!-- Área pequena AWAY -->
+            <rect x="715" y="205" width="55" height="110" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+            <!-- Pênalti AWAY -->
+            <circle cx="690" cy="260" r="4" fill="white" opacity="0.9" />
+            <!-- Arco da área AWAY -->
+            <path d="M 640 210 A 70 70 0 0 0 640 310" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+
+            <!-- Gol AWAY -->
+            <rect x="770" y="225" width="12" height="70" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
+
+            <!-- Escanteios -->
+            <path d="M 30 20 A 15 15 0 0 1 45 35" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
+            <path d="M 770 20 A 15 15 0 0 0 755 35" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
+            <path d="M 30 500 A 15 15 0 0 0 45 485" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
+            <path d="M 770 500 A 15 15 0 0 1 755 485" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
+
+            @* ── Jogadores HOME ── *@
+            @if (HomeLineup != null)
+            {
+                @foreach (var player in HomeLineup)
+                {
+                    <g class="jogador-group" filter="url(#shadow)">
+                        <circle cx="@player.X" cy="@player.Y" r="18" fill="#1565C0" stroke="white" stroke-width="2" />
+                        <text x="@player.X" y="@(player.Y + 5)" text-anchor="middle" font-size="10" fill="white" font-weight="bold">@player.Number</text>
+                        <text x="@player.X" y="@(player.Y + 28)" text-anchor="middle" font-size="9" fill="white" opacity="0.9">@player.ShortName</text>
+                    </g>
+                }
+            }
+
+            @* ── Jogadores AWAY ── *@
+            @if (AwayLineup != null)
+            {
+                @foreach (var player in AwayLineup)
+                {
+                    <g class="jogador-group" filter="url(#shadow)">
+                        <circle cx="@player.X" cy="@player.Y" r="18" fill="#C62828" stroke="white" stroke-width="2" />
+                        <text x="@player.X" y="@(player.Y + 5)" text-anchor="middle" font-size="10" fill="white" font-weight="bold">@player.Number</text>
+                        <text x="@player.X" y="@(player.Y + 28)" text-anchor="middle" font-size="9" fill="white" opacity="0.9">@player.ShortName</text>
+                    </g>
+                }
+            }
+
+            @* ── Eventos no campo ── *@
+            @foreach (var ev in EventosNoCampo)
+            {
+                @if (ev.Type == "GOAL")
+                {
+                    <g class="evento-icon" filter="url(#glow)">
+                        <circle cx="@ev.X" cy="@ev.Y" r="14" fill="#FFD700" opacity="0.9" class="pulse" />
+                        <text x="@ev.X" y="@(ev.Y + 5)" text-anchor="middle" font-size="14">⚽</text>
+                    </g>
+                }
+                else if (ev.Type == "YELLOW_CARD")
+                {
+                    <g class="evento-icon">
+                        <rect x="@(ev.X - 8)" y="@(ev.Y - 11)" width="16" height="22" fill="#FFD700" rx="2" filter="url(#shadow)" />
+                    </g>
+                }
+                else if (ev.Type == "RED_CARD")
+                {
+                    <g class="evento-icon">
+                        <rect x="@(ev.X - 8)" y="@(ev.Y - 11)" width="16" height="22" fill="#E53935" rx="2" filter="url(#shadow)" />
+                    </g>
+                }
+                else if (ev.Type == "SUBSTITUTION")
+                {
+                    <g class="evento-icon">
+                        <circle cx="@ev.X" cy="@ev.Y" r="12" fill="#00E676" opacity="0.85" />
+                        <text x="@ev.X" y="@(ev.Y + 5)" text-anchor="middle" font-size="12">↕</text>
+                    </g>
+                }
+            }
+        </svg>
+    </div>
+
+    @* ── Tabs: Eventos | Estatísticas | Escalação ── *@
+    <div class="tabs">
+        <button class="tab @(AbaAtiva == "eventos" ? "ativa" : "")" @onclick='() => AbaAtiva = "eventos"'>⚡ Eventos</button>
+        <button class="tab @(AbaAtiva == "stats" ? "ativa" : "")" @onclick='() => AbaAtiva = "stats"'>📊 Estatísticas</button>
+        <button class="tab @(AbaAtiva == "escalacao" ? "ativa" : "")" @onclick='() => AbaAtiva = "escalacao"'>👥 Escalação</button>
+    </div>
+
+    @* ── Conteúdo das Tabs ── *@
+    <div class="tab-content">
+
+        @if (AbaAtiva == "eventos")
+        {
+            <div class="eventos-lista">
+                @if (Eventos?.Count > 0)
+                {
+                    @foreach (var ev in Eventos.OrderByDescending(e => e.Minuto))
+                    {
+                        <div class="evento-item @ev.Time">
+                            <span class="ev-minuto">@ev.Minuto'</span>
+                            <span class="ev-icon">@GetEventIcon(ev.Type)</span>
+                            <div class="ev-info">
+                                <span class="ev-jogador">@ev.Player</span>
+                                @if (!string.IsNullOrEmpty(ev.Detail))
+                                {
+                                    <span class="ev-detalhe">@ev.Detail</span>
+                                }
+                            </div>
+                            <span class="ev-time-nome">@ev.TeamName</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="sem-dados">Nenhum evento registrado ainda.</p>
+                }
+            </div>
+        }
+
+        @if (AbaAtiva == "stats")
+        {
+            <div class="stats-grid">
+                @if (Stats != null)
+                {
+                    @foreach (var stat in Stats)
+                    {
+                        var homeVal = stat.HomeValue;
+                        var awayVal = stat.AwayValue;
+                        var total = homeVal + awayVal;
+                        var homePct = total > 0 ? (int)((homeVal / (double)total) * 100) : 50;
+                        var awayPct = 100 - homePct;
+
+                        <div class="stat-row">
+                            <span class="stat-val home">@homeVal@stat.Unit</span>
+                            <div class="stat-bar-wrap">
+                                <span class="stat-label">@stat.Name</span>
+                                <div class="stat-bar">
+                                    <div class="stat-fill home" style="width: @homePct%"></div>
+                                    <div class="stat-fill away" style="width: @awayPct%"></div>
+                                </div>
+                            </div>
+                            <span class="stat-val away">@awayVal@stat.Unit</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="sem-dados">Estatísticas não disponíveis.</p>
+                }
+            </div>
+        }
+
+        @if (AbaAtiva == "escalacao")
+        {
+            <div class="escalacao-grid">
+                <div class="escalacao-col">
+                    <h4 class="escalacao-titulo home-cor">@HomeTeam</h4>
+                    @if (HomeLineup != null)
+                    {
+                        @foreach (var p in HomeLineup)
+                        {
+                            <div class="jogador-row">
+                                <span class="num">@p.Number</span>
+                                <span class="nome">@p.Name</span>
+                                <span class="pos">@p.Position</span>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="escalacao-col">
+                    <h4 class="escalacao-titulo away-cor">@AwayTeam</h4>
+                    @if (AwayLineup != null)
+                    {
+                        @foreach (var p in AwayLineup)
+                        {
+                            <div class="jogador-row">
+                                <span class="num">@p.Number</span>
+                                <span class="nome">@p.Name</span>
+                                <span class="pos">@p.Position</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string HomeTeam { get; set; } = "";
+    [Parameter] public string AwayTeam { get; set; } = "";
+    [Parameter] public string? HomeTeamCrest { get; set; }
+    [Parameter] public string? AwayTeamCrest { get; set; }
+    [Parameter] public int HomeScore { get; set; }
+    [Parameter] public int AwayScore { get; set; }
+    [Parameter] public string Status { get; set; } = "AO VIVO";
+    [Parameter] public int Minuto { get; set; }
+    [Parameter] public List<EventoModel>? Eventos { get; set; }
+    [Parameter] public List<StatModel>? Stats { get; set; }
+    [Parameter] public List<PlayerModel>? HomeLineup { get; set; }
+    [Parameter] public List<PlayerModel>? AwayLineup { get; set; }
+
+    private string AbaAtiva = "eventos";
+    private string StatusClass => Status is "AO VIVO" or "IN_PLAY" or "PAUSED" ? "live" : "finished";
+
+    // Eventos posicionados no campo (simplificado — posição baseada no time)
+    private List<EventoCampo> EventosNoCampo => Eventos?
+        .Where(e => e.Type is "GOAL" or "YELLOW_CARD" or "RED_CARD" or "SUBSTITUTION")
+        .Select((e, i) =>
+        {
+            // HOME ataca para a direita (lado direito do campo) e AWAY para a esquerda
+            var isHome = e.Time == "home";
+            var baseX = isHome ? 550 + (i % 3) * 30 : 250 - (i % 3) * 30;
+            var baseY = 150 + (i * 60) % 320;
+            return new EventoCampo { X = baseX, Y = baseY, Type = e.Type };
+        }).ToList() ?? new();
+
+    private string GetEventIcon(string type) => type switch
+    {
+        "GOAL" => "⚽",
+        "YELLOW_CARD" => "🟨",
+        "RED_CARD" => "🟥",
+        "SUBSTITUTION" => "🔄",
+        "PENALTY" => "🎯",
+        "OWN_GOAL" => "⚽💀",
+        _ => "•"
+    };
+
+    // ── Modelos internos ──
+    public class EventoModel
+    {
+        public int Minuto { get; set; }
+        public string Type { get; set; } = "";
+        public string Player { get; set; } = "";
+        public string? Detail { get; set; }
+        public string Time { get; set; } = ""; // "home" ou "away"
+        public string TeamName { get; set; } = "";
+    }
+
+    public class StatModel
+    {
+        public string Name { get; set; } = "";
+        public int HomeValue { get; set; }
+        public int AwayValue { get; set; }
+        public string Unit { get; set; } = "";
+    }
+
+    public class PlayerModel
+    {
+        public string Name { get; set; } = "";
+        public string ShortName { get; set; } = "";
+        public int Number { get; set; }
+        public string Position { get; set; } = "";
+        public double X { get; set; }
+        public double Y { get; set; }
+    }
+
+    private class EventoCampo
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public string Type { get; set; } = "";
+    }
+}
+

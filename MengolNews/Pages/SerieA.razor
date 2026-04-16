@@ -1,6 +1,7 @@
 ﻿@* MengolNews/Pages/SerieA.razor *@
 @page "/serie-a"
 @inject HttpClient Http
+@inject NavigationManager Nav
 @using System.Text.Json
 @inject IConfiguration Config
 
@@ -126,6 +127,7 @@
             @foreach (var m in matches)
             {
                 var status = m.GetProperty("status").GetString();
+                var matchId = m.GetProperty("id").GetInt32();
                 var home = FixNome(m.GetProperty("homeTeam").GetProperty("shortName").GetString());
                 var away = FixNome(m.GetProperty("awayTeam").GetProperty("shortName").GetString());
                 var placar = ResolverPlacar(m);
@@ -135,10 +137,13 @@
                 var dt = DateTime.Parse(utc).ToLocalTime();
                 var isLive = status == "IN_PLAY" || status == "PAUSED";
                 var isDone = status == "FINISHED";
+                var isClickable = isLive || isDone;
                 var hasFla = home.Contains("Flamengo", StringComparison.OrdinalIgnoreCase)
                 || away.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
 
-                <div class="match-card @(isLive ? "live" : "") @(hasFla ? "fla-match" : "")">
+                <div class="match-card @(isLive ? "live" : "") @(hasFla ? "fla-match" : "") @(isClickable ? "clickable" : "")"
+                     @onclick="() => AbrirJogo(matchId, isClickable)">
+
                     @if (isLive)
                     {
                         <div class="live-pill">● AO VIVO</div>
@@ -175,6 +180,11 @@
                     {
                         <div class="match-status">Intervalo</div>
                     }
+
+                    @if (isClickable)
+                    {
+                        <div class="match-ver-mais">Ver detalhes →</div>
+                    }
                 </div>
             }
         </div>
@@ -189,8 +199,6 @@
     List<JsonElement>? matches;
     int selectedMatchday = 1;
 
-    // Flag que indica se a navegação foi feita manualmente pelo usuário.
-    // Quando true, desativa o avanço automático de rodada encerrada.
     bool navegacaoManual = false;
 
     string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
@@ -201,6 +209,11 @@
         { "Paranaense", "Athletico-PR" },
         { "Clube do Remo", "Remo" }
     };
+
+    void AbrirJogo(int id, bool clickable)
+    {
+        if (clickable) Nav.NavigateTo("/jogo/" + id);
+    }
 
     private string FixNome(string? nome)
     {
@@ -229,7 +242,6 @@
         return null;
     }
 
-    // Verifica se todas as partidas da rodada estão encerradas
     bool RodadaEncerrada()
     {
         if (matches == null || matches.Count == 0) return false;
@@ -245,7 +257,7 @@
         activeTab = tab;
         if (tab == "partidas" && matches == null)
         {
-            navegacaoManual = false; // carga inicial → permite avanço automático
+            navegacaoManual = false;
             await LoadMatches();
         }
     }
@@ -277,7 +289,6 @@
                 $"{Api}api/seriea/matches?matchday={selectedMatchday}");
             matches = res.GetProperty("matches").EnumerateArray().ToList();
 
-            // Avança automaticamente APENAS na carga inicial (não quando usuário navega manualmente)
             if (!navegacaoManual && RodadaEncerrada() && selectedMatchday < 38)
             {
                 selectedMatchday++;
@@ -292,7 +303,7 @@
     async Task PrevMatchday()
     {
         if (selectedMatchday <= 1) return;
-        navegacaoManual = true; // usuário navegou → desativa avanço automático
+        navegacaoManual = true;
         selectedMatchday--;
         matches = null;
         await LoadMatches();
@@ -301,7 +312,7 @@
     async Task NextMatchday()
     {
         if (selectedMatchday >= 38) return;
-        navegacaoManual = true; // usuário navegou → desativa avanço automático
+        navegacaoManual = true;
         selectedMatchday++;
         matches = null;
         await LoadMatches();

@@ -1,0 +1,304 @@
+﻿@* Pages/Jogo.razor *@
+@page "/jogo/{Id:int}"
+@using System.Text.Json
+@using MengolNews.Components
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<PageTitle>@(matchTitle) — MengolNews</PageTitle>
+
+<div class="jogo-page">
+
+    @if (loading)
+    {
+        <div class="loading-campo">
+            <div class="spinner"></div>
+            <p>Carregando o jogo...</p>
+        </div>
+    }
+    else if (erro != null)
+    {
+        <div class="erro-campo">
+            <span>⚠️</span>
+            <p>@erro</p>
+            <button @onclick="Voltar">← Voltar</button>
+        </div>
+    }
+    else
+    {
+        <div class="jogo-header-nav">
+            <button class="btn-voltar" @onclick="Voltar">← Voltar</button>
+            <span class="competicao">@competicao</span>
+        </div>
+
+        <CampoVirtual
+            HomeTeam="@homeTeam"
+            AwayTeam="@awayTeam"
+            HomeTeamCrest="@homeCrest"
+            AwayTeamCrest="@awayCrest"
+            HomeScore="@homeScore"
+            AwayScore="@awayScore"
+            Status="@status"
+            Minuto="@minuto"
+            Eventos="@eventos"
+            Stats="@stats"
+            HomeLineup="@homeLineup"
+            AwayLineup="@awayLineup"
+        />
+
+        @if (status is "IN_PLAY" or "PAUSED")
+        {
+            <p class="auto-refresh-hint">🔄 Atualizando a cada 30 segundos</p>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private bool loading = true;
+    private string? erro;
+    private string matchTitle = "Jogo";
+    private string competicao = "";
+    private string homeTeam = "", awayTeam = "";
+    private string? homeCrest, awayCrest;
+    private int homeScore, awayScore, minuto;
+    private string status = "";
+    private List<CampoVirtual.EventoModel>? eventos;
+    private List<CampoVirtual.StatModel>? stats;
+    private List<CampoVirtual.PlayerModel>? homeLineup;
+    private List<CampoVirtual.PlayerModel>? awayLineup;
+
+    private System.Threading.Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMatch();
+    }
+
+    void Voltar() => Nav.NavigateTo("/");
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && status is "IN_PLAY" or "PAUSED")
+        {
+            _timer = new System.Threading.Timer(async _ =>
+            {
+                await LoadMatch();
+                await InvokeAsync(StateHasChanged);
+            }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        }
+    }
+
+    private async Task LoadMatch()
+    {
+        try
+        {
+            loading = true;
+            // Chama nossa própria API (que chama o football-data.org)
+            var apiBase = "https://mengolnews-api.onrender.com";
+            var response = await Http.GetAsync($"{apiBase}/api/match/{Id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                erro = "Jogo não encontrado ou API indisponível.";
+                loading = false;
+                return;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var doc = JsonSerializer.Deserialize<JsonElement>(json);
+
+            // ── Times ──
+            homeTeam = doc.GetProperty("homeTeam").GetProperty("shortName").GetString() ?? "";
+            awayTeam = doc.GetProperty("awayTeam").GetProperty("shortName").GetString() ?? "";
+            homeCrest = doc.GetProperty("homeTeam").GetProperty("crest").GetString();
+            awayCrest = doc.GetProperty("awayTeam").GetProperty("crest").GetString();
+
+            matchTitle = $"{homeTeam} x {awayTeam}";
+
+            // ── Competição ──
+            competicao = doc.GetProperty("competition").GetProperty("name").GetString() ?? "";
+
+            // ── Placar ──
+            var score = doc.GetProperty("score");
+            homeScore = score.GetProperty("fullTime").GetProperty("home").ValueKind != JsonValueKind.Null
+                ? score.GetProperty("fullTime").GetProperty("home").GetInt32() : 0;
+            awayScore = score.GetProperty("fullTime").GetProperty("away").ValueKind != JsonValueKind.Null
+                ? score.GetProperty("fullTime").GetProperty("away").GetInt32() : 0;
+
+            // ── Status e minuto ──
+            status = doc.GetProperty("status").GetString() ?? "";
+            if (doc.TryGetProperty("minute", out var minEl) && minEl.ValueKind == JsonValueKind.Number)
+                minuto = minEl.GetInt32();
+
+            // ── Eventos ──
+            eventos = new();
+            if (doc.TryGetProperty("goals", out var goalsEl))
+            {
+                foreach (var g in goalsEl.EnumerateArray())
+                {
+                    var isHome = g.GetProperty("team").GetProperty("id").GetInt32() ==
+                                 doc.GetProperty("homeTeam").GetProperty("id").GetInt32();
+                    eventos.Add(new CampoVirtual.EventoModel
+                    {
+                        Minuto = g.TryGetProperty("minute", out var m) ? m.GetInt32() : 0,
+                        Type = g.TryGetProperty("type", out var t) ? t.GetString() ?? "GOAL" : "GOAL",
+                        Player = g.TryGetProperty("scorer", out var sc) && sc.TryGetProperty("name", out var sn)
+                            ? sn.GetString() ?? "" : "",
+                        Detail = g.TryGetProperty("assist", out var as_) && as_.ValueKind != JsonValueKind.Null
+                            && as_.TryGetProperty("name", out var an) ? $"Assist: {an.GetString()}" : null,
+                        Time = isHome ? "home" : "away",
+                        TeamName = isHome ? homeTeam : awayTeam
+                    });
+                }
+            }
+
+            if (doc.TryGetProperty("bookings", out var bookings))
+            {
+                foreach (var b in bookings.EnumerateArray())
+                {
+                    var isHome = b.GetProperty("team").GetProperty("id").GetInt32() ==
+                                 doc.GetProperty("homeTeam").GetProperty("id").GetInt32();
+                    eventos.Add(new CampoVirtual.EventoModel
+                    {
+                        Minuto = b.TryGetProperty("minute", out var m) ? m.GetInt32() : 0,
+                        Type = b.TryGetProperty("card", out var c) ? c.GetString() ?? "YELLOW_CARD" : "YELLOW_CARD",
+                        Player = b.TryGetProperty("player", out var pl) && pl.TryGetProperty("name", out var pn)
+                            ? pn.GetString() ?? "" : "",
+                        Time = isHome ? "home" : "away",
+                        TeamName = isHome ? homeTeam : awayTeam
+                    });
+                }
+            }
+
+            if (doc.TryGetProperty("substitutions", out var subs))
+            {
+                foreach (var s in subs.EnumerateArray())
+                {
+                    var isHome = s.GetProperty("team").GetProperty("id").GetInt32() ==
+                                 doc.GetProperty("homeTeam").GetProperty("id").GetInt32();
+                    var playerOut = s.TryGetProperty("playerOut", out var po) && po.TryGetProperty("name", out var pon)
+                        ? pon.GetString() : "";
+                    var playerIn = s.TryGetProperty("playerIn", out var pi) && pi.TryGetProperty("name", out var pin)
+                        ? pin.GetString() : "";
+                    eventos.Add(new CampoVirtual.EventoModel
+                    {
+                        Minuto = s.TryGetProperty("minute", out var m) ? m.GetInt32() : 0,
+                        Type = "SUBSTITUTION",
+                        Player = playerIn ?? "",
+                        Detail = $"Saiu: {playerOut}",
+                        Time = isHome ? "home" : "away",
+                        TeamName = isHome ? homeTeam : awayTeam
+                    });
+                }
+            }
+
+            // ── Escalação ──
+            homeLineup = ParseLineup(doc, "homeTeam", isHome: true);
+            awayLineup = ParseLineup(doc, "awayTeam", isHome: false);
+
+            // ── Stats (football-data.org não tem stats granulares no plano free,
+            //           mas incluímos estrutura para quando disponível) ──
+            stats = new List<CampoVirtual.StatModel>
+            {
+                new() { Name = "Gols", HomeValue = homeScore, AwayValue = awayScore },
+                new() { Name = "Cartões Amarelos",
+                    HomeValue = eventos.Count(e => e.Type == "YELLOW_CARD" && e.Time == "home"),
+                    AwayValue = eventos.Count(e => e.Type == "YELLOW_CARD" && e.Time == "away") },
+                new() { Name = "Cartões Vermelhos",
+                    HomeValue = eventos.Count(e => e.Type == "RED_CARD" && e.Time == "home"),
+                    AwayValue = eventos.Count(e => e.Type == "RED_CARD" && e.Time == "away") },
+                new() { Name = "Substituições",
+                    HomeValue = eventos.Count(e => e.Type == "SUBSTITUTION" && e.Time == "home"),
+                    AwayValue = eventos.Count(e => e.Type == "SUBSTITUTION" && e.Time == "away") },
+            };
+
+            erro = null;
+        }
+        catch (Exception ex)
+        {
+            erro = $"Erro ao carregar jogo: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    /// <summary>
+    /// Parseia a escalação e distribui jogadores em posições no campo SVG
+    /// </summary>
+    private List<CampoVirtual.PlayerModel> ParseLineup(JsonElement doc, string teamKey, bool isHome)
+    {
+        var result = new List<CampoVirtual.PlayerModel>();
+        if (!doc.TryGetProperty(teamKey, out var team)) return result;
+        if (!team.TryGetProperty("lineup", out var lineup)) return result;
+
+        // Formação padrão 4-4-2 caso não venha da API
+        // Coordenadas X: Home joga da esquerda (60-380), Away da direita (420-740)
+        // Coordenadas Y: 0-520 (campo)
+        var positions = GetDefaultPositions(isHome);
+        int i = 0;
+
+        foreach (var p in lineup.EnumerateArray())
+        {
+            var name = p.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+            var number = p.TryGetProperty("shirtNumber", out var num) ? num.GetInt32() : 0;
+            var position = p.TryGetProperty("position", out var pos) ? pos.GetString() ?? "" : "";
+
+            var coords = i < positions.Count ? positions[i] : (isHome ? 200.0 : 600.0, 260.0);
+
+            result.Add(new CampoVirtual.PlayerModel
+            {
+                Name = name,
+                ShortName = name.Split(' ').LastOrDefault() ?? name,
+                Number = number,
+                Position = MapPosition(position),
+                X = coords.Item1,
+                Y = coords.Item2
+            });
+            i++;
+        }
+
+        return result;
+    }
+
+    private string MapPosition(string pos) => pos switch
+    {
+        "Goalkeeper" => "GOL",
+        "Centre-Back" or "Left-Back" or "Right-Back" => "DEF",
+        "Central Midfield" or "Defensive Midfield" or "Attacking Midfield" or
+        "Left Midfield" or "Right Midfield" => "MEI",
+        "Centre-Forward" or "Left Winger" or "Right Winger" or "Second Striker" => "ATA",
+        _ => pos
+    };
+
+    // Posições padrão para um 4-3-3
+    private List<(double, double)> GetDefaultPositions(bool isHome)
+    {
+        if (isHome)
+        {
+            return new()
+            {
+                (70, 260),   // GOL
+                (155, 140), (155, 220), (155, 300), (155, 380),  // DEF
+                (260, 180), (260, 260), (260, 340),               // MEI
+                (350, 140), (350, 260), (350, 380),               // ATA
+            };
+        }
+        else
+        {
+            return new()
+            {
+                (730, 260),  // GOL
+                (645, 140), (645, 220), (645, 300), (645, 380),  // DEF
+                (540, 180), (540, 260), (540, 340),               // MEI
+                (450, 140), (450, 260), (450, 380),               // ATA
+            };
+        }
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}
+
