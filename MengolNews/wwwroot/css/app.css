@@ -2224,33 +2224,25 @@ html, body {
 }
 
 /* ================================================================
-   campo-virtual.css  — MengolNews Campo 3D
-   Fonte: Rajdhani (display esportivo) + Inter (corpo)
-   Tema: Verde campo + azul escuro + acents amarelo/neon
+   campo-virtual.css  — MengolNews  |  Estilo Broadcast Top-Down
    ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap');
 
 :root {
-    --verde-campo: #2d7a2d;
-    --verde-claro: #3dba3d;
     --azul-home: #1565C0;
     --vermelho-away: #C62828;
     --amarelo: #FFD700;
-    --branco: #ffffff;
-    --cinza-escuro: #1a1a2e;
-    --cinza-medio: #16213e;
-    --cinza-card: #0f3460;
     --neon: #00e676;
     --fonte-display: 'Rajdhani', sans-serif;
     --fonte-body: 'Barlow Condensed', sans-serif;
 }
 
-/* ── Página do Jogo ── */
+/* ── Página ── */
 .jogo-page {
     min-height: 100vh;
     background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0d1b2a 100%);
-    padding: 0 0 40px 0;
+    padding: 0 0 40px;
     font-family: var(--fonte-body);
 }
 
@@ -2332,118 +2324,26 @@ html, body {
     font-weight: 600;
 }
 
-/* ── Wrapper do Campo ── */
+/* ════════════════════════════════════════════
+   WRAPPER
+   ════════════════════════════════════════════ */
 .campo-wrapper {
     max-width: 860px;
     margin: 0 auto;
     padding: 0 16px;
 }
 
-/* ── Placar ── */
-.placar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(180deg, #0f3460 0%, #16213e 100%);
-    border-radius: 16px 16px 0 0;
-    padding: 20px 24px 16px;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-bottom: none;
-    margin-top: 16px;
-}
-
-.time-placar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-}
-
-    .time-placar:last-child {
-        flex-direction: row-reverse;
-    }
-
-.escudo {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-}
-
-.time-nome {
-    font-family: var(--fonte-display);
-    font-size: 20px;
-    font-weight: 700;
-    color: white;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.gols {
-    font-family: var(--fonte-display);
-    font-size: 42px;
-    font-weight: 700;
-    color: var(--amarelo);
-    line-height: 1;
-    text-shadow: 0 0 20px rgba(255,215,0,0.5);
-    min-width: 40px;
-    text-align: center;
-}
-
-.placar-centro {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex: 0 0 100px;
-}
-
-.minuto {
-    font-family: var(--fonte-display);
-    font-size: 22px;
-    font-weight: 700;
-    color: white;
-}
-
-.status-badge {
-    font-family: var(--fonte-body);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 20px;
-}
-
-    .status-badge.live {
-        background: #e53935;
-        color: white;
-        animation: blink-badge 1.5s ease-in-out infinite;
-    }
-
-    .status-badge.finished {
-        background: rgba(255,255,255,0.15);
-        color: rgba(255,255,255,0.7);
-    }
-
-@keyframes blink-badge {
-    0%, 100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.6;
-    }
-}
-
-/* ── Campo SVG ── */
+/* ════════════════════════════════════════════
+   CONTAINER DO CAMPO
+   ════════════════════════════════════════════ */
 .campo-svg-container {
-    background: #1a2e1a;
-    border-left: 1px solid rgba(255,255,255,0.08);
-    border-right: 1px solid rgba(255,255,255,0.08);
-    padding: 0;
     position: relative;
+    background: #111214; /* mesma cor da arquibancada */
     overflow: hidden;
+    box-sizing: border-box;
+    margin-top: 16px;
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.85);
 }
 
 .campo-svg {
@@ -2452,17 +2352,19 @@ html, body {
     display: block;
 }
 
+/* ── Jogadores ── */
 .jogador-group {
     cursor: default;
-    transition: transform 0.2s;
+    transition: transform 0.15s;
 }
 
     .jogador-group:hover {
         transform: scale(1.1);
     }
 
+/* ── Animações ── */
 .evento-icon {
-    animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
 
 @keyframes pop-in {
@@ -2478,38 +2380,141 @@ html, body {
 }
 
 .pulse {
-    animation: pulse 2s ease-in-out infinite;
+    animation: pulse-ring 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.9;
-        r: 14;
+@keyframes pulse-ring {
+    0%,100% {
+        opacity: 0.95;
     }
 
     50% {
-        opacity: 0.7;
-        r: 18;
+        opacity: 0.60;
     }
 }
 
-/* ── Tabs ── */
+/* ════════════════════════════════════════════
+   PLACAR
+   ════════════════════════════════════════════ */
+.placar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, #0f3460 0%, #16213e 100%);
+    padding: 16px 20px 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-top: none;
+}
+
+.time-placar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+    .time-placar.direita {
+        flex-direction: row-reverse;
+    }
+
+.escudo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    flex-shrink: 0;
+}
+
+.time-nome {
+    font-family: var(--fonte-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gols {
+    font-family: var(--fonte-display);
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--amarelo);
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(255,215,0,0.4);
+    min-width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.placar-centro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 90px;
+}
+
+.minuto {
+    font-family: var(--fonte-display);
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+}
+
+.status-badge {
+    font-family: var(--fonte-body);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+}
+
+    .status-badge.live {
+        background: #e53935;
+        color: white;
+        animation: blink-badge 1.5s ease-in-out infinite;
+    }
+
+    .status-badge.finished {
+        background: rgba(255,255,255,0.15);
+        color: rgba(255,255,255,0.7);
+    }
+
+@keyframes blink-badge {
+    0%,100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* ════════════════════════════════════════════
+   TABS
+   ════════════════════════════════════════════ */
 .tabs {
     display: flex;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.55);
     border-left: 1px solid rgba(255,255,255,0.08);
     border-right: 1px solid rgba(255,255,255,0.08);
 }
 
 .tab {
     flex: 1;
-    padding: 14px;
+    padding: 13px;
     background: none;
     border: none;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.45);
     font-family: var(--fonte-body);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     letter-spacing: 0.5px;
     cursor: pointer;
     border-bottom: 3px solid transparent;
@@ -2529,15 +2534,17 @@ html, body {
 
 /* ── Tab Content ── */
 .tab-content {
-    background: rgba(15, 25, 40, 0.95);
+    background: rgba(12,20,35,0.97);
     border: 1px solid rgba(255,255,255,0.08);
     border-top: none;
-    border-radius: 0 0 16px 16px;
-    min-height: 200px;
+    border-radius: 0 0 14px 14px;
+    min-height: 180px;
     padding: 16px;
 }
 
-/* ── Eventos ── */
+/* ════════════════════════════════════════════
+   EVENTOS
+   ════════════════════════════════════════════ */
 .eventos-lista {
     display: flex;
     flex-direction: column;
@@ -2605,7 +2612,9 @@ html, body {
     letter-spacing: 0.5px;
 }
 
-/* ── Stats ── */
+/* ════════════════════════════════════════════
+   ESTATÍSTICAS
+   ════════════════════════════════════════════ */
 .stats-grid {
     display: flex;
     flex-direction: column;
@@ -2669,7 +2678,9 @@ html, body {
     transition: width 0.8s ease;
 }
 
-/* ── Escalação ── */
+/* ════════════════════════════════════════════
+   ESCALAÇÃO
+   ════════════════════════════════════════════ */
 .escalacao-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2682,7 +2693,7 @@ html, body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin: 0 0 12px 0;
+    margin: 0 0 12px;
 }
 
 .home-cor {
@@ -2742,24 +2753,46 @@ html, body {
     font-family: var(--fonte-body);
 }
 
-/* ── Responsive ── */
+/* ════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════ */
 @media (max-width: 600px) {
     .time-nome {
-        font-size: 14px;
+        font-size: 11px;
+        max-width: 72px;
     }
 
     .gols {
-        font-size: 32px;
+        font-size: 28px;
+        min-width: 28px;
     }
 
     .placar {
-        padding: 14px 12px;
-        gap: 4px;
+        padding: 12px 10px;
+    }
+
+    .escudo {
+        width: 26px;
+        height: 26px;
+    }
+
+    .placar-centro {
+        flex: 0 0 64px;
+    }
+
+    .minuto {
+        font-size: 15px;
+    }
+
+    .status-badge {
+        font-size: 9px;
+        padding: 2px 6px;
     }
 
     .tab {
-        font-size: 12px;
-        padding: 12px 6px;
+        font-size: 10px;
+        padding: 11px 4px;
+        letter-spacing: 0;
     }
 
     .escalacao-grid {
@@ -2767,6 +2800,13 @@ html, body {
     }
 }
 
+@media (max-width: 400px) {
+    .time-nome {
+        display: none;
+    }
+}
+
+/* ── Match card ── */
 .match-card.clickable {
     cursor: pointer;
 }
@@ -2782,3 +2822,5 @@ html, body {
 .match-card.clickable:hover .match-ver-mais {
     color: rgba(255,255,255,0.7);
 }
+
+

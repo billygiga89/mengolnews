@@ -4,7 +4,235 @@
 
 <div class="campo-wrapper">
 
-    @* ── Placar ── *@
+    <div class="campo-svg-container">
+        <svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" class="campo-svg">
+            <defs>
+                <!-- Listras do gramado -->
+                <pattern id="listras" x="0" y="0" width="900" height="48" patternUnits="userSpaceOnUse">
+                    <rect x="0" y="0" width="900" height="24" fill="#1e7d32" />
+                    <rect x="0" y="24" width="900" height="24" fill="#256e30" />
+                </pattern>
+
+                <!-- Torcida pontinhos -->
+                <pattern id="crowd" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <circle cx="5" cy="5" r="1.5" fill="rgba(255,255,255,0.08)" />
+                </pattern>
+                <pattern id="crowd2" x="3" y="3" width="8" height="8" patternUnits="userSpaceOnUse">
+                    <circle cx="4" cy="4" r="1.2" fill="rgba(255,255,255,0.06)" />
+                </pattern>
+
+                <!-- Gradientes arquibancada -->
+                <linearGradient id="gArqT" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#111214" />
+                    <stop offset="60%" stop-color="#1a1c20" />
+                    <stop offset="100%" stop-color="#222428" />
+                </linearGradient>
+                <linearGradient id="gArqB" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#222428" />
+                    <stop offset="40%" stop-color="#1a1c20" />
+                    <stop offset="100%" stop-color="#111214" />
+                </linearGradient>
+                <linearGradient id="gArqL" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#111214" />
+                    <stop offset="100%" stop-color="#1e2024" />
+                </linearGradient>
+                <linearGradient id="gArqR" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#1e2024" />
+                    <stop offset="100%" stop-color="#111214" />
+                </linearGradient>
+
+                <!-- Vinheta gramado -->
+                <radialGradient id="vig" cx="50%" cy="50%" r="60%">
+                    <stop offset="50%" stop-color="transparent" />
+                    <stop offset="100%" stop-color="rgba(0,0,0,0.28)" />
+                </radialGradient>
+
+                <!-- Holofote central -->
+                <radialGradient id="holo" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(255,255,230,0.07)" />
+                    <stop offset="100%" stop-color="transparent" />
+                </radialGradient>
+
+                <filter id="dropshadow">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000aa" />
+                </filter>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="b" />
+                    <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+            </defs>
+
+            <!-- ══ ARQUIBANCADA TOPO ══ -->
+            <rect x="0" y="0" width="900" height="90" fill="url(#gArqT)" />
+            <rect x="0" y="10" width="900" height="10" fill="rgba(255,255,255,0.025)" />
+            <rect x="0" y="28" width="900" height="10" fill="rgba(255,255,255,0.02)" />
+            <rect x="0" y="46" width="900" height="10" fill="rgba(255,255,255,0.025)" />
+            <rect x="0" y="64" width="900" height="10" fill="rgba(255,255,255,0.02)" />
+            <rect x="0" y="0" width="900" height="90" fill="url(#crowd)" />
+            <rect x="0" y="0" width="900" height="90" fill="url(#crowd2)" />
+            <!-- holofotes limpos -->
+            <ellipse cx="160" cy="18" rx="22" ry="6" fill="rgba(255,255,210,0.18)" />
+            <ellipse cx="390" cy="14" rx="16" ry="5" fill="rgba(255,255,210,0.14)" />
+            <ellipse cx="510" cy="14" rx="16" ry="5" fill="rgba(255,255,210,0.14)" />
+            <ellipse cx="740" cy="18" rx="22" ry="6" fill="rgba(255,255,210,0.18)" />
+            <!-- muro -->
+            <rect x="0" y="82" width="900" height="8" fill="#1c1e22" />
+            <rect x="0" y="88" width="900" height="2" fill="rgba(255,255,255,0.07)" />
+
+            <!-- ══ ARQUIBANCADA BASE ══ -->
+            <rect x="0" y="410" width="900" height="90" fill="url(#gArqB)" />
+            <rect x="0" y="410" width="900" height="2" fill="rgba(255,255,255,0.07)" />
+            <rect x="0" y="412" width="900" height="8" fill="#1c1e22" />
+            <rect x="0" y="428" width="900" height="10" fill="rgba(255,255,255,0.025)" />
+            <rect x="0" y="446" width="900" height="10" fill="rgba(255,255,255,0.02)" />
+            <rect x="0" y="464" width="900" height="10" fill="rgba(255,255,255,0.025)" />
+            <rect x="0" y="482" width="900" height="10" fill="rgba(255,255,255,0.02)" />
+            <rect x="0" y="410" width="900" height="90" fill="url(#crowd)" />
+            <rect x="0" y="410" width="900" height="90" fill="url(#crowd2)" />
+
+            <!-- ══ ARQUIBANCADA LATERAL ESQ ══ -->
+            <rect x="0" y="90" width="55" height="320" fill="url(#gArqL)" />
+            <rect x="10" y="90" width="8" height="320" fill="rgba(255,255,255,0.02)" />
+            <rect x="26" y="90" width="8" height="320" fill="rgba(255,255,255,0.025)" />
+            <rect x="42" y="90" width="8" height="320" fill="rgba(255,255,255,0.02)" />
+            <rect x="0" y="90" width="55" height="320" fill="url(#crowd)" />
+            <rect x="51" y="90" width="4" height="320" fill="#1c1e22" />
+            <rect x="53" y="90" width="2" height="320" fill="rgba(255,255,255,0.07)" />
+
+            <!-- ══ ARQUIBANCADA LATERAL DIR ══ -->
+            <rect x="845" y="90" width="55" height="320" fill="url(#gArqR)" />
+            <rect x="851" y="90" width="8" height="320" fill="rgba(255,255,255,0.02)" />
+            <rect x="867" y="90" width="8" height="320" fill="rgba(255,255,255,0.025)" />
+            <rect x="883" y="90" width="8" height="320" fill="rgba(255,255,255,0.02)" />
+            <rect x="845" y="90" width="55" height="320" fill="url(#crowd)" />
+            <rect x="845" y="90" width="2" height="320" fill="rgba(255,255,255,0.07)" />
+            <rect x="845" y="90" width="4" height="320" fill="#1c1e22" />
+
+            <!-- ══ GRAMADO — x:55 y:90 w:790 h:320 ══ -->
+            <rect x="55" y="90" width="790" height="320" fill="url(#listras)" />
+            <rect x="55" y="90" width="790" height="320" fill="url(#vig)" />
+            <rect x="55" y="90" width="790" height="320" fill="url(#holo)" />
+
+            <!-- ══ LINHAS DO CAMPO ══ -->
+            <!-- Borda externa -->
+            <rect x="55" y="90" width="790" height="320"
+                  fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Linha central -->
+            <line x1="450" y1="90" x2="450" y2="410"
+                  stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Círculo central -->
+            <circle cx="450" cy="250" r="78"
+                    fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <circle cx="450" cy="250" r="4" fill="rgba(255,255,255,0.92)" />
+
+            <!-- Área grande HOME: x=55→175, y=150→350 -->
+            <rect x="55" y="150" width="120" height="200"
+                  fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Área pequena HOME: x=55→105, y=200→300 -->
+            <rect x="55" y="200" width="50" height="100"
+                  fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Ponto pênalti HOME -->
+            <circle cx="143" cy="250" r="3.5" fill="rgba(255,255,255,0.92)" />
+            <!-- Arco HOME: centrado em x=143,y=250, r=72, lado direito -->
+            <path d="M 175 192 A 72 72 0 0 1 175 308"
+                  fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Gol HOME -->
+            <rect x="40" y="222" width="15" height="56"
+                  fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.88)" stroke-width="2" />
+
+            <!-- Área grande AWAY: x=725→845, y=150→350 -->
+            <rect x="725" y="150" width="120" height="200"
+                  fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Área pequena AWAY: x=795→845, y=200→300 -->
+            <rect x="795" y="200" width="50" height="100"
+                  fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Ponto pênalti AWAY -->
+            <circle cx="757" cy="250" r="3.5" fill="rgba(255,255,255,0.92)" />
+            <!-- Arco AWAY: lado esquerdo -->
+            <path d="M 725 192 A 72 72 0 0 0 725 308"
+                  fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Gol AWAY -->
+            <rect x="845" y="222" width="15" height="56"
+                  fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.88)" stroke-width="2" />
+
+            <!-- Escanteios -->
+            <path d="M 55 104 A 14 14 0 0 1 69 90"
+                  fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" />
+            <path d="M 831 90 A 14 14 0 0 1 845 104"
+                  fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" />
+            <path d="M 69 410 A 14 14 0 0 1 55 396"
+                  fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" />
+            <path d="M 845 396 A 14 14 0 0 1 831 410"
+                  fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" />
+
+            <!-- ══ JOGADORES HOME ══ -->
+            @if (HomeLineup != null)
+            {
+                @foreach (var player in HomeLineup)
+                {
+                    <g class="jogador-group" filter="url(#dropshadow)">
+                        <ellipse cx="@player.X" cy="@(player.Y + 21)" rx="13" ry="4" fill="rgba(0,0,0,0.30)" />
+                        <circle cx="@player.X" cy="@player.Y" r="18" fill="#1565C0" stroke="white" stroke-width="2.2" />
+                        <text x="@player.X" y="@(player.Y + 1)" text-anchor="middle" dominant-baseline="middle"
+                              font-size="10" fill="white" font-weight="bold" font-family="Barlow Condensed, sans-serif">@player.Number</text>
+                        <rect x="@(player.X - 22)" y="@(player.Y + 22)" width="44" height="14" rx="3" fill="rgba(0,0,0,0.65)" />
+                        <text x="@player.X" y="@(player.Y + 30)" text-anchor="middle" dominant-baseline="middle"
+                              font-size="8.5" fill="white" font-family="Barlow Condensed, sans-serif" font-weight="600">@player.ShortName</text>
+                    </g>
+                }
+            }
+
+            <!-- ══ JOGADORES AWAY ══ -->
+            @if (AwayLineup != null)
+            {
+                @foreach (var player in AwayLineup)
+                {
+                    <g class="jogador-group" filter="url(#dropshadow)">
+                        <ellipse cx="@player.X" cy="@(player.Y + 21)" rx="13" ry="4" fill="rgba(0,0,0,0.30)" />
+                        <circle cx="@player.X" cy="@player.Y" r="18" fill="#C62828" stroke="white" stroke-width="2.2" />
+                        <text x="@player.X" y="@(player.Y + 1)" text-anchor="middle" dominant-baseline="middle"
+                              font-size="10" fill="white" font-weight="bold" font-family="Barlow Condensed, sans-serif">@player.Number</text>
+                        <rect x="@(player.X - 22)" y="@(player.Y + 22)" width="44" height="14" rx="3" fill="rgba(0,0,0,0.65)" />
+                        <text x="@player.X" y="@(player.Y + 30)" text-anchor="middle" dominant-baseline="middle"
+                              font-size="8.5" fill="white" font-family="Barlow Condensed, sans-serif" font-weight="600">@player.ShortName</text>
+                    </g>
+                }
+            }
+
+            <!-- ══ EVENTOS NO CAMPO ══ -->
+            @foreach (var ev in EventosNoCampo)
+            {
+                @if (ev.Type == "GOAL")
+                {
+                    <g class="evento-icon" filter="url(#glow)">
+                        <circle cx="@ev.X" cy="@ev.Y" r="15" fill="#FFD700" opacity="0.95" class="pulse" />
+                        <text x="@ev.X" y="@(ev.Y + 1)" text-anchor="middle" dominant-baseline="middle" font-size="14">⚽</text>
+                    </g>
+                }
+                else if (ev.Type == "YELLOW_CARD")
+                {
+                    <g class="evento-icon" filter="url(#dropshadow)">
+                        <rect x="@(ev.X - 8)" y="@(ev.Y - 12)" width="16" height="22" fill="#FFD700" rx="2" />
+                    </g>
+                }
+                else if (ev.Type == "RED_CARD")
+                {
+                    <g class="evento-icon" filter="url(#dropshadow)">
+                        <rect x="@(ev.X - 8)" y="@(ev.Y - 12)" width="16" height="22" fill="#E53935" rx="2" />
+                    </g>
+                }
+                else if (ev.Type == "SUBSTITUTION")
+                {
+                    <g class="evento-icon" filter="url(#dropshadow)">
+                        <circle cx="@ev.X" cy="@ev.Y" r="13" fill="#00C853" />
+                        <text x="@ev.X" y="@(ev.Y + 1)" text-anchor="middle" dominant-baseline="middle" font-size="12">↕</text>
+                    </g>
+                }
+            }
+        </svg>
+    </div>
+
+    <!-- ── Placar ── -->
     <div class="placar">
         <div class="time-placar">
             @if (!string.IsNullOrEmpty(HomeTeamCrest))
@@ -18,7 +246,7 @@
             <span class="minuto">@Minuto'</span>
             <span class="status-badge @StatusClass">@Status</span>
         </div>
-        <div class="time-placar">
+        <div class="time-placar direita">
             <span class="gols">@AwayScore</span>
             <span class="time-nome">@AwayTeam</span>
             @if (!string.IsNullOrEmpty(AwayTeamCrest))
@@ -28,148 +256,15 @@
         </div>
     </div>
 
-    @* ── Campo SVG ── *@
-    <div class="campo-svg-container">
-        <svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg" class="campo-svg">
-            <!-- Grama com gradiente 3D -->
-            <defs>
-                <linearGradient id="gramadao" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#2d7a2d" />
-                    <stop offset="50%" stop-color="#3a9e3a" />
-                    <stop offset="100%" stop-color="#2d7a2d" />
-                </linearGradient>
-                <linearGradient id="listraGrama" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#35913590" />
-                    <stop offset="100%" stop-color="#2d7a2d00" />
-                </linearGradient>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                    <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-                <filter id="shadow">
-                    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000066" />
-                </filter>
-            </defs>
-
-            <!-- Base do campo -->
-            <rect width="800" height="520" fill="url(#gramadao)" rx="8" />
-
-            <!-- Listras do gramado -->
-            @for (int i = 0; i < 8; i++)
-            {
-                var x = i * 100;
-                <rect x="@x" y="0" width="50" height="520" fill="#ffffff08" />
-            }
-
-            <!-- Bordas do campo -->
-            <rect x="30" y="20" width="740" height="480" fill="none" stroke="white" stroke-width="2.5" opacity="0.9" />
-
-            <!-- Linha central -->
-            <line x1="400" y1="20" x2="400" y2="500" stroke="white" stroke-width="2" opacity="0.9" />
-
-            <!-- Círculo central -->
-            <circle cx="400" cy="260" r="70" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-            <circle cx="400" cy="260" r="4" fill="white" opacity="0.9" />
-
-            <!-- Área grande HOME (esquerda) -->
-            <rect x="30" y="160" width="130" height="200" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-            <!-- Área pequena HOME -->
-            <rect x="30" y="205" width="55" height="110" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-            <!-- Pênalti HOME -->
-            <circle cx="110" cy="260" r="4" fill="white" opacity="0.9" />
-            <!-- Arco da área HOME -->
-            <path d="M 160 210 A 70 70 0 0 1 160 310" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-
-            <!-- Gol HOME -->
-            <rect x="18" y="225" width="12" height="70" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-
-            <!-- Área grande AWAY (direita) -->
-            <rect x="640" y="160" width="130" height="200" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-            <!-- Área pequena AWAY -->
-            <rect x="715" y="205" width="55" height="110" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-            <!-- Pênalti AWAY -->
-            <circle cx="690" cy="260" r="4" fill="white" opacity="0.9" />
-            <!-- Arco da área AWAY -->
-            <path d="M 640 210 A 70 70 0 0 0 640 310" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-
-            <!-- Gol AWAY -->
-            <rect x="770" y="225" width="12" height="70" fill="none" stroke="white" stroke-width="2" opacity="0.9" />
-
-            <!-- Escanteios -->
-            <path d="M 30 20 A 15 15 0 0 1 45 35" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
-            <path d="M 770 20 A 15 15 0 0 0 755 35" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
-            <path d="M 30 500 A 15 15 0 0 0 45 485" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
-            <path d="M 770 500 A 15 15 0 0 1 755 485" fill="none" stroke="white" stroke-width="1.5" opacity="0.8" />
-
-            @* ── Jogadores HOME ── *@
-            @if (HomeLineup != null)
-            {
-                @foreach (var player in HomeLineup)
-                {
-                    <g class="jogador-group" filter="url(#shadow)">
-                        <circle cx="@player.X" cy="@player.Y" r="18" fill="#1565C0" stroke="white" stroke-width="2" />
-                        <text x="@player.X" y="@(player.Y + 5)" text-anchor="middle" font-size="10" fill="white" font-weight="bold">@player.Number</text>
-                        <text x="@player.X" y="@(player.Y + 28)" text-anchor="middle" font-size="9" fill="white" opacity="0.9">@player.ShortName</text>
-                    </g>
-                }
-            }
-
-            @* ── Jogadores AWAY ── *@
-            @if (AwayLineup != null)
-            {
-                @foreach (var player in AwayLineup)
-                {
-                    <g class="jogador-group" filter="url(#shadow)">
-                        <circle cx="@player.X" cy="@player.Y" r="18" fill="#C62828" stroke="white" stroke-width="2" />
-                        <text x="@player.X" y="@(player.Y + 5)" text-anchor="middle" font-size="10" fill="white" font-weight="bold">@player.Number</text>
-                        <text x="@player.X" y="@(player.Y + 28)" text-anchor="middle" font-size="9" fill="white" opacity="0.9">@player.ShortName</text>
-                    </g>
-                }
-            }
-
-            @* ── Eventos no campo ── *@
-            @foreach (var ev in EventosNoCampo)
-            {
-                @if (ev.Type == "GOAL")
-                {
-                    <g class="evento-icon" filter="url(#glow)">
-                        <circle cx="@ev.X" cy="@ev.Y" r="14" fill="#FFD700" opacity="0.9" class="pulse" />
-                        <text x="@ev.X" y="@(ev.Y + 5)" text-anchor="middle" font-size="14">⚽</text>
-                    </g>
-                }
-                else if (ev.Type == "YELLOW_CARD")
-                {
-                    <g class="evento-icon">
-                        <rect x="@(ev.X - 8)" y="@(ev.Y - 11)" width="16" height="22" fill="#FFD700" rx="2" filter="url(#shadow)" />
-                    </g>
-                }
-                else if (ev.Type == "RED_CARD")
-                {
-                    <g class="evento-icon">
-                        <rect x="@(ev.X - 8)" y="@(ev.Y - 11)" width="16" height="22" fill="#E53935" rx="2" filter="url(#shadow)" />
-                    </g>
-                }
-                else if (ev.Type == "SUBSTITUTION")
-                {
-                    <g class="evento-icon">
-                        <circle cx="@ev.X" cy="@ev.Y" r="12" fill="#00E676" opacity="0.85" />
-                        <text x="@ev.X" y="@(ev.Y + 5)" text-anchor="middle" font-size="12">↕</text>
-                    </g>
-                }
-            }
-        </svg>
-    </div>
-
-    @* ── Tabs: Eventos | Estatísticas | Escalação ── *@
+    <!-- ── Tabs ── -->
     <div class="tabs">
-        <button class="tab @(AbaAtiva == "eventos" ? "ativa" : "")" @onclick='() => AbaAtiva = "eventos"'>⚡ Eventos</button>
-        <button class="tab @(AbaAtiva == "stats" ? "ativa" : "")" @onclick='() => AbaAtiva = "stats"'>📊 Estatísticas</button>
-        <button class="tab @(AbaAtiva == "escalacao" ? "ativa" : "")" @onclick='() => AbaAtiva = "escalacao"'>👥 Escalação</button>
+        <button class="tab @(AbaAtiva == "eventos" ? "ativa" : "")" @onclick='() => AbaAtiva = "eventos"'>⚡ EVENTOS</button>
+        <button class="tab @(AbaAtiva == "stats" ? "ativa" : "")" @onclick='() => AbaAtiva = "stats"'>📊 ESTATÍSTICAS</button>
+        <button class="tab @(AbaAtiva == "escalacao" ? "ativa" : "")" @onclick='() => AbaAtiva = "escalacao"'>👥 ESCALAÇÃO</button>
     </div>
 
-    @* ── Conteúdo das Tabs ── *@
+    <!-- ── Conteúdo das Tabs ── -->
     <div class="tab-content">
-
         @if (AbaAtiva == "eventos")
         {
             <div class="eventos-lista">
@@ -205,22 +300,19 @@
                 {
                     @foreach (var stat in Stats)
                     {
-                        var homeVal = stat.HomeValue;
-                        var awayVal = stat.AwayValue;
-                        var total = homeVal + awayVal;
-                        var homePct = total > 0 ? (int)((homeVal / (double)total) * 100) : 50;
+                        var total = stat.HomeValue + stat.AwayValue;
+                        var homePct = total > 0 ? (int)(stat.HomeValue / (double)total * 100) : 50;
                         var awayPct = 100 - homePct;
-
                         <div class="stat-row">
-                            <span class="stat-val home">@homeVal@stat.Unit</span>
+                            <span class="stat-val home">@stat.HomeValue@stat.Unit</span>
                             <div class="stat-bar-wrap">
                                 <span class="stat-label">@stat.Name</span>
                                 <div class="stat-bar">
-                                    <div class="stat-fill home" style="width: @homePct%"></div>
-                                    <div class="stat-fill away" style="width: @awayPct%"></div>
+                                    <div class="stat-fill home" style="width:@homePct%"></div>
+                                    <div class="stat-fill away" style="width:@awayPct%"></div>
                                 </div>
                             </div>
-                            <span class="stat-val away">@awayVal@stat.Unit</span>
+                            <span class="stat-val away">@stat.AwayValue@stat.Unit</span>
                         </div>
                     }
                 }
@@ -284,15 +376,13 @@
     private string AbaAtiva = "eventos";
     private string StatusClass => Status is "AO VIVO" or "IN_PLAY" or "PAUSED" ? "live" : "finished";
 
-    // Eventos posicionados no campo (simplificado — posição baseada no time)
     private List<EventoCampo> EventosNoCampo => Eventos?
         .Where(e => e.Type is "GOAL" or "YELLOW_CARD" or "RED_CARD" or "SUBSTITUTION")
         .Select((e, i) =>
         {
-            // HOME ataca para a direita (lado direito do campo) e AWAY para a esquerda
             var isHome = e.Time == "home";
-            var baseX = isHome ? 550 + (i % 3) * 30 : 250 - (i % 3) * 30;
-            var baseY = 150 + (i * 60) % 320;
+            var baseX = isHome ? 200 + (i % 3) * 45 : 700 - (i % 3) * 45;
+            var baseY = 170 + (i * 60) % 160;
             return new EventoCampo { X = baseX, Y = baseY, Type = e.Type };
         }).ToList() ?? new();
 
@@ -307,14 +397,13 @@
         _ => "•"
     };
 
-    // ── Modelos internos ──
     public class EventoModel
     {
         public int Minuto { get; set; }
         public string Type { get; set; } = "";
         public string Player { get; set; } = "";
         public string? Detail { get; set; }
-        public string Time { get; set; } = ""; // "home" ou "away"
+        public string Time { get; set; } = "";
         public string TeamName { get; set; } = "";
     }
 
@@ -343,4 +432,3 @@
         public string Type { get; set; } = "";
     }
 }
-
