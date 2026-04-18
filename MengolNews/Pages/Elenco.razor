@@ -1,0 +1,333 @@
+﻿@* Pages/Elenco.razor *@
+@page "/elenco"
+@using System.Text.Json
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject IJSRuntime JS
+
+<PageTitle>Elenco — MengolNews</PageTitle>
+
+<link href="css/elenco.css" rel="stylesheet" />
+
+<div class="elenco-page">
+
+    <div class="elenco-hero">
+        <div class="elenco-hero-inner">
+            <img src="https://media.api-sports.io/football/teams/127.png" class="elenco-escudo" alt="Flamengo" />
+            <div>
+                <h1 class="elenco-titulo">ELENCO <span>2025</span></h1>
+                <p class="elenco-subtitulo">Club de Regatas do Flamengo</p>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="elenco-loading">
+            <div class="spinner"></div>
+            <p>Carregando elenco...</p>
+        </div>
+    }
+    else if (erro != null)
+    {
+        <div class="elenco-erro">
+            <span>⚠️</span>
+            <p>@erro</p>
+        </div>
+    }
+    else
+    {
+        <div class="elenco-filtros">
+            @foreach (var pos in posicoes)
+            {
+                <button class="filtro-btn @(filtroAtivo == pos.key ? "ativo" : "")"
+                        @onclick="() => filtroAtivo = pos.key">
+                    @pos.label
+                </button>
+            }
+        </div>
+
+        @foreach (var grupo in GruposFiltrados)
+        {
+            <div class="elenco-secao">
+                <h2 class="secao-titulo">@grupo.Key</h2>
+                <div class="elenco-grid">
+                    @foreach (var p in grupo.Value)
+                    {
+                        <div class="player-card @GetPositionClass(p.Position)"
+                             @onclick="() => AbrirModal(p)">
+                            <div class="card-numero">@(p.Number > 0 ? p.Number.ToString() : "—")</div>
+                            <div class="card-foto-wrap">
+                                <img src="@p.Photo"
+                                     class="card-foto"
+                                     alt="@p.Name"
+                                     onerror="this.src='img/player-placeholder.png'" />
+                            </div>
+                            <div class="card-info">
+                                <span class="card-pos-badge">@MapPosition(p.Position)</span>
+                                <span class="card-nome">@ShortName(p.Name)</span>
+                                <span class="card-idade">@p.Age anos</span>
+                            </div>
+                            <div class="card-shine"></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+
+</div>
+
+@* Modal FORA da elenco-page *@
+@if (modalVisivel)
+{
+    <div class="modal-overlay" @onclick="FecharModal">
+        <div class="modal-box" @onclick:stopPropagation="true">
+
+            @if (loadingModal)
+            {
+                <div class="modal-loading">
+                    <div class="spinner"></div>
+                    <p style="color:rgba(255,255,255,0.5);font-size:14px;margin-top:12px;">Carregando...</p>
+                </div>
+            }
+            else if (statsModal != null)
+            {
+                <button class="modal-close" @onclick="FecharModal">✕</button>
+
+                <div class="modal-header @GetPositionClass(statsModal.Position)">
+                    <img src="@statsModal.Photo" class="modal-foto" alt="@statsModal.Name"
+                         onerror="this.src='img/player-placeholder.png'" />
+                    <div class="modal-header-info">
+                        <span class="modal-pos-badge">@MapPosition(statsModal.Position)</span>
+                        <h2 class="modal-nome">@statsModal.Name</h2>
+                        <div class="modal-meta">
+                            @if (!string.IsNullOrEmpty(statsModal.Nationality))
+                            {
+                                <span>🌍 @statsModal.Nationality</span>
+                            }
+                            @if (statsModal.Age > 0)
+                            {
+                                <span>🎂 @statsModal.Age anos</span>
+                            }
+                            @if (!string.IsNullOrEmpty(statsModal.Height))
+                            {
+                                <span>📏 @statsModal.Height</span>
+                            }
+                            @if (statsModal.Number > 0)
+                            {
+                                <span>👕 Nº @statsModal.Number</span>
+                            }
+                            @if (statsModal.Injured)
+                            {
+                                <span class="lesionado">🚑 Lesionado</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-stats">
+                    <h3 class="stats-titulo">Temporada 2025</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-num">@statsModal.Appearances</span>
+                            <span class="stat-label">Jogos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-num">@statsModal.Goals</span>
+                            <span class="stat-label">Gols</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-num">@statsModal.Assists</span>
+                            <span class="stat-label">Assist.</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-num">@statsModal.MinutesPlayed'</span>
+                            <span class="stat-label">Minutos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-num yellow">@statsModal.YellowCards</span>
+                            <span class="stat-label">Amarelos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-num red">@statsModal.RedCards</span>
+                            <span class="stat-label">Vermelhos</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(statsModal.Rating) && statsModal.Rating != "0")
+                        {
+                            <div class="stat-item destaque">
+                                <span class="stat-num rating">@(statsModal.Rating.Length > 4 ? statsModal.Rating[..4] : statsModal.Rating)</span>
+                                <span class="stat-label">Rating</span>
+                            </div>
+                        }
+                        @if (statsModal.Passes > 0)
+                        {
+                            <div class="stat-item">
+                                <span class="stat-num">@statsModal.Passes</span>
+                                <span class="stat-label">Passes</span>
+                            </div>
+                        }
+                        @if (statsModal.Tackles > 0)
+                        {
+                            <div class="stat-item">
+                                <span class="stat-num">@statsModal.Tackles</span>
+                                <span class="stat-label">Desarmes</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <button class="modal-close" @onclick="FecharModal">✕</button>
+                <div class="modal-loading">
+                    <span style="font-size:32px">⚠️</span>
+                    <p style="color:rgba(255,255,255,0.5);font-size:14px;margin-top:12px;">
+                        Não foi possível carregar as estatísticas.
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private bool loading = true;
+    private bool loadingModal = false;
+    private bool modalVisivel = false;
+    private string? erro;
+    private List<PlayerDto>? squad;
+    private PlayerStatsDto? statsModal;
+    private PlayerDto? jogadorModal;
+    private string filtroAtivo = "todos";
+
+    private string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
+
+    private record FiltroPos(string key, string label);
+    private List<FiltroPos> posicoes = new()
+    {
+        new("todos",      "Todos"),
+        new("Goalkeeper", "Goleiros"),
+        new("Defender",   "Defensores"),
+        new("Midfielder", "Meias"),
+        new("Attacker",   "Atacantes"),
+    };
+
+    private Dictionary<string, List<PlayerDto>> GruposFiltrados
+    {
+        get
+        {
+            var lista = filtroAtivo == "todos"
+                ? squad ?? new()
+                : squad?.Where(p => p.Position == filtroAtivo).ToList() ?? new();
+
+            return lista
+                .GroupBy(p => MapPosition(p.Position))
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<PlayerDto>>($"{Api}api/squad/flamengo");
+            squad = result;
+        }
+        catch (Exception ex)
+        {
+            erro = $"Erro ao carregar elenco: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task AbrirModal(PlayerDto player)
+    {
+        jogadorModal = player;
+        statsModal = null;
+        loadingModal = true;
+        modalVisivel = true;
+        StateHasChanged();
+
+        try
+        {
+            statsModal = await Http.GetFromJsonAsync<PlayerStatsDto>($"{Api}api/squad/player/{player.Id}");
+        }
+        catch { }
+        finally
+        {
+            loadingModal = false;
+            StateHasChanged();
+        }
+    }
+
+    private void FecharModal()
+    {
+        modalVisivel = false;
+        jogadorModal = null;
+        statsModal = null;
+    }
+
+    private string MapPosition(string pos) => pos switch
+    {
+        "Goalkeeper" => "Goleiros",
+        "Defender" => "Defensores",
+        "Midfielder" => "Meias",
+        "Attacker" => "Atacantes",
+        _ => pos
+    };
+
+    private string GetPositionClass(string pos) => pos switch
+    {
+        "Goalkeeper" => "pos-gk",
+        "Defender" => "pos-def",
+        "Midfielder" => "pos-mei",
+        "Attacker" => "pos-ata",
+        _ => ""
+    };
+
+    private string ShortName(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "";
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return fullName;
+        var last = parts.Last();
+        return last.Length <= 12 ? last : parts.First();
+    }
+
+    public class PlayerDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public int Age { get; set; }
+        public int Number { get; set; }
+        public string Position { get; set; } = "";
+        public string Photo { get; set; } = "";
+    }
+
+    public class PlayerStatsDto : PlayerDto
+    {
+        public string Firstname { get; set; } = "";
+        public string Lastname { get; set; } = "";
+        public string Nationality { get; set; } = "";
+        public string Height { get; set; } = "";
+        public string Weight { get; set; } = "";
+        public bool Injured { get; set; }
+        public int Appearances { get; set; }
+        public int Starts { get; set; }
+        public int MinutesPlayed { get; set; }
+        public int Goals { get; set; }
+        public int Assists { get; set; }
+        public int YellowCards { get; set; }
+        public int RedCards { get; set; }
+        public int Shots { get; set; }
+        public int ShotsOn { get; set; }
+        public int Passes { get; set; }
+        public string PassAccuracy { get; set; } = "";
+        public int Tackles { get; set; }
+        public string Rating { get; set; } = "";
+    }
+}

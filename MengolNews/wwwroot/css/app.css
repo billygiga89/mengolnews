@@ -2824,3 +2824,541 @@ html, body {
 }
 
 
+/* ================================================================
+   elenco.css — MengolNews | Página do Elenco do Flamengo
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap');
+
+/* ── Página ── */
+.elenco-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a0005 50%, #0d0000 100%);
+    padding-bottom: 60px;
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+/* ── Hero ── */
+.elenco-hero {
+    background: linear-gradient(180deg, #b71c1c 0%, #7f0000 100%);
+    padding: 32px 20px;
+    border-bottom: 3px solid #FFD700;
+}
+
+.elenco-hero-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.elenco-escudo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+}
+
+.elenco-titulo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    letter-spacing: 2px;
+    line-height: 1;
+}
+
+    .elenco-titulo span {
+        color: #FFD700;
+    }
+
+.elenco-subtitulo {
+    color: rgba(255,255,255,0.7);
+    font-size: 15px;
+    margin: 4px 0 0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ── Loading / Erro ── */
+.elenco-loading, .elenco-erro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    gap: 16px;
+    color: rgba(255,255,255,0.6);
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: #FFD700;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Filtros ── */
+.elenco-filtros {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: nowrap;
+    padding: 24px 20px 8px;
+    max-width: 900px;
+    margin: 0 auto;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+    .elenco-filtros::-webkit-scrollbar {
+        display: none;
+    }
+
+.filtro-btn {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.6);
+    padding: 8px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+    .filtro-btn:hover {
+        background: rgba(255,255,255,0.14);
+        color: white;
+    }
+
+    .filtro-btn.ativo {
+        background: #b71c1c;
+        border-color: #FFD700;
+        color: #FFD700;
+    }
+
+/* ── Seção por posição ── */
+.elenco-secao {
+    max-width: 900px;
+    margin: 24px auto 0;
+    padding: 0 16px;
+}
+
+.secao-titulo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-left: 3px solid #b71c1c;
+    padding-left: 12px;
+    margin: 0 0 16px;
+}
+
+/* ── Grid ── */
+.elenco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+}
+
+/* ── Card ── */
+.player-card {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: linear-gradient(160deg, #1a1a2e, #16213e);
+    border: 1px solid rgba(255,255,255,0.08);
+    aspect-ratio: 2/3;
+    display: flex;
+    flex-direction: column;
+}
+
+    .player-card:hover {
+        transform: translateY(-6px) scale(1.03);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+        z-index: 2;
+    }
+
+    /* Cores por posição */
+    .player-card.pos-gk {
+        background: linear-gradient(160deg, #1a2a0a, #2d4a10);
+        border-color: rgba(100,200,50,0.2);
+    }
+
+    .player-card.pos-def {
+        background: linear-gradient(160deg, #0a1a2e, #0d2744);
+        border-color: rgba(50,130,255,0.2);
+    }
+
+    .player-card.pos-mei {
+        background: linear-gradient(160deg, #1a1a0a, #2e2a10);
+        border-color: rgba(255,200,50,0.2);
+    }
+
+    .player-card.pos-ata {
+        background: linear-gradient(160deg, #2a0a0a, #450d0d);
+        border-color: rgba(255,60,60,0.25);
+    }
+
+/* Número da camisa */
+.card-numero {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.15);
+    line-height: 1;
+    z-index: 1;
+}
+
+/* Foto */
+.card-foto-wrap {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-top: 16px;
+    overflow: hidden;
+}
+
+.card-foto {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+}
+
+/* Info rodapé */
+.card-info {
+    background: rgba(0,0,0,0.65);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    backdrop-filter: blur(4px);
+}
+
+.card-pos-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+}
+
+.card-nome {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-idade {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+}
+
+/* Efeito shine */
+.card-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Cor badge por posição */
+.pos-gk .card-pos-badge {
+    color: #81c784;
+}
+
+.pos-def .card-pos-badge {
+    color: #64b5f6;
+}
+
+.pos-mei .card-pos-badge {
+    color: #FFD700;
+}
+
+.pos-ata .card-pos-badge {
+    color: #ef9a9a;
+}
+
+/* ════════════════════════════
+   MODAL
+   ════════════════════════════ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-box {
+    background: #0f1520;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slide-up 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes slide-up {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 10;
+    transition: background 0.2s;
+}
+
+    .modal-close:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+/* Header do modal */
+.modal-header {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    padding: 24px 20px 20px;
+    border-radius: 18px 18px 0 0;
+    background: linear-gradient(160deg, #1a0005, #3a0010);
+    border-bottom: 2px solid rgba(255,255,255,0.08);
+}
+
+    .modal-header.pos-gk {
+        background: linear-gradient(160deg, #0a2010, #1a4020);
+    }
+
+    .modal-header.pos-def {
+        background: linear-gradient(160deg, #0a1530, #0d2550);
+    }
+
+    .modal-header.pos-mei {
+        background: linear-gradient(160deg, #1a1505, #302800);
+    }
+
+    .modal-header.pos-ata {
+        background: linear-gradient(160deg, #2a0505, #500d0d);
+    }
+
+.modal-foto {
+    width: 90px;
+    height: 110px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+}
+
+.modal-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.modal-pos-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #FFD700;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.modal-nome {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 8px;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.modal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+    .modal-meta span {
+        font-size: 12px;
+        color: rgba(255,255,255,0.6);
+        background: rgba(255,255,255,0.07);
+        padding: 3px 8px;
+        border-radius: 20px;
+    }
+
+    .modal-meta .lesionado {
+        color: #ef9a9a;
+        background: rgba(200,50,50,0.2);
+    }
+
+/* Stats do modal */
+.modal-stats {
+    padding: 20px;
+}
+
+.stats-titulo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.stat-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+    .stat-item.destaque {
+        background: rgba(255,215,0,0.08);
+        border-color: rgba(255,215,0,0.2);
+    }
+
+.stat-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+}
+
+    .stat-num.yellow {
+        color: #FFD700;
+    }
+
+    .stat-num.red {
+        color: #ef5350;
+    }
+
+    .stat-num.rating {
+        color: #FFD700;
+        font-size: 22px;
+    }
+
+.stat-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.modal-loading {
+    display: flex;
+    justify-content: center;
+    padding: 60px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .elenco-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+    }
+
+    .elenco-titulo {
+        font-size: 28px;
+    }
+
+    .elenco-escudo {
+        width: 50px;
+        height: 50px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .modal-foto {
+        width: 70px;
+        height: 88px;
+    }
+
+    .modal-nome {
+        font-size: 18px;
+    }
+}
+
+

@@ -19,7 +19,12 @@ builder.Services.AddHttpClient("default", client =>
 //builder.Services.AddHttpClient<NoticiasService>();
 builder.Services.AddHttpClient<VideosService>();
 
-builder.Services.AddHttpClient<MatchService>();
+//builder.Services.AddHttpClient<MatchService>();
+builder.Services.AddScoped<MatchService>();
+
+// HttpClients nomeados (necessário para o MatchService usar dois clientes)
+builder.Services.AddHttpClient("apifootball");
+builder.Services.AddHttpClient("footballdata");
 
 // Adicionar junto com os outros serviços:
 builder.Services.AddMemoryCache(); // se ainda não tiver
@@ -27,6 +32,8 @@ builder.Services.AddHttpClient<SerieAService>();
 
 builder.Services.AddSingleton<NoticiasService>();
 builder.Services.AddHostedService<CacheWarmupService>();
+
+builder.Services.AddHttpClient<SquadService>();
 
 // CORS
 builder.Services.AddCors(options =>

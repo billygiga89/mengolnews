@@ -1,11 +1,13 @@
 ﻿@* Pages/Jogo.razor *@
-@page "/jogo/{Id:int}"
+@page "/jogo"
 @using System.Text.Json
 @using MengolNews.Components
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
 
-<PageTitle>@(matchTitle) — MengolNews</PageTitle>
+<PageTitle>@matchTitle — MengolNews</PageTitle>
 
 <div class="jogo-page">
 
@@ -31,22 +33,20 @@
             <span class="competicao">@competicao</span>
         </div>
 
-        <CampoVirtual
-            HomeTeam="@homeTeam"
-            AwayTeam="@awayTeam"
-            HomeTeamCrest="@homeCrest"
-            AwayTeamCrest="@awayCrest"
-            HomeScore="@homeScore"
-            AwayScore="@awayScore"
-            Status="@status"
-            Minuto="@minuto"
-            Eventos="@eventos"
-            Stats="@stats"
-            HomeLineup="@homeLineup"
-            AwayLineup="@awayLineup"
-        />
+        <CampoVirtual HomeTeam="@homeTeam"
+                      AwayTeam="@awayTeam"
+                      HomeTeamCrest="@homeCrest"
+                      AwayTeamCrest="@awayCrest"
+                      HomeScore="@homeScore"
+                      AwayScore="@awayScore"
+                      Status="@status"
+                      Minuto="@minuto"
+                      Eventos="@eventos"
+                      Stats="@stats"
+                      HomeLineup="@homeLineup"
+                      AwayLineup="@awayLineup" />
 
-        @if (status is "IN_PLAY" or "PAUSED")
+        @if (IsLive)
         {
             <p class="auto-refresh-hint">🔄 Atualizando a cada 30 segundos</p>
         }
@@ -54,7 +54,7 @@
 </div>
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery] public int FdId { get; set; }
 
     private bool loading = true;
     private string? erro;
@@ -64,6 +64,7 @@
     private string? homeCrest, awayCrest;
     private int homeScore, awayScore, minuto;
     private string status = "";
+
     private List<CampoVirtual.EventoModel>? eventos;
     private List<CampoVirtual.StatModel>? stats;
     private List<CampoVirtual.PlayerModel>? homeLineup;
@@ -71,23 +72,23 @@
 
     private System.Threading.Timer? _timer;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadMatch();
-    }
+    private bool IsLive => status is "1H" or "2H" or "HT" or "ET" or "P" or "LIVE";
 
-    void Voltar() => Nav.NavigateTo("/");
+    private const string ApiBase = "https://mengolnews-api.onrender.com";
+
+    protected override async Task OnInitializedAsync() => await LoadMatch();
+
+    async Task Voltar() => await JS.InvokeVoidAsync("history.back");
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender && status is "IN_PLAY" or "PAUSED")
+        if (!firstRender || !IsLive) return;
+
+        _timer = new System.Threading.Timer(async _ =>
         {
-            _timer = new System.Threading.Timer(async _ =>
-            {
-                await LoadMatch();
-                await InvokeAsync(StateHasChanged);
-            }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-        }
+            try { await LoadMatch(); await InvokeAsync(StateHasChanged); }
+            catch { }
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
     }
 
     private async Task LoadMatch()
@@ -95,13 +96,14 @@
         try
         {
             loading = true;
-            // Chama nossa própria API (que chama o football-data.org)
-            var apiBase = "https://mengolnews-api.onrender.com";
-            var response = await Http.GetAsync($"{apiBase}/api/match/{Id}");
+
+            var response = await Http.GetAsync($"{ApiBase}/api/match/lookup?fdId={FdId}");
 
             if (!response.IsSuccessStatusCode)
             {
-                erro = "Jogo não encontrado ou API indisponível.";
+                erro = response.StatusCode == System.Net.HttpStatusCode.NotFound
+                    ? "Jogo não encontrado."
+                    : "API indisponível. Tente novamente.";
                 loading = false;
                 return;
             }
@@ -109,110 +111,98 @@
             var json = await response.Content.ReadAsStringAsync();
             var doc = JsonSerializer.Deserialize<JsonElement>(json);
 
-            // ── Times ──
-            homeTeam = doc.GetProperty("homeTeam").GetProperty("shortName").GetString() ?? "";
-            awayTeam = doc.GetProperty("awayTeam").GetProperty("shortName").GetString() ?? "";
-            homeCrest = doc.GetProperty("homeTeam").GetProperty("crest").GetString();
-            awayCrest = doc.GetProperty("awayTeam").GetProperty("crest").GetString();
+            // ── Validação básica ──
+            if (!doc.TryGetProperty("homeTeam", out var homeTeamEl) ||
+                !doc.TryGetProperty("awayTeam", out var awayTeamEl))
+            {
+                erro = "Resposta da API inválida.";
+                loading = false;
+                return;
+            }
 
+            // ── Times ──
+            var homeShort = Str(homeTeamEl, "short");
+            homeTeam = string.IsNullOrEmpty(homeShort) ? Str(homeTeamEl, "name") : homeShort;
+
+            var awayShort = Str(awayTeamEl, "short");
+            awayTeam = string.IsNullOrEmpty(awayShort) ? Str(awayTeamEl, "name") : awayShort;
+            homeCrest = StrNull(homeTeamEl, "logo");
+            awayCrest = StrNull(awayTeamEl, "logo");
             matchTitle = $"{homeTeam} x {awayTeam}";
 
             // ── Competição ──
-            competicao = doc.GetProperty("competition").GetProperty("name").GetString() ?? "";
+            competicao = Str(doc, "competition");
+            var round = Str(doc, "round");
+            if (!string.IsNullOrEmpty(round))
+                competicao = string.IsNullOrEmpty(competicao) ? round : $"{competicao} — {round}";
 
-            // ── Placar ──
-            var score = doc.GetProperty("score");
-            homeScore = score.GetProperty("fullTime").GetProperty("home").ValueKind != JsonValueKind.Null
-                ? score.GetProperty("fullTime").GetProperty("home").GetInt32() : 0;
-            awayScore = score.GetProperty("fullTime").GetProperty("away").ValueKind != JsonValueKind.Null
-                ? score.GetProperty("fullTime").GetProperty("away").GetInt32() : 0;
-
-            // ── Status e minuto ──
-            status = doc.GetProperty("status").GetString() ?? "";
-            if (doc.TryGetProperty("minute", out var minEl) && minEl.ValueKind == JsonValueKind.Number)
-                minuto = minEl.GetInt32();
+            // ── Status / minuto / placar ──
+            status = Str(doc, "status");
+            minuto = Int(doc, "minute");
+            homeScore = Int(doc, "homeScore");
+            awayScore = Int(doc, "awayScore");
 
             // ── Eventos ──
             eventos = new();
-            if (doc.TryGetProperty("goals", out var goalsEl))
+            if (doc.TryGetProperty("events", out var evArr) && evArr.ValueKind == JsonValueKind.Array)
             {
-                foreach (var g in goalsEl.EnumerateArray())
+                foreach (var ev in evArr.EnumerateArray())
                 {
-                    var isHome = g.GetProperty("team").GetProperty("id").GetInt32() ==
-                                 doc.GetProperty("homeTeam").GetProperty("id").GetInt32();
-                    eventos.Add(new CampoVirtual.EventoModel
-                    {
-                        Minuto = g.TryGetProperty("minute", out var m) ? m.GetInt32() : 0,
-                        Type = g.TryGetProperty("type", out var t) ? t.GetString() ?? "GOAL" : "GOAL",
-                        Player = g.TryGetProperty("scorer", out var sc) && sc.TryGetProperty("name", out var sn)
-                            ? sn.GetString() ?? "" : "",
-                        Detail = g.TryGetProperty("assist", out var as_) && as_.ValueKind != JsonValueKind.Null
-                            && as_.TryGetProperty("name", out var an) ? $"Assist: {an.GetString()}" : null,
-                        Time = isHome ? "home" : "away",
-                        TeamName = isHome ? homeTeam : awayTeam
-                    });
-                }
-            }
+                    var type = Str(ev, "type");
+                    var detail = Str(ev, "detail");
+                    var mapped = MapEventType(type, detail);
+                    if (mapped == null) continue;
 
-            if (doc.TryGetProperty("bookings", out var bookings))
-            {
-                foreach (var b in bookings.EnumerateArray())
-                {
-                    var isHome = b.GetProperty("team").GetProperty("id").GetInt32() ==
-                                 doc.GetProperty("homeTeam").GetProperty("id").GetInt32();
+                    var assist = Str(ev, "assist");
                     eventos.Add(new CampoVirtual.EventoModel
                     {
-                        Minuto = b.TryGetProperty("minute", out var m) ? m.GetInt32() : 0,
-                        Type = b.TryGetProperty("card", out var c) ? c.GetString() ?? "YELLOW_CARD" : "YELLOW_CARD",
-                        Player = b.TryGetProperty("player", out var pl) && pl.TryGetProperty("name", out var pn)
-                            ? pn.GetString() ?? "" : "",
-                        Time = isHome ? "home" : "away",
-                        TeamName = isHome ? homeTeam : awayTeam
-                    });
-                }
-            }
-
-            if (doc.TryGetProperty("substitutions", out var subs))
-            {
-                foreach (var s in subs.EnumerateArray())
-                {
-                    var isHome = s.GetProperty("team").GetProperty("id").GetInt32() ==
-                                 doc.GetProperty("homeTeam").GetProperty("id").GetInt32();
-                    var playerOut = s.TryGetProperty("playerOut", out var po) && po.TryGetProperty("name", out var pon)
-                        ? pon.GetString() : "";
-                    var playerIn = s.TryGetProperty("playerIn", out var pi) && pi.TryGetProperty("name", out var pin)
-                        ? pin.GetString() : "";
-                    eventos.Add(new CampoVirtual.EventoModel
-                    {
-                        Minuto = s.TryGetProperty("minute", out var m) ? m.GetInt32() : 0,
-                        Type = "SUBSTITUTION",
-                        Player = playerIn ?? "",
-                        Detail = $"Saiu: {playerOut}",
-                        Time = isHome ? "home" : "away",
-                        TeamName = isHome ? homeTeam : awayTeam
+                        Minuto = Int(ev, "minute"),
+                        Type = mapped,
+                        Player = Str(ev, "player"),
+                        Detail = type == "Goal" && !string.IsNullOrEmpty(assist) ? $"Assist: {assist}" : detail,
+                        Time = Bool(ev, "isHome") ? "home" : "away",
+                        TeamName = Str(ev, "teamName"),
                     });
                 }
             }
 
             // ── Escalação ──
-            homeLineup = ParseLineup(doc, "homeTeam", isHome: true);
-            awayLineup = ParseLineup(doc, "awayTeam", isHome: false);
+            homeLineup = doc.TryGetProperty("homeLineup", out var hlu) ? ParseLineup(hlu, true) : new();
+            awayLineup = doc.TryGetProperty("awayLineup", out var alu) ? ParseLineup(alu, false) : new();
 
-            // ── Stats (football-data.org não tem stats granulares no plano free,
-            //           mas incluímos estrutura para quando disponível) ──
-            stats = new List<CampoVirtual.StatModel>
+            // ── Stats ──
+            stats = new();
+            if (doc.TryGetProperty("stats", out var stArr) && stArr.ValueKind == JsonValueKind.Array)
             {
-                new() { Name = "Gols", HomeValue = homeScore, AwayValue = awayScore },
-                new() { Name = "Cartões Amarelos",
-                    HomeValue = eventos.Count(e => e.Type == "YELLOW_CARD" && e.Time == "home"),
-                    AwayValue = eventos.Count(e => e.Type == "YELLOW_CARD" && e.Time == "away") },
-                new() { Name = "Cartões Vermelhos",
-                    HomeValue = eventos.Count(e => e.Type == "RED_CARD" && e.Time == "home"),
-                    AwayValue = eventos.Count(e => e.Type == "RED_CARD" && e.Time == "away") },
-                new() { Name = "Substituições",
-                    HomeValue = eventos.Count(e => e.Type == "SUBSTITUTION" && e.Time == "home"),
-                    AwayValue = eventos.Count(e => e.Type == "SUBSTITUTION" && e.Time == "away") },
-            };
+                foreach (var s in stArr.EnumerateArray())
+                {
+                    stats.Add(new CampoVirtual.StatModel
+                    {
+                        Name = TranslateStat(Str(s, "name")),
+                        HomeValue = Int(s, "homeValue"),
+                        AwayValue = Int(s, "awayValue"),
+                        Unit = Str(s, "unit"),
+                    });
+                }
+            }
+
+            // Fallback stats mínimas
+            if (stats.Count == 0)
+            {
+                stats = new()
+                {
+                    new() { Name="Gols",             HomeValue=homeScore, AwayValue=awayScore },
+                    new() { Name="Cartões Amarelos",
+                        HomeValue=eventos.Count(e=>e.Type=="YELLOW_CARD"&&e.Time=="home"),
+                        AwayValue=eventos.Count(e=>e.Type=="YELLOW_CARD"&&e.Time=="away") },
+                    new() { Name="Cartões Vermelhos",
+                        HomeValue=eventos.Count(e=>e.Type=="RED_CARD"&&e.Time=="home"),
+                        AwayValue=eventos.Count(e=>e.Type=="RED_CARD"&&e.Time=="away") },
+                    new() { Name="Substituições",
+                        HomeValue=eventos.Count(e=>e.Type=="SUBSTITUTION"&&e.Time=="home"),
+                        AwayValue=eventos.Count(e=>e.Type=="SUBSTITUTION"&&e.Time=="away") },
+                };
+            }
 
             erro = null;
         }
@@ -226,79 +216,138 @@
         }
     }
 
-    /// <summary>
-    /// Parseia a escalação e distribui jogadores em posições no campo SVG
-    /// </summary>
-    private List<CampoVirtual.PlayerModel> ParseLineup(JsonElement doc, string teamKey, bool isHome)
+    // ── Escalação ──
+    private List<CampoVirtual.PlayerModel> ParseLineup(JsonElement lu, bool isHome)
     {
         var result = new List<CampoVirtual.PlayerModel>();
-        if (!doc.TryGetProperty(teamKey, out var team)) return result;
-        if (!team.TryGetProperty("lineup", out var lineup)) return result;
+        var formation = Str(lu, "formation");
+        if (!lu.TryGetProperty("startXI", out var xi)) return result;
 
-        // Formação padrão 4-4-2 caso não venha da API
-        // Coordenadas X: Home joga da esquerda (60-380), Away da direita (420-740)
-        // Coordenadas Y: 0-520 (campo)
-        var positions = GetDefaultPositions(isHome);
-        int i = 0;
+        var players = xi.EnumerateArray().ToList();
+        bool hasGrid = players.All(p => Str(p, "grid").Contains(':'));
 
-        foreach (var p in lineup.EnumerateArray())
+        if (hasGrid)
         {
-            var name = p.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
-            var number = p.TryGetProperty("shirtNumber", out var num) ? num.GetInt32() : 0;
-            var position = p.TryGetProperty("position", out var pos) ? pos.GetString() ?? "" : "";
-
-            var coords = i < positions.Count ? positions[i] : (isHome ? 200.0 : 600.0, 260.0);
-
-            result.Add(new CampoVirtual.PlayerModel
+            foreach (var p in players)
             {
-                Name = name,
-                ShortName = name.Split(' ').LastOrDefault() ?? name,
-                Number = number,
-                Position = MapPosition(position),
-                X = coords.Item1,
-                Y = coords.Item2
-            });
-            i++;
+                var grid = Str(p, "grid");
+                var row = grid.Split(':')[0];
+                int inRow = players.Count(pp => Str(pp, "grid").Split(':')[0] == row);
+                var (x, y) = GridToCoords(grid, isHome, inRow);
+
+                result.Add(new CampoVirtual.PlayerModel
+                {
+                    Name = Str(p, "name"),
+                    ShortName = ShortName(Str(p, "name")),
+                    Number = Int(p, "number"),
+                    Position = MapPosition(Str(p, "position")),
+                    X = x,
+                    Y = y,
+                });
+            }
+        }
+        else
+        {
+            var pos = GetPositionsByFormation(formation, isHome);
+            for (int i = 0; i < players.Count; i++)
+            {
+                var p = players[i];
+                var coords = i < pos.Count ? pos[i] : (isHome ? 200.0 : 600.0, 250.0);
+                result.Add(new CampoVirtual.PlayerModel
+                {
+                    Name = Str(p, "name"),
+                    ShortName = ShortName(Str(p, "name")),
+                    Number = Int(p, "number"),
+                    Position = MapPosition(Str(p, "position")),
+                    X = coords.Item1,
+                    Y = coords.Item2,
+                });
+            }
         }
 
         return result;
     }
 
-    private string MapPosition(string pos) => pos switch
+    private static (double, double) GridToCoords(string grid, bool isHome, int inRow)
     {
-        "Goalkeeper" => "GOL",
-        "Centre-Back" or "Left-Back" or "Right-Back" => "DEF",
-        "Central Midfield" or "Defensive Midfield" or "Attacking Midfield" or
-        "Left Midfield" or "Right Midfield" => "MEI",
-        "Centre-Forward" or "Left Winger" or "Right Winger" or "Second Striker" => "ATA",
-        _ => pos
+        var p = grid.Split(':');
+        if (p.Length != 2 || !int.TryParse(p[0], out var row) || !int.TryParse(p[1], out var col))
+            return (isHome ? 200 : 600, 250);
+
+        double xPct = (row - 1.0) / 4.0; // max 5 linhas
+        double x = isHome ? 70 + xPct * 350 : 830 - xPct * 350;
+        double y = inRow <= 1 ? 250 : 105 + ((col - 1.0) / (inRow - 1.0)) * 290;
+        return (Math.Round(x), Math.Round(y));
+    }
+
+    // ── Helpers JSON ──
+    private static string Str(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
+    private static string? StrNull(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+    private static int Int(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : 0;
+    private static bool Bool(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.True;
+
+    // ── Mapeamentos ──
+    private static string? MapEventType(string type, string detail) => type switch
+    {
+        "Goal" => detail == "Own Goal" ? "OWN_GOAL" : detail == "Penalty" ? "PENALTY" : "GOAL",
+        "Card" => detail is "Red Card" or "Second Yellow Card" ? "RED_CARD" : "YELLOW_CARD",
+        "subst" => "SUBSTITUTION",
+        _ => null,
     };
 
-    // Posições padrão para um 4-3-3
-    private List<(double, double)> GetDefaultPositions(bool isHome)
+    private static string TranslateStat(string n) => n switch
     {
-        if (isHome)
-        {
-            return new()
-            {
-                (70, 260),   // GOL
-                (155, 140), (155, 220), (155, 300), (155, 380),  // DEF
-                (260, 180), (260, 260), (260, 340),               // MEI
-                (350, 140), (350, 260), (350, 380),               // ATA
-            };
-        }
-        else
-        {
-            return new()
-            {
-                (730, 260),  // GOL
-                (645, 140), (645, 220), (645, 300), (645, 380),  // DEF
-                (540, 180), (540, 260), (540, 340),               // MEI
-                (450, 140), (450, 260), (450, 380),               // ATA
-            };
-        }
+        "Ball Possession" => "Posse de Bola",
+        "Total Shots" => "Chutes",
+        "Shots on Goal" => "Chutes no Gol",
+        "Shots off Goal" => "Chutes Fora",
+        "Corner Kicks" => "Escanteios",
+        "Fouls" => "Faltas",
+        "Yellow Cards" => "Cartões Amarelos",
+        "Red Cards" => "Cartões Vermelhos",
+        "Offsides" => "Impedimentos",
+        "Passes accurate" => "Passes Certos",
+        "Total passes" => "Total de Passes",
+        "Goalkeeper Saves" => "Defesas",
+        _ => n,
+    };
+
+    private static string ShortName(string full)
+    {
+        if (string.IsNullOrWhiteSpace(full)) return "";
+        var last = full.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? full;
+        return last.Length > 10 ? last[..10] : last;
     }
+
+    private static string MapPosition(string p) => p switch
+    {
+        "G" or "Goalkeeper" => "GOL",
+        "D" or "Defender" => "DEF",
+        "M" or "Midfielder" => "MEI",
+        "F" or "Attacker" => "ATA",
+        _ => p.Length > 3 ? p[..3].ToUpper() : p.ToUpper(),
+    };
+
+    private static List<(double, double)> GetPositionsByFormation(string formation, bool isHome)
+    {
+        var linhas = formation.Split('-').Select(s => int.TryParse(s, out var n) ? n : 0).Where(n => n > 0).ToList();
+        if (linhas.Count < 2) return GetDefaultPositions(isHome);
+
+        var pos = new List<(double, double)> { (isHome ? 70.0 : 830.0, 250.0) };
+        for (int li = 0; li < linhas.Count; li++)
+        {
+            int qtd = linhas[li];
+            double x = isHome ? 130 + ((li + 1.0) / (linhas.Count + 1.0)) * 290
+                               : 770 - ((li + 1.0) / (linhas.Count + 1.0)) * 290;
+            for (int pi = 0; pi < qtd; pi++)
+                pos.Add((Math.Round(x), Math.Round(105 + ((pi + 1.0) / (qtd + 1.0)) * 290)));
+        }
+        return pos;
+    }
+
+    private static List<(double, double)> GetDefaultPositions(bool isHome) => isHome
+        ? new() { (70, 250), (155, 145), (155, 215), (155, 285), (155, 360), (255, 185), (255, 250), (255, 325), (355, 155), (355, 250), (355, 350) }
+        : new() { (830, 250), (745, 145), (745, 215), (745, 285), (745, 360), (645, 185), (645, 250), (645, 325), (545, 155), (545, 250), (545, 350) };
 
     public void Dispose() => _timer?.Dispose();
 }
-

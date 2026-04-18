@@ -212,8 +212,9 @@
 
     void AbrirJogo(int id, bool clickable)
     {
-        if (clickable) Nav.NavigateTo("/jogo/" + id);
+        if (clickable) Nav.NavigateTo("/jogo?fdId=" + id);
     }
+
 
     private string FixNome(string? nome)
     {
