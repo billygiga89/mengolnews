@@ -75,6 +75,7 @@
     private bool IsLive => status is "1H" or "2H" or "HT" or "ET" or "P" or "LIVE";
 
     private const string ApiBase = "https://mengolnews-api.onrender.com";
+    //private const string ApiBase = "http://localhost:7221";
 
     protected override async Task OnInitializedAsync() => await LoadMatch();
 
@@ -97,7 +98,8 @@
         {
             loading = true;
 
-            var response = await Http.GetAsync($"{ApiBase}/api/match/lookup?fdId={FdId}");
+            //var response = await Http.GetAsync($"{ApiBase}/api/match/lookup?fdId={FdId}");
+            var response = await Http.GetAsync($"{ApiBase}/api/match/{FdId}");
 
             if (!response.IsSuccessStatusCode)
             {
