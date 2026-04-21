@@ -7,120 +7,293 @@ public class SquadService
 	private readonly HttpClient _http;
 	private readonly string _apiKey;
 
-	// ID do Flamengo na API-Football
-	private const int FlamengoId = 127;
+	// ID do Flamengo na football-data.org
+	private const int FlamengoId = 1783;
+	// Código do Brasileirão na football-data.org
+	private const string BrasileiraoCode = "BSA";
+
+	// Fotos dos jogadores — adicione aqui quando tiver as URLs
+	// Chave: nome exato do jogador (como vem da API)
+	// Valor: URL da foto
+	private static readonly Dictionary<string, string> FotosJogadores = new()
+{
+    // Goleiros
+    { "Agustín Rossi",               "images/jogadores/goleiro-rossi.jpg"    },
+	{ "Francisco Dyogo",             "images/jogadores/dyogo-alves.jpg"      },
+	{ "Léo Nannetti",                "images/jogadores/leo-nannetti.webp"    },
+	{ "Andrew",                      ""                                       },
+	{ "Pedro Henrique",              ""                                       },
+    // Defensores
+    { "Leo Ortiz",                   ""                                       },
+	{ "Ayrton Lucas",                ""                                       },
+	{ "Guillermo Varela",            ""                                       },
+	{ "Léo Pereira",                 ""                                       },
+	{ "Vitão",                       ""                                       },
+	{ "Daniel Sales",                ""                                       },
+	{ "João Pedro",                  ""                                       },
+	{ "Gusttavo",                    ""                                       },
+	{ "Johnny Goes",                 ""                                       },
+	{ "Antonio Da Silva",            ""                                       },
+	{ "Daniel Carvalho",             ""                                       },
+	{ "Danilo",                      ""                                       },
+	{ "Alex Sandro",                 ""                                       },
+	{ "Emerson Royal",               ""                                       },
+    // Meias
+    { "Giorgian De Arrascaeta",      ""                                       },
+	{ "Erick Pulgar",                ""                                       },
+	{ "Jorge Carrascal",             ""                                       },
+	{ "Nicolas de la Cruz",          ""                                       },
+	{ "Evertton",                    ""                                       },
+	{ "Yan",                         ""                                       },
+	{ "Caio",                        ""                                       },
+	{ "João Victor",                 ""                                       },
+	{ "Pablo Lucio",                 ""                                       },
+	{ "Lucas",                       ""                                       },
+	{ "Luiz Felipe",                 ""                                       },
+	{ "Joshua",                      ""                                       },
+	{ "Ramires",                     ""                                       },
+	{ "Lucas Vitor",                 ""                                       },
+	{ "Kaio",                        ""                                       },
+	{ "Kaio Júnior",                 ""                                       },
+	{ "Juan Sayago",                 ""                                       },
+	{ "Jorginho",                    ""                                       },
+	{ "Lucas Paquetá",               ""                                       },
+	{ "Saúl",                        ""                                       },
+    // Atacantes
+    { "Pedro",                       ""                                       },
+	{ "Éverton",                     ""                                       },
+	{ "Bruno Henrique",              ""                                       },
+	{ "Luiz Araújo",                 ""                                       },
+	{ "Gonzalo Plata",               ""                                       },
+	{ "Guilherme",                   ""                                       },
+	{ "Douglas Telles",              ""                                       },
+	{ "João Paulo",                  ""                                       },
+	{ "David",                       ""                                       },
+	{ "Alan Silva",                  ""                                       },
+	{ "Ryan de Oliveira",            ""                                       },
+	{ "Samuel Lino",                 ""                                       },
+};
+
+	// Números das camisas
+	private static readonly Dictionary<string, int> NumerosCamisas = new()
+{
+    // Goleiros
+    { "Agustín Rossi",               1  },
+	{ "Francisco Dyogo",             23 },
+	{ "Léo Nannetti",                37 },
+	{ "Andrew",                      0  },
+	{ "Pedro Henrique",              0  },
+    // Defensores
+    { "Leo Ortiz",                   3  },
+	{ "Ayrton Lucas",                6  },
+	{ "Guillermo Varela",            0  },
+	{ "Léo Pereira",                 4  },
+	{ "Vitão",                       24 },
+	{ "Daniel Sales",                0  },
+	{ "João Pedro",                  0  },
+	{ "Gusttavo",                    0  },
+	{ "Johnny Goes",                 0  },
+	{ "Antonio Da Silva",            0  },
+	{ "Daniel Carvalho",             0  },
+	{ "Danilo",                      0  },
+	{ "Alex Sandro",                 6  },
+	{ "Emerson Royal",               2  },
+    // Meias
+    { "Giorgian De Arrascaeta",      14 },
+	{ "Erick Pulgar",                5  },
+	{ "Jorge Carrascal",             10 },
+	{ "Nicolas de la Cruz",          18 },
+	{ "Evertton",                    0  },
+	{ "Yan",                         0  },
+	{ "Caio",                        0  },
+	{ "João Victor",                 0  },
+	{ "Pablo Lucio",                 0  },
+	{ "Lucas",                       0  },
+	{ "Luiz Felipe",                 0  },
+	{ "Joshua",                      0  },
+	{ "Ramires",                     0  },
+	{ "Lucas Vitor",                 0  },
+	{ "Kaio",                        0  },
+	{ "Kaio Júnior",                 26 },
+	{ "Juan Sayago",                 0  },
+	{ "Jorginho",                    8  },
+	{ "Lucas Paquetá",               11 },
+	{ "Saúl",                        0  },
+    // Atacantes
+    { "Pedro",                       9  },
+	{ "Éverton",                     7  },
+	{ "Bruno Henrique",              27 },
+	{ "Luiz Araújo",                 17 },
+	{ "Gonzalo Plata",               0  },
+	{ "Guilherme",                   0  },
+	{ "Douglas Telles",              0  },
+	{ "João Paulo",                  0  },
+	{ "David",                       0  },
+	{ "Alan Silva",                  0  },
+	{ "Ryan de Oliveira",            0  },
+	{ "Samuel Lino",                 21 },
+};
 
 	public SquadService(HttpClient http, IConfiguration config)
 	{
 		_http = http;
-		_apiKey = config["ApiFootball:ApiKey"]
-			   ?? throw new Exception("ApiFootball:ApiKey not configured");
+		_apiKey = config["FootballData:ApiKey"]
+			   ?? throw new Exception("FootballData:ApiKey not configured");
 
-		_http.BaseAddress = new Uri("https://v3.football.api-sports.io/");
-		_http.DefaultRequestHeaders.Add("x-apisports-key", _apiKey);
+		_http.BaseAddress = new Uri("https://api.football-data.org/");
+		_http.DefaultRequestHeaders.Add("X-Auth-Token", _apiKey);
 	}
 
 	/// <summary>
-	/// Retorna o elenco atual do Flamengo com foto e dados dos jogadores.
-	/// GET /players/squads?team=127
+	/// Retorna o elenco atual do Flamengo buscando via Brasileirão.
+	/// GET /v4/competitions/BSA/teams?season=2025
 	/// </summary>
 	public async Task<List<PlayerDto>?> GetFlamengoSquadAsync()
 	{
-		var response = await _http.GetAsync($"players/squads?team={FlamengoId}");
+		var season = DateTime.UtcNow.Year;
+		var response = await _http.GetAsync($"v4/competitions/{BrasileiraoCode}/teams?season={season}");
 		if (!response.IsSuccessStatusCode) return null;
 
 		var json = await response.Content.ReadAsStringAsync();
 		var doc = JsonSerializer.Deserialize<JsonElement>(json);
 
-		if (!doc.TryGetProperty("response", out var responseArr)) return null;
-		var arr = responseArr.EnumerateArray().FirstOrDefault();
-		if (arr.ValueKind == JsonValueKind.Undefined) return null;
-		if (!arr.TryGetProperty("players", out var players)) return null;
+		if (!doc.TryGetProperty("teams", out var teams)) return null;
+
+		// Encontra o Flamengo
+		JsonElement flamengo = default;
+		foreach (var team in teams.EnumerateArray())
+		{
+			if (team.TryGetProperty("id", out var idEl) && idEl.GetInt32() == FlamengoId)
+			{
+				flamengo = team;
+				break;
+			}
+		}
+
+		if (flamengo.ValueKind == JsonValueKind.Undefined) return null;
+		if (!flamengo.TryGetProperty("squad", out var squad)) return null;
 
 		var result = new List<PlayerDto>();
 
-		foreach (var p in players.EnumerateArray())
+		foreach (var p in squad.EnumerateArray())
 		{
+			var name = p.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "";
+			var dob = p.TryGetProperty("dateOfBirth", out var d) ? d.GetString() ?? "" : "";
+			var age = CalcularIdade(dob);
+			var pos = p.TryGetProperty("position", out var po) ? NormalizePosition(po.GetString() ?? "") : "";
+
+			FotosJogadores.TryGetValue(name, out var foto);
+			NumerosCamisas.TryGetValue(name, out var numero);
+
 			result.Add(new PlayerDto
 			{
 				Id = p.TryGetProperty("id", out var id) ? id.GetInt32() : 0,
-				Name = p.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "",
-				Age = p.TryGetProperty("age", out var ag) ? ag.GetInt32() : 0,
-				Number = p.TryGetProperty("number", out var nu) ? nu.ValueKind == JsonValueKind.Number ? nu.GetInt32() : 0 : 0,
-				Position = p.TryGetProperty("position", out var po) ? po.GetString() ?? "" : "",
-				Photo = p.TryGetProperty("photo", out var ph) ? ph.GetString() ?? "" : "",
+				Name = name,
+				Age = age,
+				Number = numero,
+				Position = pos,
+				Photo = string.IsNullOrEmpty(foto) ? "" : foto,
+				Nationality = p.TryGetProperty("nationality", out var nat) ? nat.GetString() ?? "" : "",
 			});
 		}
 
-		return result.OrderBy(p => PositionOrder(p.Position)).ThenBy(p => p.Number).ToList();
+		return result
+			.OrderBy(p => PositionOrder(p.Position))
+			.ThenBy(p => p.Number == 0 ? int.MaxValue : p.Number)
+			.ToList();
 	}
 
 	/// <summary>
-	/// Retorna estatísticas da temporada atual de um jogador.
-	/// GET /players?id={playerId}&season={year}&team=127
+	/// Retorna dados básicos de um jogador pelo ID.
+	/// Como o plano free não tem endpoint de stats individuais,
+	/// retorna os dados do elenco sem estatísticas de temporada.
 	/// </summary>
 	public async Task<PlayerStatsDto?> GetPlayerStatsAsync(int playerId)
 	{
-		//var season = DateTime.UtcNow.Month >= 2 ? DateTime.UtcNow.Year : DateTime.UtcNow.Year - 1;
-		var season = DateTime.UtcNow.Year;
-		var response = await _http.GetAsync($"players?id={playerId}&season={season}&team={FlamengoId}");
-		if (!response.IsSuccessStatusCode) return null;
+		var squad = await GetFlamengoSquadAsync();
+		if (squad is null) return null;
 
-		var json = await response.Content.ReadAsStringAsync();
-		var doc = JsonSerializer.Deserialize<JsonElement>(json);
+		var player = squad.FirstOrDefault(p => p.Id == playerId);
+		if (player is null) return null;
 
-		if (!doc.TryGetProperty("response", out var arr)) return null;
-		var first = arr.EnumerateArray().FirstOrDefault();
-		if (first.ValueKind == JsonValueKind.Undefined) return null;
-
-		var player = first.GetProperty("player");
-		var stats = first.GetProperty("statistics").EnumerateArray().FirstOrDefault();
-
-		return new PlayerStatsDto
+		var stats = new PlayerStatsDto
 		{
-			Id = player.TryGetProperty("id", out var id) ? id.GetInt32() : 0,
-			Name = player.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "",
-			Firstname = player.TryGetProperty("firstname", out var fn) ? fn.GetString() ?? "" : "",
-			Lastname = player.TryGetProperty("lastname", out var ln) ? ln.GetString() ?? "" : "",
-			Age = player.TryGetProperty("age", out var ag) ? ag.GetInt32() : 0,
-			Nationality = player.TryGetProperty("nationality", out var na) ? na.GetString() ?? "" : "",
-			Photo = player.TryGetProperty("photo", out var ph) ? ph.GetString() ?? "" : "",
-			Height = player.TryGetProperty("height", out var ht) ? ht.GetString() ?? "" : "",
-			Weight = player.TryGetProperty("weight", out var wt) ? wt.GetString() ?? "" : "",
-			Injured = player.TryGetProperty("injured", out var inj) ? inj.GetBoolean() : false,
-
-			// Estatísticas
-			Appearances = GetStatInt(stats, "games", "appearences"),
-			Starts = GetStatInt(stats, "games", "lineups"),
-			MinutesPlayed = GetStatInt(stats, "games", "minutes"),
-			Goals = GetStatInt(stats, "goals", "total"),
-			Assists = GetStatInt(stats, "goals", "assists"),
-			YellowCards = GetStatInt(stats, "cards", "yellow"),
-			RedCards = GetStatInt(stats, "cards", "red"),
-			Shots = GetStatInt(stats, "shots", "total"),
-			ShotsOn = GetStatInt(stats, "shots", "on"),
-			Passes = GetStatInt(stats, "passes", "total"),
-			PassAccuracy = GetStatStr(stats, "passes", "accuracy"),
-			Tackles = GetStatInt(stats, "tackles", "total"),
-			Rating = GetStatStr(stats, "games", "rating"),
+			Id = player.Id,
+			Name = player.Name,
+			Age = player.Age,
+			Number = player.Number,
+			Position = player.Position,
+			Photo = player.Photo,
+			Nationality = player.Nationality,
 		};
+
+		// Busca scorers do Brasileirão para cruzar stats
+		try
+		{
+			var season = DateTime.UtcNow.Year;
+			var response = await _http.GetAsync($"v4/competitions/BSA/scorers?season={season}&limit=100");
+			if (response.IsSuccessStatusCode)
+			{
+				var json = await response.Content.ReadAsStringAsync();
+				var doc = JsonSerializer.Deserialize<JsonElement>(json);
+
+				if (doc.TryGetProperty("scorers", out var scorers))
+				{
+					foreach (var scorer in scorers.EnumerateArray())
+					{
+						if (!scorer.TryGetProperty("player", out var p)) continue;
+						if (!p.TryGetProperty("id", out var idEl)) continue;
+						if (idEl.GetInt32() != playerId) continue;
+
+						stats.Goals = scorer.TryGetProperty("goals", out var g) ? g.GetInt32() : 0;
+						stats.Assists = scorer.TryGetProperty("assists", out var a) ? (a.ValueKind == JsonValueKind.Number ? a.GetInt32() : 0) : 0;
+						stats.Appearances = scorer.TryGetProperty("playedMatches", out var pm) ? pm.GetInt32() : 0;
+						break;
+					}
+				}
+			}
+		}
+		catch { }
+
+		return stats;
 	}
 
-	private static int GetStatInt(JsonElement stats, string section, string field)
+	// ── Helpers ──────────────────────────────────────────────────────────────
+
+	private static int CalcularIdade(string dateOfBirth)
 	{
-		if (stats.ValueKind == JsonValueKind.Undefined) return 0;
-		if (!stats.TryGetProperty(section, out var sec)) return 0;
-		if (!sec.TryGetProperty(field, out var val)) return 0;
-		return val.ValueKind == JsonValueKind.Number ? val.GetInt32() : 0;
+		if (!DateTime.TryParse(dateOfBirth, out var dob)) return 0;
+		var today = DateTime.Today;
+		var age = today.Year - dob.Year;
+		if (dob.Date > today.AddYears(-age)) age--;
+		return age;
 	}
 
-	private static string GetStatStr(JsonElement stats, string section, string field)
+	// football-data.org usa "Defence" em vez de "Defender"
+	private static string NormalizePosition(string pos) => pos switch
 	{
-		if (stats.ValueKind == JsonValueKind.Undefined) return "";
-		if (!stats.TryGetProperty(section, out var sec)) return "";
-		if (!sec.TryGetProperty(field, out var val)) return "";
-		return val.ValueKind == JsonValueKind.Null ? "" : val.ToString();
-	}
+		// Goleiro
+		"Goalkeeper" => "Goalkeeper",
+		// Defensores
+		"Defence" => "Defender",
+		"Centre-Back" => "Defender",
+		"Left-Back" => "Defender",
+		"Right-Back" => "Defender",
+		// Meias
+		"Midfield" => "Midfielder",
+		"Defensive Midfield" => "Midfielder",
+		"Central Midfield" => "Midfielder",
+		"Attacking Midfield" => "Midfielder",
+		"Left Midfield" => "Midfielder",
+		"Right Midfield" => "Midfielder",
+		// Atacantes
+		"Offence" => "Attacker",
+		"Centre-Forward" => "Attacker",
+		"Left Winger" => "Attacker",
+		"Right Winger" => "Attacker",
+		"Secondary Striker" => "Attacker",
+		_ => pos
+	};
 
 	private static int PositionOrder(string pos) => pos switch
 	{
@@ -140,13 +313,13 @@ public class PlayerDto
 	public int Number { get; set; }
 	public string Position { get; set; } = "";
 	public string Photo { get; set; } = "";
+	public string Nationality { get; set; } = "";
 }
 
 public class PlayerStatsDto : PlayerDto
 {
 	public string Firstname { get; set; } = "";
 	public string Lastname { get; set; } = "";
-	public string Nationality { get; set; } = "";
 	public string Height { get; set; } = "";
 	public string Weight { get; set; } = "";
 	public bool Injured { get; set; }
@@ -165,4 +338,3 @@ public class PlayerStatsDto : PlayerDto
 	public int Tackles { get; set; }
 	public string Rating { get; set; } = "";
 }
-

@@ -13,7 +13,7 @@
 
     <div class="elenco-hero">
         <div class="elenco-hero-inner">
-            <img src="https://media.api-sports.io/football/teams/127.png" class="elenco-escudo" alt="Flamengo" />
+            <img src="https://crests.football-data.org/1783.png" class="elenco-escudo" alt="Flamengo" />
             <div>
                 <h1 class="elenco-titulo">ELENCO <span>2025</span></h1>
                 <p class="elenco-subtitulo">Club de Regatas do Flamengo</p>
@@ -58,10 +58,7 @@
                              @onclick="() => AbrirModal(p)">
                             <div class="card-numero">@(p.Number > 0 ? p.Number.ToString() : "—")</div>
                             <div class="card-foto-wrap">
-                                <img src="@p.Photo"
-                                     class="card-foto"
-                                     alt="@p.Name"
-                                     onerror="this.src='img/player-placeholder.png'" />
+                                <img src="@p.Photo" class="card-foto" alt="@p.Name" />
                             </div>
                             <div class="card-info">
                                 <span class="card-pos-badge">@MapPosition(p.Position)</span>
@@ -96,8 +93,7 @@
                 <button class="modal-close" @onclick="FecharModal">✕</button>
 
                 <div class="modal-header @GetPositionClass(statsModal.Position)">
-                    <img src="@statsModal.Photo" class="modal-foto" alt="@statsModal.Name"
-                         onerror="this.src='img/player-placeholder.png'" />
+                    <img src="@statsModal.Photo" class="modal-foto" alt="@statsModal.Name" />
                     <div class="modal-header-info">
                         <span class="modal-pos-badge">@MapPosition(statsModal.Position)</span>
                         <h2 class="modal-nome">@statsModal.Name</h2>
@@ -141,18 +137,27 @@
                             <span class="stat-num">@statsModal.Assists</span>
                             <span class="stat-label">Assist.</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-num">@statsModal.MinutesPlayed'</span>
-                            <span class="stat-label">Minutos</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-num yellow">@statsModal.YellowCards</span>
-                            <span class="stat-label">Amarelos</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-num red">@statsModal.RedCards</span>
-                            <span class="stat-label">Vermelhos</span>
-                        </div>
+                        @if (statsModal.MinutesPlayed > 0)
+                        {
+                            <div class="stat-item">
+                                <span class="stat-num">@statsModal.MinutesPlayed'</span>
+                                <span class="stat-label">Minutos</span>
+                            </div>
+                        }
+                        @if (statsModal.YellowCards > 0)
+                        {
+                            <div class="stat-item">
+                                <span class="stat-num yellow">@statsModal.YellowCards</span>
+                                <span class="stat-label">Amarelos</span>
+                            </div>
+                        }
+                        @if (statsModal.RedCards > 0)
+                        {
+                            <div class="stat-item">
+                                <span class="stat-num red">@statsModal.RedCards</span>
+                                <span class="stat-label">Vermelhos</span>
+                            </div>
+                        }
                         @if (!string.IsNullOrEmpty(statsModal.Rating) && statsModal.Rating != "0")
                         {
                             <div class="stat-item destaque">
