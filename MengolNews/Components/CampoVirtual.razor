@@ -1,6 +1,7 @@
-﻿@* Components/CampoVirtual.razor *@
+﻿@* Components/CampoVirtual.razor — ATUALIZADO: traves reais + posicionamento por esquema *@
 @using System.Text.Json
 @inject IJSRuntime JS
+@using MengolNews.Components;
 
 <div class="campo-wrapper">
 
@@ -53,12 +54,35 @@
                     <stop offset="100%" stop-color="transparent" />
                 </radialGradient>
 
+                <!-- Gradiente metálico das traves -->
+                <linearGradient id="traveH" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f0f0f0" />
+                    <stop offset="40%" stop-color="#ffffff" />
+                    <stop offset="100%" stop-color="#b0b0b0" />
+                </linearGradient>
+                <linearGradient id="traveV" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#d8d8d8" />
+                    <stop offset="50%" stop-color="#ffffff" />
+                    <stop offset="100%" stop-color="#a8a8a8" />
+                </linearGradient>
+
+                <!-- Rede da goleira -->
+                <pattern id="net" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="10" y2="10" stroke="rgba(255,255,255,0.22)" stroke-width="0.7" />
+                    <line x1="10" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.22)" stroke-width="0.7" />
+                    <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.12)" stroke-width="0.5" />
+                    <line x1="0" y1="0" x2="10" y2="0" stroke="rgba(255,255,255,0.12)" stroke-width="0.5" />
+                </pattern>
+
                 <filter id="dropshadow">
                     <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000aa" />
                 </filter>
                 <filter id="glow">
                     <feGaussianBlur stdDeviation="3" result="b" />
                     <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                <filter id="traveShadow">
+                    <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.7" />
                 </filter>
             </defs>
 
@@ -120,26 +144,27 @@
                     fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
             <circle cx="450" cy="250" r="4" fill="rgba(255,255,255,0.92)" />
 
+            <!-- Área esquerda grande -->
             <rect x="55" y="150" width="120" height="200"
                   fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Área esquerda pequena -->
             <rect x="55" y="200" width="50" height="100"
                   fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
             <circle cx="143" cy="250" r="3.5" fill="rgba(255,255,255,0.92)" />
             <path d="M 175 192 A 72 72 0 0 1 175 308"
                   fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
-            <rect x="40" y="222" width="15" height="56"
-                  fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.88)" stroke-width="2" />
 
+            <!-- Área direita grande -->
             <rect x="725" y="150" width="120" height="200"
                   fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
+            <!-- Área direita pequena -->
             <rect x="795" y="200" width="50" height="100"
                   fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
             <circle cx="757" cy="250" r="3.5" fill="rgba(255,255,255,0.92)" />
             <path d="M 725 192 A 72 72 0 0 0 725 308"
                   fill="none" stroke="rgba(255,255,255,0.90)" stroke-width="2.2" />
-            <rect x="845" y="222" width="15" height="56"
-                  fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.88)" stroke-width="2" />
 
+            <!-- Cantos -->
             <path d="M 55 104 A 14 14 0 0 1 69 90"
                   fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" />
             <path d="M 831 90 A 14 14 0 0 1 845 104"
@@ -148,6 +173,69 @@
                   fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" />
             <path d="M 845 396 A 14 14 0 0 1 831 410"
                   fill="none" stroke="rgba(255,255,255,0.80)" stroke-width="2" />
+
+            <!-- ══════════════════════════════════════════
+                 GOLEIRA ESQUERDA — traves reais
+                 Gramado começa em x=55, y=90..410
+                 Goleira: y de 215 a 285 (70px), encostada na linha x=55
+                 Profundidade: 22px para dentro (x=55 → x=33)
+            ══════════════════════════════════════════ -->
+            <!-- Rede esquerda (atrás das traves) -->
+            <rect x="33" y="216" width="22" height="68" fill="url(#net)" />
+            <rect x="33" y="216" width="22" height="68" fill="rgba(0,0,0,0.35)" />
+
+            <!-- Sombra da goleira no gramado -->
+            <ellipse cx="52" cy="284" rx="12" ry="4" fill="rgba(0,0,0,0.3)" />
+
+            <!-- Trave inferior (chão) -->
+            <rect x="33" y="281" width="24" height="3.5" fill="#909090" rx="1" opacity="0.8" />
+
+            <!-- Poste traseiro esquerdo (fundo da goleira) -->
+            <rect x="33" y="215" width="4" height="69" fill="#c8c8c8" rx="1" filter="url(#traveShadow)" />
+
+            <!-- Trave horizontal superior (barra do topo — fundo) -->
+            <rect x="33" y="213" width="24" height="5" fill="url(#traveH)" rx="1.5" filter="url(#traveShadow)" />
+
+            <!-- Poste frontal (encostado na linha do campo x=55) -->
+            <rect x="53" y="215" width="5" height="69" fill="url(#traveV)" rx="1.5" filter="url(#traveShadow)" />
+
+            <!-- Highlight trave frontal -->
+            <rect x="54" y="216" width="1.5" height="67" fill="rgba(255,255,255,0.55)" rx="1" />
+
+            <!-- Highlight trave superior -->
+            <rect x="34" y="214" width="22" height="2" fill="rgba(255,255,255,0.45)" rx="1" />
+
+
+            <!-- ══════════════════════════════════════════
+                 GOLEIRA DIREITA — traves reais
+                 Encostada na linha x=845
+                 Profundidade: 22px para dentro (x=845 → x=867)
+            ══════════════════════════════════════════ -->
+            <!-- Rede direita -->
+            <rect x="845" y="216" width="22" height="68" fill="url(#net)" />
+            <rect x="845" y="216" width="22" height="68" fill="rgba(0,0,0,0.35)" />
+
+            <!-- Sombra da goleira no gramado -->
+            <ellipse cx="848" cy="284" rx="12" ry="4" fill="rgba(0,0,0,0.3)" />
+
+            <!-- Trave inferior (chão) -->
+            <rect x="843" y="281" width="24" height="3.5" fill="#909090" rx="1" opacity="0.8" />
+
+            <!-- Poste traseiro direito -->
+            <rect x="863" y="215" width="4" height="69" fill="#c8c8c8" rx="1" filter="url(#traveShadow)" />
+
+            <!-- Trave horizontal superior (fundo) -->
+            <rect x="843" y="213" width="24" height="5" fill="url(#traveH)" rx="1.5" filter="url(#traveShadow)" />
+
+            <!-- Poste frontal direito -->
+            <rect x="842" y="215" width="5" height="69" fill="url(#traveV)" rx="1.5" filter="url(#traveShadow)" />
+
+            <!-- Highlight trave frontal direita -->
+            <rect x="843" y="216" width="1.5" height="67" fill="rgba(255,255,255,0.55)" rx="1" />
+
+            <!-- Highlight trave superior direita -->
+            <rect x="845" y="214" width="22" height="2" fill="rgba(255,255,255,0.45)" rx="1" />
+
 
             <!-- ══ JOGADORES HOME ══ -->
             @if (HomeLineup != null)
@@ -356,8 +444,26 @@
     [Parameter] public int Minuto { get; set; }
     [Parameter] public List<EventoModel>? Eventos { get; set; }
     [Parameter] public List<StatModel>? Stats { get; set; }
+
+    // ── Recebe os jogadores SEM posição X/Y definida ──
+    // O componente usa o Helper para calcular automaticamente
+    [Parameter] public List<PlayerModel>? HomeLineupRaw { get; set; }
+    [Parameter] public List<PlayerModel>? AwayLineupRaw { get; set; }
+    [Parameter] public string HomeFormation { get; set; } = "4-4-2";
+    [Parameter] public string AwayFormation { get; set; } = "4-4-2";
+
+    // Mantém compatibilidade: se alguém passar HomeLineup direto (com X/Y), usa sem recalcular
     [Parameter] public List<PlayerModel>? HomeLineup { get; set; }
     [Parameter] public List<PlayerModel>? AwayLineup { get; set; }
+
+    private List<PlayerModel>? _homePositioned;
+    private List<PlayerModel>? _awayPositioned;
+
+    protected override void OnParametersSet()
+    {
+        _homePositioned = HomeLineup;
+        _awayPositioned = AwayLineup;
+    }
 
     private string AbaAtiva = "eventos";
     private string StatusClass => Status is "AO VIVO" or "IN_PLAY" or "PAUSED" ? "live" : "finished";
@@ -383,6 +489,7 @@
         _ => "•"
     };
 
+    // ── Models ──
     public class EventoModel
     {
         public int Minuto { get; set; }
