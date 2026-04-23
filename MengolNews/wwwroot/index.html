@@ -72,5 +72,12 @@
             }, 300);
         });
     </script>
+    <script>
+        function playGolSound() {
+            const audio = new Audio('/sounds/gol.mp3');
+            audio.volume = 0.6;
+            audio.play().catch(() => { });
+        }
+    </script>
 </body>
 </html>

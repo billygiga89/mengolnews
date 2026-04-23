@@ -1,6 +1,7 @@
 ﻿@using System.Text.Json
 @inject HttpClient Http
 @inject IConfiguration Config
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
 @if (toasts.Any())
@@ -78,18 +79,24 @@
             foreach (var m in partidas)
             {
                 var status = m.GetProperty("status").GetString();
-                var isAtivo = status == "IN_PLAY" || status == "PAUSED" || status == "FINISHED";
+                var isAtivo = status == "IN_PLAY" || status == "PAUSED" || status == "FINISHED"
+                           || status == "TIMED" || status == "SCHEDULED";
                 if (!isAtivo) continue;
 
                 var home = m.GetProperty("homeTeam").GetProperty("shortName").GetString() ?? "?";
                 var away = m.GetProperty("awayTeam").GetProperty("shortName").GetString() ?? "?";
+                var chave = $"{home}|{away}";
 
-                // Tenta fullTime primeiro, cai para halfTime se nulo (bug da API no intervalo)
+                // Jogo ainda não começou — registra 0|0 sem notificar
                 var placar = ResolverPlacar(m);
-                if (placar == null) continue;
+                if (placar == null)
+                {
+                    if (!placarAnterior.ContainsKey(chave))
+                        placarAnterior[chave] = "0|0";
+                    continue;
+                }
 
                 var (hg, ag) = placar.Value;
-                var chave = $"{home}|{away}";
                 var placarAtual = $"{hg}|{ag}";
 
                 if (placarAnterior.TryGetValue(chave, out var anterior))
@@ -100,7 +107,7 @@
                         var hgAnt = int.Parse(partsAnt[0]);
                         var agAnt = int.Parse(partsAnt[1]);
 
-                        // Só notifica se o placar realmente aumentou (evita falso positivo do bug da API)
+                        // Só notifica se o placar realmente aumentou
                         if (hg > hgAnt || ag > agAnt)
                             await ExibirToast($"{home} {hg} × {ag} {away}");
                     }
@@ -150,6 +157,7 @@
 
     private async Task ExibirToast(string mensagem)
     {
+        await JS.InvokeVoidAsync("playGolSound");
         var toast = new ToastItem(Guid.NewGuid().ToString(), mensagem);
         toasts.Add(toast);
         await InvokeAsync(StateHasChanged);
@@ -173,4 +181,6 @@
         cts.Cancel();
         timer?.Dispose();
     }
+
+    
 }

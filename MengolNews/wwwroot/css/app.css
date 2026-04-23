@@ -3264,4 +3264,96 @@ html, body {
     .modal-nome {
         font-size: 18px;
     }
+
+    .jogo-header-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 12px 16px;
+    }
+
+    .competicao {
+        font-size: 11px;
+    }
+}
+
+/* =====================
+   NEWS TICKER
+===================== */
+.ticker-wrapper {
+    display: flex;
+    align-items: center;
+    background: #1a0005;
+    border-bottom: 1px solid rgba(200,16,46,0.2);
+    height: 34px;
+    overflow: hidden;
+    position: sticky;
+    top: 64px;
+    z-index: 999;
+}
+
+.ticker-label {
+    background: #C8102E;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    padding: 0 14px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.ticker-track-container {
+    flex: 1;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.ticker-track {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    animation: ticker-scroll 60s linear infinite;
+}
+
+.ticker-item {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.88);
+    padding: 0 6px;
+    letter-spacing: 0.3px;
+}
+
+.ticker-sep {
+    color: rgba(200,16,46,0.8);
+    margin: 0 10px;
+    font-size: 0.75rem;
+    font-weight: 400;
+}
+
+@keyframes ticker-scroll {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+@media (max-width: 768px) {
+    .ticker-wrapper {
+        top: 57px;
+        height: 30px;
+    }
+
+    .ticker-item {
+        font-size: 0.75rem;
+    }
 }

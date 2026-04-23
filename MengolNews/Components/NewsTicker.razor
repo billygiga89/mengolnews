@@ -1,0 +1,73 @@
+﻿@inject HttpClient Http
+@inject IConfiguration Config
+@implements IAsyncDisposable
+
+<div class="ticker-wrapper">
+    <div class="ticker-label">ÚLTIMAS</div>
+    <div class="ticker-track-container">
+        <div class="ticker-track" id="ticker-track">
+            @if (titulos.Any())
+            {
+                @foreach (var titulo in titulos)
+                {
+                    <span class="ticker-item">@titulo<span class="ticker-sep">|</span></span>
+                }
+                @foreach (var titulo in titulos)
+                {
+                    <span class="ticker-item">@titulo<span class="ticker-sep">|</span></span>
+                }
+            }
+            else
+            {
+                <span class="ticker-item">MENGOLNEWS — Últimas do futebol brasileiro</span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<string> titulos = new();
+    private PeriodicTimer? timer;
+    private CancellationTokenSource cts = new();
+
+    string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarTitulos();
+        timer = new PeriodicTimer(TimeSpan.FromMinutes(10));
+        _ = IniciarPolling();
+    }
+
+    private async Task IniciarPolling()
+    {
+        try
+        {
+            while (await timer!.WaitForNextTickAsync(cts.Token))
+                await CarregarTitulos();
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task CarregarTitulos()
+    {
+        try
+        {
+            var noticias = await Http.GetFromJsonAsync<List<NoticiaItem>>($"{Api}api/noticias?pageSize=15");
+            if (noticias != null && noticias.Any())
+            {
+                titulos = noticias.Select(n => n.Titulo).ToList();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch { }
+    }
+
+    private record NoticiaItem(string Titulo);
+
+    public async ValueTask DisposeAsync()
+    {
+        cts.Cancel();
+        timer?.Dispose();
+    }
+}
