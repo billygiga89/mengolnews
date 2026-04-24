@@ -4,9 +4,7 @@
 @using NoticiaModel = MengolNews.Models.Noticia
 @using MengolNews.Components
 @using MengolNews.Models
-
 <PageTitle>MengolNews – Notícias do Flamengo</PageTitle>
-
 @if (isLoading)
 {
     <div class="content">
@@ -21,33 +19,14 @@
 else if (!isLoading && noticias.Any())
 {
     <div class="content">
-
-        <!-- DESTAQUE -->
-        @* <section class="hero section"
-                 style="cursor:pointer;"
-                 @onclick="() => AbrirNoticia(noticias[0])">
-            <img src="@ImagemHero" alt="@noticias[0].Titulo" />
-            <div class="hero-content">
-                <span class="hero-tag">@noticias[0].Fonte</span>
-                <h1>@noticias[0].Titulo</h1>
-                <time>@noticias[0].Data.ToShortDateString()</time>
-            </div>
-        </section> *@
-
-        <!-- DESTAQUE -->
         <HeroCarrossel Noticias="noticias" />
-
-        <!-- PRÓXIMO JOGO -->   
-        <ProximoJogo />        
-
-        <!-- OUTRAS NOTÍCIAS -->
+        <ProximoJogo />
         <section class="news-list section">
             @foreach (var noticia in noticias.Skip(1).Take(9))
             {
                 <NewsCard Noticia="noticia" />
             }
         </section>
-
     </div>
 }
 else
@@ -61,22 +40,17 @@ else
         </section>
     </div>
 }
-
 @code {
     private List<NoticiaModel> noticias = new();
     private bool isLoading = true;
-
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
         await InvokeAsync(StateHasChanged);
-
         try
         {
             var dados = await NewsService.GetNoticiasAsync();
-            noticias = dados
-                .OrderByDescending(n => n.Data)
-                .ToList();
+            noticias = dados.OrderByDescending(n => n.Data).ToList();
         }
         catch (Exception ex)
         {
@@ -89,24 +63,13 @@ else
             await InvokeAsync(StateHasChanged);
         }
     }
-
     private void AbrirNoticia(NoticiaModel noticia)
     {
         var url = Uri.EscapeDataString(noticia.Link);
         Nav.NavigateTo($"/noticia?url={url}");
     }
-
     private string ImagemHero =>
         noticias.Any() && !string.IsNullOrWhiteSpace(noticias[0].Imagem)
             ? noticias[0].Imagem!
             : "/images/Flamengo.png";
 }
-
-
-
-
-
-
-    
-
-

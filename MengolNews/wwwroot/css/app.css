@@ -204,12 +204,11 @@ html, body {
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
-    transition: transform 0.35s ease, box-shadow 0.35s ease;
 }
 
     .hero:hover {
-        transform: scale(1.01);
-        box-shadow: 0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08);
+        transform: none;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
     }
 
     .hero img {
@@ -219,19 +218,15 @@ html, body {
         height: 100%;
         object-fit: cover;
         object-position: center top;
-        transition: transform 0.6s ease;
     }
 
     .hero:hover img {
-        transform: scale(1.05);
+        transform: none;
     }
 
+    /* SEM ::before — o carrossel usa .carrossel-overlay */
     .hero::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        background: linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(10,0,0,0.75) 35%, transparent 65%), linear-gradient(to right, rgba(200,16,46,0.18) 0%, transparent 60%);
+        display: none;
     }
 
 .hero-content {
@@ -267,6 +262,35 @@ html, body {
     font-size: 0.75rem;
     color: rgba(255,255,255,0.5);
     letter-spacing: 0.3px;
+}
+
+@media (max-width: 768px) {
+    .hero {
+        height: 300px;
+        min-height: 260px;
+        border-radius: 10px;
+    }
+
+        .hero img {
+            object-position: center center;
+        }
+
+    .hero-content {
+        bottom: 14px;
+        left: 14px;
+        right: 14px;
+        max-width: 100%;
+    }
+
+        .hero-content h1 {
+            font-size: 1.75rem;
+            margin: 6px 0 4px;
+            line-height: 1.2;
+        }
+
+    .hero-tag {
+        font-size: 0.65rem;
+    }
 }
 
 /* =====================
@@ -1675,6 +1699,7 @@ html, body {
 ===================== */
 .hero-carrossel {
     transition: none;
+    overflow: hidden;
 }
 
     .hero-carrossel:hover {
@@ -1687,8 +1712,49 @@ html, body {
         }
 
     .hero-carrossel img {
-        transition: opacity 0.4s ease;
+        transition: none;
     }
+
+.carrossel-track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.carrossel-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+    .carrossel-slide img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+        transition: none;
+        transform: none !important;
+    }
+
+.carrossel-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(10,0,0,0.75) 35%, transparent 65%), linear-gradient(to right, rgba(200,16,46,0.18) 0%, transparent 60%);
+}
+
+.carrossel-slide .hero-content {
+    position: absolute;
+    bottom: 32px;
+    left: 32px;
+    max-width: 680px;
+    z-index: 2;
+}
 
 .hero-dots {
     position: absolute;
@@ -1714,6 +1780,15 @@ html, body {
         background: #fff;
         transform: scale(1.3);
     }
+
+@media (max-width: 768px) {
+    .carrossel-slide .hero-content {
+        bottom: 14px;
+        left: 14px;
+        right: 14px;
+        max-width: 100%;
+    }
+}
 
 /* =====================
    HEADER INFO (hora · clima)
@@ -3320,6 +3395,7 @@ html, body {
     align-items: center;
     white-space: nowrap;
     animation: ticker-scroll 60s linear infinite;
+    will-change: transform; /* evita repaint */
 }
 
 .ticker-item {
@@ -3356,4 +3432,133 @@ html, body {
     .ticker-item {
         font-size: 0.75rem;
     }
+}
+
+/* =====================
+   ÚLTIMOS RESULTADOS
+===================== */
+.ultimos-resultados-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(200,16,46,0.2);
+    border-radius: 12px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.ur-label {
+    background: rgba(200,16,46,0.15);
+    border-bottom: 1px solid rgba(200,16,46,0.2);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    padding: 10px 14px;
+    text-transform: uppercase;
+}
+
+.ur-lista {
+    display: flex;
+    flex-direction: column;
+}
+
+.ur-jogo {
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: grid;
+    gap: 4px;
+    grid-template-columns: 1fr auto 1fr;
+    padding: 8px 10px;
+    transition: background 0.2s;
+}
+
+    .ur-jogo:last-child {
+        border-bottom: none;
+    }
+
+    .ur-jogo:hover {
+        background: rgba(255,255,255,0.04);
+    }
+
+.ur-jogo-fla {
+    background: rgba(200,16,46,0.08);
+}
+
+    .ur-jogo-fla:hover {
+        background: rgba(200,16,46,0.14);
+    }
+
+.ur-time {
+    align-items: center;
+    display: flex;
+    gap: 5px;
+}
+
+.ur-time-away {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.ur-escudo {
+    flex-shrink: 0;
+    height: 20px;
+    object-fit: contain;
+    width: 20px;
+}
+
+.ur-nome {
+    color: rgba(255,255,255,0.75);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
+}
+
+.ur-fla-nome {
+    color: #ff3355;
+    font-weight: 800;
+}
+
+.ur-placar {
+    align-items: center;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    color: #fff;
+    display: flex;
+    font-size: 0.82rem;
+    font-weight: 800;
+    gap: 4px;
+    padding: 3px 8px;
+    white-space: nowrap;
+}
+
+.ur-placar-sep {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.7rem;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .ultimos-resultados-card {
+        margin-top: 12px;
+    }
+
+    .ur-nome {
+        max-width: 70px;
+        font-size: 0.68rem;
+    }
+
+    .ur-escudo {
+        height: 16px;
+        width: 16px;
+    }
+}
+
+
+/*ticker*/
+.ticker-resultado {
+    color: #ff6b6b;
+    font-weight: 700;
 }

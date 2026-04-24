@@ -1,0 +1,93 @@
+﻿@inject HttpClient Http
+@inject IConfiguration Config
+@using System.Text.Json
+
+@if (resultados.Any())
+{
+    <div class="ultimos-resultados-card">
+        <div class="ur-label">📋 Últimos Resultados — Rodada @rodada</div>
+        <div class="ur-lista">
+            @foreach (var j in resultados)
+            {
+                <div class="ur-jogo @(j.TemFlamengo ? "ur-jogo-fla" : "")">
+                    <div class="ur-time">
+                        <img src="@j.HomeCrest" alt="@j.Home" class="ur-escudo" />
+                        <span class="ur-nome @(j.TemFlamengo && j.Home.Contains("Flamengo") ? "ur-fla-nome" : "")">@j.Home</span>
+                    </div>
+                    <div class="ur-placar">
+                        <span>@j.HomeScore</span>
+                        <span class="ur-placar-sep">×</span>
+                        <span>@j.AwayScore</span>
+                    </div>
+                    <div class="ur-time ur-time-away">
+                        <span class="ur-nome @(j.TemFlamengo && j.Away.Contains("Flamengo") ? "ur-fla-nome" : "")">@j.Away</span>
+                        <img src="@j.AwayCrest" alt="@j.Away" class="ur-escudo" />
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    record Resultado(string Home, string Away, string HomeCrest, string AwayCrest, int HomeScore, int AwayScore, bool TemFlamengo);
+
+    List<Resultado> resultados = new();
+    int rodada = 0;
+
+    string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
+
+    private static readonly Dictionary<string, string> NomesFix = new()
+    {
+        { "Mineiro", "Atlético-MG" },
+        { "Paranaense", "Athletico-PR" },
+        { "Clube do Remo", "Remo" }
+    };
+
+    private string FixNome(string? nome) =>
+        nome == null ? "?" : NomesFix.TryGetValue(nome, out var fix) ? fix : nome;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var standings = await Http.GetFromJsonAsync<JsonElement>($"{Api}api/seriea/standings");
+            int rodadaAtual = 1;
+            if (standings.TryGetProperty("season", out var season) &&
+                season.TryGetProperty("currentMatchday", out var cmd))
+                rodadaAtual = cmd.GetInt32();
+
+            // Tenta rodada atual, se não tiver resultados tenta a anterior
+            for (int tentativa = rodadaAtual; tentativa >= 1; tentativa--)
+            {
+                var res = await Http.GetFromJsonAsync<JsonElement>(
+                    $"{Api}api/seriea/matches?matchday={tentativa}");
+                var partidas = res.GetProperty("matches").EnumerateArray().ToList();
+
+                var encerrados = partidas
+                    .Where(m => m.GetProperty("status").GetString() == "FINISHED")
+                    .ToList();
+
+                if (encerrados.Any())
+                {
+                    rodada = tentativa;
+                    resultados = encerrados.Select(m =>
+                    {
+                        var home = FixNome(m.GetProperty("homeTeam").GetProperty("shortName").GetString());
+                        var away = FixNome(m.GetProperty("awayTeam").GetProperty("shortName").GetString());
+                        var homeCrest = m.GetProperty("homeTeam").TryGetProperty("crest", out var hc) ? hc.GetString() ?? "" : "";
+                        var awayCrest = m.GetProperty("awayTeam").TryGetProperty("crest", out var ac) ? ac.GetString() ?? "" : "";
+                        var score = m.GetProperty("score").GetProperty("fullTime");
+                        var homeScore = score.GetProperty("home").ValueKind == JsonValueKind.Null ? 0 : score.GetProperty("home").GetInt32();
+                        var awayScore = score.GetProperty("away").ValueKind == JsonValueKind.Null ? 0 : score.GetProperty("away").GetInt32();
+                        var temFla = home.Contains("Flamengo", StringComparison.OrdinalIgnoreCase)
+                                  || away.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
+                        return new Resultado(home, away, homeCrest, awayCrest, homeScore, awayScore, temFla);
+                    }).ToList();
+                    break;
+                }
+            }
+        }
+        catch { }
+    }
+}

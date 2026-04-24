@@ -12,20 +12,24 @@
 }
 else
 {
-    var n = Noticias[indiceAtual];
-    var imagem = !string.IsNullOrWhiteSpace(n.Imagem) ? n.Imagem! : "/images/Flamengo.png";
-
-    <section class="hero section hero-carrossel"
-             style="cursor:pointer;"
-             @onclick="() => AbrirNoticia(n)">
-        <img src="@imagem" alt="@n.Titulo" />
-        <div class="hero-content">
-            <span class="hero-tag">@n.Fonte</span>
-            <h1>@n.Titulo</h1>
-            <time>@n.Data.ToShortDateString()</time>
+    <section class="hero section hero-carrossel">
+        <div class="carrossel-track" style="transform: translateX(-@(indiceAtual * 100)%);">
+            @for (int i = 0; i < TotalSlides; i++)
+            {
+                var n = Noticias[i];
+                var imagem = !string.IsNullOrWhiteSpace(n.Imagem) ? n.Imagem! : "/images/Flamengo.png";
+                <div class="carrossel-slide" @onclick="() => AbrirNoticia(n)" style="cursor:pointer;">
+                    <img src="@imagem" alt="@n.Titulo" />
+                    <div class="carrossel-overlay"></div>
+                    <div class="hero-content">
+                        <span class="hero-tag">@n.Fonte</span>
+                        <h1>@n.Titulo</h1>
+                        <time>@n.Data.ToShortDateString()</time>
+                    </div>
+                </div>
+            }
         </div>
 
-        <!-- Indicadores -->
         <div class="hero-dots" @onclick:stopPropagation="true">
             @for (int i = 0; i < TotalSlides; i++)
             {
@@ -40,7 +44,6 @@ else
 
 @code {
     [Parameter] public List<NoticiaModel> Noticias { get; set; } = new();
-
     int indiceAtual = 0;
     int TotalSlides => Math.Min(Noticias.Count, 5);
     System.Threading.Timer? timer;
@@ -60,7 +63,6 @@ else
     void IrPara(int idx)
     {
         indiceAtual = idx;
-        // Reinicia o timer ao clicar
         timer?.Change(5000, 5000);
         StateHasChanged();
     }

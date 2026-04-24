@@ -1,20 +1,25 @@
 ﻿@inject HttpClient Http
 @inject IConfiguration Config
 @implements IAsyncDisposable
-
 <div class="ticker-wrapper">
     <div class="ticker-label">ÚLTIMAS</div>
     <div class="ticker-track-container">
-        <div class="ticker-track" id="ticker-track">
-            @if (titulos.Any())
+        <div class="ticker-track" @key='"ticker-static"' id="ticker-track">
+            @if (itens.Any())
             {
-                @foreach (var titulo in titulos)
+                @foreach (var item in itens)
                 {
-                    <span class="ticker-item">@titulo<span class="ticker-sep">|</span></span>
+                    <span class="ticker-item @(item.IsResultado ? "ticker-resultado" : "")">
+                        @item.Texto
+                        <span class="ticker-sep">|</span>
+                    </span>
                 }
-                @foreach (var titulo in titulos)
+                @foreach (var item in itens)
                 {
-                    <span class="ticker-item">@titulo<span class="ticker-sep">|</span></span>
+                    <span class="ticker-item @(item.IsResultado ? "ticker-resultado" : "")">
+                        @item.Texto
+                        <span class="ticker-sep">|</span>
+                    </span>
                 }
             }
             else
@@ -26,15 +31,23 @@
 </div>
 
 @code {
-    private List<string> titulos = new();
+    private record TickerItem(string Texto, bool IsResultado = false);
+    private record NoticiaItem(string Titulo);
+
+    private List<TickerItem> itens = new()
+    {
+        new("MENGOLNEWS — Últimas do Flamengo"),
+        new("Aguarde as últimas notícias..."),
+        new("Carregando informações...")
+    };
+
     private PeriodicTimer? timer;
     private CancellationTokenSource cts = new();
-
     string Api => Config["ApiBaseUrl"] ?? "https://mengolnews-api.onrender.com/";
 
     protected override async Task OnInitializedAsync()
     {
-        await CarregarTitulos();
+        await CarregarTudo();
         timer = new PeriodicTimer(TimeSpan.FromMinutes(10));
         _ = IniciarPolling();
     }
@@ -44,26 +57,64 @@
         try
         {
             while (await timer!.WaitForNextTickAsync(cts.Token))
-                await CarregarTitulos();
+                await CarregarTudo();
         }
         catch (OperationCanceledException) { }
     }
 
-    private async Task CarregarTitulos()
+    private async Task CarregarTudo()
     {
+        var novosItens = new List<TickerItem>();
+
+        // Resultados
         try
         {
-            var noticias = await Http.GetFromJsonAsync<List<NoticiaItem>>($"{Api}api/noticias?pageSize=15");
-            if (noticias != null && noticias.Any())
+            var standings = await Http.GetFromJsonAsync<System.Text.Json.JsonElement>($"{Api}api/seriea/standings");
+            int rodada = 1;
+            if (standings.TryGetProperty("season", out var season) &&
+                season.TryGetProperty("currentMatchday", out var cmd))
+                rodada = cmd.GetInt32();
+
+            for (int r = rodada; r >= 1; r--)
             {
-                titulos = noticias.Select(n => n.Titulo).ToList();
-                await InvokeAsync(StateHasChanged);
+                var res = await Http.GetFromJsonAsync<System.Text.Json.JsonElement>(
+                    $"{Api}api/seriea/matches?matchday={r}");
+                var partidas = res.GetProperty("matches").EnumerateArray()
+                    .Where(m => m.GetProperty("status").GetString() == "FINISHED")
+                    .ToList();
+
+                if (partidas.Any())
+                {
+                    foreach (var p in partidas)
+                    {
+                        var home = p.GetProperty("homeTeam").GetProperty("shortName").GetString() ?? "?";
+                        var away = p.GetProperty("awayTeam").GetProperty("shortName").GetString() ?? "?";
+                        var score = p.GetProperty("score").GetProperty("fullTime");
+                        var hg = score.GetProperty("home").ValueKind == System.Text.Json.JsonValueKind.Null ? 0 : score.GetProperty("home").GetInt32();
+                        var ag = score.GetProperty("away").ValueKind == System.Text.Json.JsonValueKind.Null ? 0 : score.GetProperty("away").GetInt32();
+                        novosItens.Add(new($"⚽ {home} {hg} × {ag} {away}", IsResultado: true));
+                    }
+                    break;
+                }
             }
         }
         catch { }
-    }
 
-    private record NoticiaItem(string Titulo);
+        // Notícias
+        try
+        {
+            var noticias = await Http.GetFromJsonAsync<List<NoticiaItem>>($"{Api}api/noticias?pageSize=15");
+            if (noticias != null)
+                novosItens.AddRange(noticias.Select(n => new TickerItem(n.Titulo)));
+        }
+        catch { }
+
+        if (novosItens.Any())
+        {
+            itens = novosItens;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {
