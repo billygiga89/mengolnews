@@ -51,6 +51,7 @@ else
         {
             var dados = await NewsService.GetNoticiasAsync();
             noticias = dados.OrderByDescending(n => n.Data).ToList();
+            await InvokeAsync(StateHasChanged); // adiciona isso
         }
         catch (Exception ex)
         {

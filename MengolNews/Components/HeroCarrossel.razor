@@ -48,7 +48,7 @@ else
     int TotalSlides => Math.Min(Noticias.Count, 5);
     System.Threading.Timer? timer;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (Noticias.Any() && timer == null)
         {
@@ -57,6 +57,8 @@ else
                 indiceAtual = (indiceAtual + 1) % TotalSlides;
                 InvokeAsync(StateHasChanged);
             }, null, 5000, 5000);
+
+            await InvokeAsync(StateHasChanged); // força re-render
         }
     }
 
