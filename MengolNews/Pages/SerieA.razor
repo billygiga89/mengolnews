@@ -115,6 +115,7 @@
     }
 
     @* ── PARTIDAS ── *@
+    @* ── PARTIDAS ── *@
     else if (activeTab == "partidas" && matches != null)
     {
         <div class="matchday-nav">
@@ -130,6 +131,8 @@
                 var matchId = m.GetProperty("id").GetInt32();
                 var home = FixNome(m.GetProperty("homeTeam").GetProperty("shortName").GetString());
                 var away = FixNome(m.GetProperty("awayTeam").GetProperty("shortName").GetString());
+                var homeCrest = m.GetProperty("homeTeam").GetProperty("crest").GetString() ?? "";
+                var awayCrest = m.GetProperty("awayTeam").GetProperty("crest").GetString() ?? "";
                 var placar = ResolverPlacar(m);
                 var hg = placar.HasValue ? placar.Value.hg.ToString() : "-";
                 var ag = placar.HasValue ? placar.Value.ag.ToString() : "-";
@@ -141,45 +144,54 @@
                 var hasFla = home.Contains("Flamengo", StringComparison.OrdinalIgnoreCase)
                 || away.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
 
-                <div class="match-card @(isLive ? "live" : "") @(hasFla ? "fla-match" : "") @(isClickable ? "clickable" : "")"
+                <div class="match-card-v2 @(isLive ? "live" : "") @(hasFla ? "fla-match" : "") @(isClickable ? "clickable" : "")"
                      @onclick="() => AbrirJogo(matchId, isClickable)">
 
-                    @if (isLive)
-                    {
-                        <div class="live-pill">● AO VIVO</div>
-                    }
-                    @if (!isLive)
-                    {
-                        <div class="match-dt">@dt.ToString("dd/MM · HH:mm")</div>
-                    }
+                    <div class="match-v2-header">
+                        @if (isLive)
+                        {
+                            <span class="live-pill">● AO VIVO</span>
+                        }
+                        else if (isDone)
+                        {
+                            <span class="match-v2-status encerrado">Encerrado</span>
+                        }
+                        else
+                        {
+                            <span class="match-v2-status">@dt.ToString("dd/MM · HH:mm")</span>
+                        }
+                    </div>
 
-                    <div class="match-body">
-                        <span class="mteam home">@home</span>
+                    <div class="match-v2-body">
+                        <div class="match-v2-time">
+                            @if (!string.IsNullOrEmpty(homeCrest))
+                            {
+                                <img src="@homeCrest" class="match-v2-crest" onerror="this.style.display='none'" alt="@home" />
+                            }
+                            <span class="match-v2-nome">@home</span>
+                        </div>
 
-                        <div class="match-score">
+                        <div class="match-v2-placar">
                             @if ((isDone || isLive) && placar.HasValue)
                             {
-                                <span class="score-val">@hg</span>
-                                <span class="score-sep">×</span>
-                                <span class="score-val">@ag</span>
+                                <span class="match-v2-gol">@hg</span>
+                                <span class="match-v2-sep">–</span>
+                                <span class="match-v2-gol">@ag</span>
                             }
                             else
                             {
-                                <span class="score-vs">VS</span>
+                                <span class="match-v2-vs">VS</span>
                             }
                         </div>
 
-                        <span class="mteam away">@away</span>
+                        <div class="match-v2-time away">
+                            <span class="match-v2-nome">@away</span>
+                            @if (!string.IsNullOrEmpty(awayCrest))
+                            {
+                                <img src="@awayCrest" class="match-v2-crest" onerror="this.style.display='none'" alt="@away" />
+                            }
+                        </div>
                     </div>
-
-                    @if (isDone)
-                    {
-                        <div class="match-status">Encerrado</div>
-                    }
-                    @if (isLive && !placar.HasValue)
-                    {
-                        <div class="match-status">Intervalo</div>
-                    }
 
                     @if (isClickable)
                     {

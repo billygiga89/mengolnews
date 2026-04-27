@@ -3568,3 +3568,138 @@ html, body {
     color: #ff6b6b;
     font-weight: 700;
 }
+
+/* =====================
+   MATCH CARD V2
+===================== */
+.match-card-v2 {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 12px 16px;
+    transition: border-color .2s, transform .15s;
+}
+
+    .match-card-v2:hover {
+        border-color: rgba(200,16,46,0.4);
+        transform: translateY(-2px);
+    }
+
+    .match-card-v2.fla-match {
+        border-color: rgba(200,16,46,0.35);
+        background: rgba(200,16,46,0.06);
+    }
+
+    .match-card-v2.live {
+        border-color: #c8102e;
+        animation: pulse-border 1.5s ease-in-out infinite;
+    }
+
+    .match-card-v2.clickable {
+        cursor: pointer;
+    }
+
+.match-v2-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.match-v2-status {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.45);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+    .match-v2-status.encerrado {
+        color: rgba(255,255,255,0.3);
+    }
+
+.match-v2-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.match-v2-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+    .match-v2-time.away {
+        align-items: center;
+        flex-direction: column;
+    }
+
+.match-v2-crest {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    order: 1;
+}
+
+.match-v2-nome {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90px;
+    order: 2;
+}
+
+.match-v2-placar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    min-width: 72px;
+    justify-content: center;
+}
+
+.match-v2-gol {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    min-width: 24px;
+    text-align: center;
+}
+
+.match-v2-sep {
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 400;
+}
+
+.match-v2-vs {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.35);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 480px) {
+    .match-v2-crest {
+        width: 28px;
+        height: 28px;
+    }
+
+    .match-v2-nome {
+        font-size: 0.7rem;
+        max-width: 70px;
+    }
+
+    .match-v2-gol {
+        font-size: 1.3rem;
+    }
+}
