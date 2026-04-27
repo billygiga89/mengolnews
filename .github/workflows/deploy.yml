@@ -28,7 +28,7 @@ jobs:
       - name: Cache busting
         run: |
           VERSION=$(date +%s)
-          sed -i "s/app.css?v=[0-9]*/app.css?v=$VERSION/" MengolNews/wwwroot/index.html
+          sed -i "s/css\/app\.css/css\/app.css?v=$VERSION/" publish/wwwroot/index.html
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
