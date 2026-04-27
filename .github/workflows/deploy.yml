@@ -25,6 +25,11 @@ jobs:
       - name: Publish WASM
         run: dotnet publish MengolNews/MengolNews.csproj -c Release -o publish
 
+      - name: Cache busting
+        run: |
+          VERSION=$(date +%s)
+          sed -i "s/app.css?v=[0-9]*/app.css?v=$VERSION/" MengolNews/wwwroot/index.html
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
