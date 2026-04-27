@@ -16,8 +16,8 @@ else
         <div class="carrossel-track" style="transform: translateX(-@(indiceAtual * 100)%);">
             @for (int i = 0; i < TotalSlides; i++)
             {
-                var n = Noticias[i];
-                var imagem = !string.IsNullOrWhiteSpace(n.Imagem) ? n.Imagem! : "/images/Flamengo.png";
+                var n = SlidesComImagem[i];
+                var imagem = n.Imagem!;
                 <div class="carrossel-slide" @onclick="() => AbrirNoticia(n)" style="cursor:pointer;">
                     <img src="@imagem" alt="@n.Titulo" />
                     <div class="carrossel-overlay"></div>
@@ -45,8 +45,11 @@ else
 @code {
     [Parameter] public List<NoticiaModel> Noticias { get; set; } = new();
     int indiceAtual = 0;
-    int TotalSlides => Math.Min(Noticias.Count, 5);
+    int TotalSlides => SlidesComImagem.Count;
     System.Threading.Timer? timer;
+
+    List<NoticiaModel> SlidesComImagem =>
+    Noticias.Where(x => !string.IsNullOrWhiteSpace(x.Imagem)).Take(5).ToList();
 
     protected override async Task OnParametersSetAsync()
     {
