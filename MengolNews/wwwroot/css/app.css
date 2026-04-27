@@ -1698,8 +1698,14 @@ html, body {
    HERO CARROSSEL
 ===================== */
 .hero-carrossel {
-    transition: none;
+    position: relative;
+    height: 55vh;
+    min-height: 340px;
+    max-height: 560px;
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+    transition: none;
 }
 
     .hero-carrossel:hover {
