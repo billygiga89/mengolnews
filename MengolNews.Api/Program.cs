@@ -50,7 +50,11 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Pipeline
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+	app.UseHttpsRedirection();
+}
+
 app.UseCors("AllowBlazor");
 app.UseAuthorization();
 app.MapControllers();
