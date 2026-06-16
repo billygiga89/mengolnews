@@ -1,4 +1,5 @@
 ﻿@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap');
 
 /* =====================
    RESET / BASE
@@ -41,16 +42,29 @@ html, body {
     position: sticky;
     top: 0;
     z-index: 1000;
+    animation: header-drop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-    .header .container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 14px 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+@keyframes header-drop {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
     }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.header .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
 
 .brand {
     display: flex;
@@ -62,14 +76,27 @@ html, body {
     .brand img {
         height: 36px;
         filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+        animation: logo-spin-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
 
-    .brand h1 {
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
+@keyframes logo-spin-in {
+    from {
+        transform: rotate(-20deg) scale(0.7);
+        opacity: 0;
     }
+
+    to {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
 
 /* =====================
    SOCIAL ICONS — estado padrão desktop
@@ -204,9 +231,11 @@ html, body {
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+    animation: fade-up 0.6s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-    .hero:hover {
+    .hero:hover,
+    .hero:hover img {
         transform: none;
         box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
     }
@@ -218,13 +247,10 @@ html, body {
         height: 100%;
         object-fit: cover;
         object-position: center top;
-    }
-
-    .hero:hover img {
+        transition: none;
         transform: none;
     }
 
-    /* SEM ::before — o carrossel usa .carrossel-overlay */
     .hero::before {
         display: none;
     }
@@ -331,6 +357,7 @@ html, body {
     grid-column: 2;
 }
 
+/* ── Entrada sequencial dos cards ── */
 .news-card {
     position: relative;
     height: 290px;
@@ -338,9 +365,47 @@ html, body {
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.06);
     cursor: pointer;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
+
+    /* Delay escalonado para os primeiros 9 cards */
+    .news-card:nth-child(1) {
+        animation-delay: 0.05s;
+    }
+
+    .news-card:nth-child(2) {
+        animation-delay: 0.10s;
+    }
+
+    .news-card:nth-child(3) {
+        animation-delay: 0.15s;
+    }
+
+    .news-card:nth-child(4) {
+        animation-delay: 0.20s;
+    }
+
+    .news-card:nth-child(5) {
+        animation-delay: 0.25s;
+    }
+
+    .news-card:nth-child(6) {
+        animation-delay: 0.30s;
+    }
+
+    .news-card:nth-child(7) {
+        animation-delay: 0.35s;
+    }
+
+    .news-card:nth-child(8) {
+        animation-delay: 0.40s;
+    }
+
+    .news-card:nth-child(9) {
+        animation-delay: 0.45s;
+    }
 
     .news-card:hover {
         transform: translateY(-6px) scale(1.01);
@@ -418,6 +483,7 @@ html, body {
     background: transparent;
     border: none;
     box-shadow: none;
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .news-open-img {
@@ -679,6 +745,7 @@ html, body {
     flex-direction: column;
     gap: 16px;
     padding-top: 0;
+    animation: fade-up 0.5s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .sobre-hero {
@@ -694,6 +761,17 @@ html, body {
     object-fit: contain;
     flex-shrink: 0;
     filter: drop-shadow(0 4px 16px rgba(200,16,46,0.5));
+    animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
 }
 
 .sobre-hero-text {
@@ -740,11 +818,12 @@ html, body {
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
     padding: 1.5rem 1.75rem;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, transform 0.2s;
 }
 
     .sobre-card:hover {
         border-color: rgba(200,16,46,0.2);
+        transform: translateY(-2px);
     }
 
 .sobre-card-icon {
@@ -899,7 +978,6 @@ html, body {
    RESPONSIVO — TABLET/MOBILE
 ===================== */
 @media (max-width: 768px) {
-
     .header .container {
         flex-direction: row;
         align-items: center;
@@ -1025,6 +1103,11 @@ html, body {
     .sobre-titulo {
         font-size: 1.5rem;
     }
+
+    .sobre-escudo {
+        animation: none;
+    }
+    /* desativa float no mobile */
 }
 
 @media (max-width: 600px) {
@@ -1097,6 +1180,7 @@ html, body {
     margin: 0 auto;
     padding: 1.5rem 1rem 3rem;
     color: #f0f0f0;
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .seriea-header {
@@ -1252,12 +1336,23 @@ html, body {
 
 .row-fla {
     background: rgba(200,16,46,.12) !important;
+    animation: row-fla-pulse 3s ease-in-out infinite;
 }
 
-    .row-fla td {
-        color: #fff !important;
-        font-weight: 600;
+@keyframes row-fla-pulse {
+    0%, 100% {
+        background: rgba(200,16,46,.12) !important;
     }
+
+    50% {
+        background: rgba(200,16,46,.22) !important;
+    }
+}
+
+.row-fla td {
+    color: #fff !important;
+    font-weight: 600;
+}
 
 .fla-tag {
     background: #c8102e;
@@ -1338,8 +1433,12 @@ html, body {
         font-size: 1.4rem;
         line-height: 1;
         cursor: pointer;
-        transition: background .2s;
+        transition: background .2s, transform .15s;
     }
+
+        .matchday-nav button:hover {
+            transform: scale(1.1);
+        }
 
         .matchday-nav button:disabled {
             background: #3a1a1a;
@@ -1400,6 +1499,7 @@ html, body {
     border-radius: 999px;
     margin-bottom: .5rem;
     letter-spacing: .05em;
+    animation: blink-badge 1.5s ease-in-out infinite;
 }
 
 .match-dt {
@@ -1588,7 +1688,14 @@ html, body {
     box-sizing: border-box;
     width: 100%;
     overflow: hidden;
+    animation: fade-up 0.6s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
+
+    .proximo-jogo-card:hover {
+        border-color: rgba(200,16,46,0.7);
+        box-shadow: 0 0 24px rgba(200,16,46,0.15);
+    }
 
 .pj-label {
     font-size: 0.75rem;
@@ -1621,6 +1728,17 @@ html, body {
     height: 48px;
     object-fit: contain;
     filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+    transition: transform 0.3s ease;
+}
+
+.pj-time:hover .pj-escudo {
+    transform: scale(1.12);
+}
+
+/* Escudo do Flamengo no próximo jogo: pulse vermelho */
+.pj-time.home .pj-escudo,
+.pj-time.away .pj-escudo {
+    /* identidade visual neutra; a classe fla-escudo é adicionada via Razor se necessário */
 }
 
 .pj-nome {
@@ -1673,6 +1791,17 @@ html, body {
     margin-top: 2px;
     letter-spacing: 0.3px;
     white-space: nowrap;
+    animation: countdown-tick 1s step-end infinite;
+}
+
+@keyframes countdown-tick {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1705,17 +1834,14 @@ html, body {
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
-    transition: none;
+    animation: fade-up 0.6s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-    .hero-carrossel:hover {
+    .hero-carrossel:hover,
+    .hero-carrossel:hover img {
         transform: none;
         box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
     }
-
-        .hero-carrossel:hover img {
-            transform: none;
-        }
 
     .hero-carrossel img {
         transition: none;
@@ -1925,6 +2051,7 @@ html, body {
     max-width: 1100px;
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .videos-header {
@@ -1973,7 +2100,32 @@ html, body {
     overflow: hidden;
     cursor: pointer;
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+    .video-card:nth-child(1) {
+        animation-delay: 0.05s;
+    }
+
+    .video-card:nth-child(2) {
+        animation-delay: 0.10s;
+    }
+
+    .video-card:nth-child(3) {
+        animation-delay: 0.15s;
+    }
+
+    .video-card:nth-child(4) {
+        animation-delay: 0.20s;
+    }
+
+    .video-card:nth-child(5) {
+        animation-delay: 0.25s;
+    }
+
+    .video-card:nth-child(6) {
+        animation-delay: 0.30s;
+    }
 
     .video-card:hover {
         transform: translateY(-5px);
@@ -2259,9 +2411,6 @@ html, body {
 /* ================================================================
    CAMPO VIRTUAL
    ================================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap');
-
 :root {
     --azul-home: #1565C0;
     --vermelho-away: #C62828;
@@ -2277,6 +2426,7 @@ html, body {
     padding: 0 0 40px;
     font-family: var(--fonte-body);
     overflow-x: hidden;
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .jogo-header-nav {
@@ -2402,7 +2552,7 @@ html, body {
 }
 
 @keyframes pulse-ring {
-    0%,100% {
+    0%, 100% {
         opacity: 0.95;
     }
 
@@ -2503,7 +2653,7 @@ html, body {
     }
 
 @keyframes blink-badge {
-    0%,100% {
+    0%, 100% {
         opacity: 1;
     }
 
@@ -2571,6 +2721,7 @@ html, body {
     background: rgba(255,255,255,0.04);
     border-left: 3px solid transparent;
     transition: background 0.2s;
+    animation: fade-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
     .evento-item:hover {
@@ -2623,9 +2774,7 @@ html, body {
     letter-spacing: 0.5px;
 }
 
-/* ════════════════════════════════════════════
-   ESTATÍSTICAS — layout coluna (funciona em qualquer largura)
-   ════════════════════════════════════════════ */
+/* ── Estatísticas ── */
 .stats-grid {
     display: flex;
     flex-direction: column;
@@ -2633,7 +2782,6 @@ html, body {
     padding: 4px 0;
 }
 
-/* cada stat: label + barra em cima, valores embaixo */
 .stat-row {
     display: flex;
     flex-direction: column;
@@ -2673,7 +2821,6 @@ html, body {
     transition: width 0.8s ease;
 }
 
-/* valores: home à esquerda, away à direita */
 .stat-row-valores {
     display: flex;
     justify-content: space-between;
@@ -2727,7 +2874,13 @@ html, body {
     gap: 10px;
     padding: 8px 0;
     border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
 }
+
+    .jogador-row:hover {
+        background: rgba(255,255,255,0.03);
+        border-radius: 6px;
+    }
 
     .jogador-row .num {
         font-family: var(--fonte-display);
@@ -2769,9 +2922,7 @@ html, body {
     font-family: var(--fonte-body);
 }
 
-/* ════════════════════════════════════════════
-   RESPONSIVE — Campo Virtual
-   ════════════════════════════════════════════ */
+/* ── Responsivo Campo Virtual ── */
 @media (max-width: 600px) {
     .time-nome {
         font-size: 11px;
@@ -2853,7 +3004,6 @@ html, body {
 /* ================================================================
    ELENCO
    ================================================================ */
-
 .elenco-page {
     min-height: 100vh;
     background: linear-gradient(135deg, #0a0a1a 0%, #1a0005 50%, #0d0000 100%);
@@ -2865,6 +3015,7 @@ html, body {
     background: linear-gradient(180deg, #b71c1c 0%, #7f0000 100%);
     padding: 32px 20px;
     border-bottom: 3px solid #FFD700;
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .elenco-hero-inner {
@@ -2880,6 +3031,7 @@ html, body {
     height: 72px;
     object-fit: contain;
     filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+    animation: logo-spin-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .elenco-titulo {
@@ -2991,7 +3143,56 @@ html, body {
     aspect-ratio: 2/3;
     display: flex;
     flex-direction: column;
+    animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+    .player-card:nth-child(1) {
+        animation-delay: 0.03s;
+    }
+
+    .player-card:nth-child(2) {
+        animation-delay: 0.06s;
+    }
+
+    .player-card:nth-child(3) {
+        animation-delay: 0.09s;
+    }
+
+    .player-card:nth-child(4) {
+        animation-delay: 0.12s;
+    }
+
+    .player-card:nth-child(5) {
+        animation-delay: 0.15s;
+    }
+
+    .player-card:nth-child(6) {
+        animation-delay: 0.18s;
+    }
+
+    .player-card:nth-child(7) {
+        animation-delay: 0.21s;
+    }
+
+    .player-card:nth-child(8) {
+        animation-delay: 0.24s;
+    }
+
+    .player-card:nth-child(9) {
+        animation-delay: 0.27s;
+    }
+
+    .player-card:nth-child(10) {
+        animation-delay: 0.30s;
+    }
+
+    .player-card:nth-child(11) {
+        animation-delay: 0.33s;
+    }
+
+    .player-card:nth-child(12) {
+        animation-delay: 0.36s;
+    }
 
     .player-card:hover {
         transform: translateY(-6px) scale(1.03);
@@ -3266,7 +3467,7 @@ html, body {
     margin: 0 0 16px;
 }
 
-/* stats-grid do modal (grid 3 col — diferente do stats-grid do campo) */
+/* stats-grid do modal (3 col — diferente do stats-grid do campo) */
 .modal-stats .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -3284,7 +3485,13 @@ html, body {
     align-items: center;
     gap: 4px;
     border: 1px solid rgba(255,255,255,0.06);
+    transition: transform 0.2s, border-color 0.2s;
 }
+
+    .stat-item:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255,255,255,0.15);
+    }
 
     .stat-item.destaque {
         background: rgba(255,215,0,0.08);
@@ -3356,6 +3563,11 @@ html, body {
     .competicao {
         font-size: 11px;
     }
+
+    .player-card {
+        animation: none;
+    }
+    /* desativa delay no mobile para não atrasar scroll */
 }
 
 /* =====================
@@ -3401,7 +3613,7 @@ html, body {
     align-items: center;
     white-space: nowrap;
     animation: ticker-scroll 60s linear infinite;
-    will-change: transform; /* evita repaint */
+    will-change: transform;
 }
 
 .ticker-item {
@@ -3449,6 +3661,7 @@ html, body {
     border-radius: 12px;
     overflow: hidden;
     width: 100%;
+    animation: fade-up 0.5s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .ur-label {
@@ -3545,7 +3758,6 @@ html, body {
     font-size: 0.7rem;
 }
 
-/* Mobile */
 @media (max-width: 768px) {
     .ultimos-resultados-card {
         margin-top: 12px;
@@ -3562,8 +3774,7 @@ html, body {
     }
 }
 
-
-/*ticker*/
+/* ticker resultado */
 .ticker-resultado {
     color: #ff6b6b;
     font-weight: 700;
@@ -3578,6 +3789,7 @@ html, body {
     border-radius: 14px;
     padding: 12px 16px;
     transition: border-color .2s, transform .15s;
+    animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
     .match-card-v2:hover {
@@ -3644,6 +3856,11 @@ html, body {
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
     order: 1;
+    transition: transform 0.2s ease;
+}
+
+.match-card-v2:hover .match-v2-crest {
+    transform: scale(1.1);
 }
 
 .match-v2-nome {
@@ -3703,5 +3920,32 @@ html, body {
 
     .match-v2-gol {
         font-size: 1.3rem;
+    }
+}
+
+/* =====================
+   ANIMAÇÕES GLOBAIS
+   (usadas em múltiplos componentes)
+===================== */
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Respeita preferência do usuário por menos movimento */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }
