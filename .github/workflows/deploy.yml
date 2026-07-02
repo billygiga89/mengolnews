@@ -1,35 +1,30 @@
 name: Deploy MengolNews
-
 on:
   push:
     branches:
       - master
-
 permissions:
   contents: read
   deployments: write
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
       - name: Publish WASM
         run: dotnet publish MengolNews/MengolNews.csproj -c Release -o publish
-
+      - name: Remove compressed files from functions (Cloudflare bundler fix)
+        run: |
+          find publish/wwwroot/functions -type f \( -name "*.br" -o -name "*.gz" \) -delete
       - name: Cache busting
         run: |
           VERSION=$(date +%s)
           sed -i "s/css\/app\.css/css\/app.css?v=$VERSION/" publish/wwwroot/index.html
-
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
