@@ -1994,6 +1994,10 @@ html, body {
         border: 1px solid rgba(255,255,255,0.15);
     }
 
+    .share-btn.facebook {
+        background: #1877F2;
+    }
+
     .share-btn svg {
         width: 16px;
         height: 16px;
