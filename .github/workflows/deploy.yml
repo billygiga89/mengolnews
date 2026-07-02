@@ -32,5 +32,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: mengolfla
           branch: master
-          directory: publish/wwwroot
+          directory: .
+          workingDirectory: publish/wwwroot
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
