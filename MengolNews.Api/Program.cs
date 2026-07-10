@@ -18,6 +18,7 @@ builder.Services.AddHttpClient("default", client =>
 // Services
 //builder.Services.AddHttpClient<NoticiasService>();
 builder.Services.AddHttpClient<VideosService>();
+builder.Services.AddHostedService<VideosWarmupHostedService>();
 
 //builder.Services.AddHttpClient<MatchService>();
 builder.Services.AddScoped<MatchService>();

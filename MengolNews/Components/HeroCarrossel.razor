@@ -47,22 +47,6 @@ else
     int TotalSlides => Slides.Count;
     System.Threading.Timer? timer;
 
-    // Mesmas imagens de fallback do NewsCard
-    private static readonly string[] ImagensFlamengo = new[]
-    {
-        "/images/flamengo01.jpg",
-        "/images/flamengo02.jpg",
-        "/images/flamengo03.jpg",
-        "/images/flamengo04.jpg",
-        "/images/flamengo05.jpg",
-        "/images/flamengo06.jpg",
-        "/images/flamengo07.jpg",
-        "/images/flamengo08.jpg",
-        "/images/flamengo09.png",
-    };
-
-    private static readonly Random _rng = new();
-
     // Pega as 5 primeiras — com ou sem imagem
     List<NoticiaModel> Slides => Noticias.Take(5).ToList();
 
@@ -71,8 +55,9 @@ else
         if (!string.IsNullOrWhiteSpace(n.Imagem))
             return n.Imagem;
 
-        // Fallback aleatório igual ao NewsCard
-        return ImagensFlamengo[_rng.Next(ImagensFlamengo.Length)];
+        // Fallback estável — mesma notícia sempre mostra a mesma imagem,
+        // não fica trocando sozinha a cada re-render do timer.
+        return FallbackImages.ObterPara(n.Titulo);
     }
 
     protected override async Task OnParametersSetAsync()

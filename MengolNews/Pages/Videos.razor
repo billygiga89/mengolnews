@@ -108,19 +108,31 @@
         carregando = true;
         erro = false;
 
-        try
+        const int maxTentativas = 3;
+
+        for (int tentativa = 1; tentativa <= maxTentativas; tentativa++)
         {
-            var resultado = await Http.GetFromJsonAsync<List<VideoDto>>("api/videos");
-            videos = resultado ?? new List<VideoDto>();
+            try
+            {
+                var resultado = await Http.GetFromJsonAsync<List<VideoDto>>("api/videos");
+                videos = resultado ?? new List<VideoDto>();
+                erro = false;
+                break; // deu certo, sai do loop
+            }
+            catch
+            {
+                if (tentativa == maxTentativas)
+                {
+                    erro = true;
+                }
+                else
+                {
+                    await Task.Delay(800 * tentativa); // espera um pouco mais a cada nova tentativa
+                }
+            }
         }
-        catch
-        {
-            erro = true;
-        }
-        finally
-        {
-            carregando = false;
-        }
+
+        carregando = false;
     }
 
     private void AbrirPlayer(VideoDto video)
@@ -150,5 +162,3 @@
         public string UrlEmbed { get; set; } = "";
     }
 }
-
-
