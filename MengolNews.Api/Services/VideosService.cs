@@ -48,40 +48,89 @@ namespace MengolNews.Api.Services
                       $"&type=video" +
                       $"&maxResults={max}";
 
-            var response = await _http.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-            var doc = JsonDocument.Parse(json);
-            var items = doc.RootElement.GetProperty("items");
-
-            var videos = new List<VideoItem>();
-
-            foreach (var item in items.EnumerateArray())
+            try
             {
-                var snippet = item.GetProperty("snippet");
-                var videoId = item.GetProperty("id").GetProperty("videoId").GetString() ?? "";
+                const int maxTentativas = 3;
+                HttpResponseMessage? response = null;
 
-                var thumbs = snippet.GetProperty("thumbnails");
-                var thumb = thumbs.TryGetProperty("maxres", out var maxres) ? maxres :
-                            thumbs.TryGetProperty("high", out var high) ? high :
-                            thumbs.GetProperty("medium");
-
-                videos.Add(new VideoItem
+                for (int tentativa = 1; tentativa <= maxTentativas; tentativa++)
                 {
-                    VideoId = videoId,
-                    Titulo = snippet.GetProperty("title").GetString() ?? "",
-                    Descricao = snippet.GetProperty("description").GetString() ?? "",
-                    Thumbnail = thumb.GetProperty("url").GetString() ?? "",
-                    PublicadoEm = snippet.GetProperty("publishedAt").GetString() ?? ""
-                });
+                    response = await _http.GetAsync(url);
+
+                    if (response.IsSuccessStatusCode)
+                        break;
+
+                    var corpoErroTentativa = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning(
+                        "Tentativa {Tentativa}/{Max} falhou na YouTube API. Status: {Status}. Corpo: {Corpo}",
+                        tentativa, maxTentativas, response.StatusCode, corpoErroTentativa);
+
+                    // 403/429 da YouTube costumam ser bloqueios transitórios (IP do Render) — vale tentar de novo rapidinho.
+                    if (tentativa < maxTentativas)
+                        await Task.Delay(TimeSpan.FromSeconds(1.5 * tentativa));
+                }
+
+                if (response == null || !response.IsSuccessStatusCode)
+                {
+                    _logger.LogError(
+                        "Todas as {Max} tentativas falharam na YouTube API. Último status: {Status}",
+                        maxTentativas, response?.StatusCode);
+
+                    // Se já temos algo em cache (mesmo vencido), devolve isso em vez de quebrar a página.
+                    if (_cache != null)
+                    {
+                        _logger.LogWarning("Servindo cache antigo de vídeos como fallback após falha na YouTube API.");
+                        return _cache;
+                    }
+
+                    throw new HttpRequestException(
+                        $"YouTube API falhou após {maxTentativas} tentativas. Último status: {response?.StatusCode}.");
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(json);
+                var items = doc.RootElement.GetProperty("items");
+
+                var videos = new List<VideoItem>();
+
+                foreach (var item in items.EnumerateArray())
+                {
+                    var snippet = item.GetProperty("snippet");
+                    var videoId = item.GetProperty("id").GetProperty("videoId").GetString() ?? "";
+
+                    var thumbs = snippet.GetProperty("thumbnails");
+                    var thumb = thumbs.TryGetProperty("maxres", out var maxres) ? maxres :
+                                thumbs.TryGetProperty("high", out var high) ? high :
+                                thumbs.GetProperty("medium");
+
+                    videos.Add(new VideoItem
+                    {
+                        VideoId = videoId,
+                        Titulo = snippet.GetProperty("title").GetString() ?? "",
+                        Descricao = snippet.GetProperty("description").GetString() ?? "",
+                        Thumbnail = thumb.GetProperty("url").GetString() ?? "",
+                        PublicadoEm = snippet.GetProperty("publishedAt").GetString() ?? ""
+                    });
+                }
+
+                _cache = videos;
+                _cacheExpira = DateTime.Now.Add(_cacheDuracao);
+
+                _logger.LogInformation("Vídeos buscados do YouTube: {Total}", videos.Count);
+                return videos;
             }
+            catch (Exception ex) when (!(ex is HttpRequestException))
+            {
+                _logger.LogError(ex, "Erro inesperado ao processar resposta da YouTube API.");
 
-            _cache = videos;
-            _cacheExpira = DateTime.Now.Add(_cacheDuracao);
+                if (_cache != null)
+                {
+                    _logger.LogWarning("Servindo cache antigo de vídeos como fallback após erro inesperado.");
+                    return _cache;
+                }
 
-            _logger.LogInformation("Vídeos buscados do YouTube: {Total}", videos.Count);
-            return videos;
+                throw;
+            }
         }
 
         public async Task AquecerCacheAsync()

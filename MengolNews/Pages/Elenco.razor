@@ -7,8 +7,6 @@
 
 <PageTitle>Elenco — MengolNews</PageTitle>
 
-<link href="css/elenco.css" rel="stylesheet" />
-
 <div class="elenco-page">
 
     <div class="elenco-hero">
@@ -58,7 +56,8 @@
                              @onclick="() => AbrirModal(p)">
                             <div class="card-numero">@(p.Number > 0 ? p.Number.ToString() : "—")</div>
                             <div class="card-foto-wrap">
-                                <img src="@p.Photo" class="card-foto" alt="@p.Name" />
+                                <img src="@FotoOuPlaceholder(p.Photo)" class="card-foto" alt="@p.Name"
+                                     onerror="this.onerror=null;this.src='images/jogadores/sem-foto.svg';" />
                             </div>
                             <div class="card-info">
                                 <span class="card-pos-badge">@MapPosition(p.Position)</span>
@@ -93,7 +92,8 @@
                 <button class="modal-close" @onclick="FecharModal">✕</button>
 
                 <div class="modal-header @GetPositionClass(statsModal.Position)">
-                    <img src="@statsModal.Photo" class="modal-foto" alt="@statsModal.Name" />
+                    <img src="@FotoOuPlaceholder(statsModal.Photo)" class="modal-foto" alt="@statsModal.Name"
+                         onerror="this.onerror=null;this.src='images/jogadores/sem-foto.svg';" />
                     <div class="modal-header-info">
                         <span class="modal-pos-badge">@MapPosition(statsModal.Position)</span>
                         <h2 class="modal-nome">@statsModal.Name</h2>
@@ -275,6 +275,9 @@
         jogadorModal = null;
         statsModal = null;
     }
+
+    private string FotoOuPlaceholder(string? foto)
+        => string.IsNullOrWhiteSpace(foto) ? "images/jogadores/sem-foto.svg" : foto;
 
     private string MapPosition(string pos) => pos switch
     {

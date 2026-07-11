@@ -158,25 +158,51 @@ namespace MengolNews.Api.Services
 
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                const int maxTentativas = 2;
+                HttpResponseMessage? response = null;
 
-                if (headersExtras != null)
-                    foreach (var kv in headersExtras)
-                        request.Headers.TryAddWithoutValidation(kv.Key, kv.Value);
-
-                using var response = await _http.SendAsync(request);
-
-                Console.WriteLine($"[{fonte}] Status: {(int)response.StatusCode}");
-
-                if (!response.IsSuccessStatusCode)
+                for (int tentativa = 1; tentativa <= maxTentativas; tentativa++)
                 {
-                    Console.WriteLine($"[{fonte}] ❌ Falhou com status {(int)response.StatusCode}");
+                    using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+                    if (headersExtras != null)
+                        foreach (var kv in headersExtras)
+                            request.Headers.TryAddWithoutValidation(kv.Key, kv.Value);
+
+                    response?.Dispose();
+                    response = await _http.SendAsync(request);
+
+                    Console.WriteLine($"[{fonte}] Status: {(int)response.StatusCode} (tentativa {tentativa}/{maxTentativas})");
+
+                    if (response.IsSuccessStatusCode)
+                        break;
+
+                    if (tentativa < maxTentativas)
+                        await Task.Delay(TimeSpan.FromSeconds(1.5));
+                }
+
+                using var _ = response; // garante Dispose ao sair do escopo
+
+                if (response == null || !response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[{fonte}] ❌ Falhou com status {(int)(response?.StatusCode ?? 0)} após {maxTentativas} tentativas");
                     return lista;
                 }
 
-                using var stream = await response.Content.ReadAsStreamAsync();
+                var xml = await response.Content.ReadAsStringAsync();
+
+                // O Rss20FeedFormatter só aceita version="2.0". Feeds antigos (ex: BOL Esporte)
+                // ainda usam RSS 0.9x, que é compatível o suficiente nos campos que usamos
+                // (title, link, description, pubDate) — só normalizamos o atributo de versão.
+                xml = Regex.Replace(
+                    xml,
+                    @"(<rss[^>]*\bversion\s*=\s*"")[^""]+("")",
+                    "${1}2.0${2}",
+                    RegexOptions.IgnoreCase);
+
                 var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse };
-                using var reader = XmlReader.Create(stream, settings);
+                using var stringReader = new StringReader(xml);
+                using var reader = XmlReader.Create(stringReader, settings);
 
                 var feed = SyndicationFeed.Load(reader);
                 if (feed == null) return lista;

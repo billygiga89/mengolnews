@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="200" height="300" fill="url(#bg)"/>
+
+  <!-- Cabeça -->
+  <circle cx="100" cy="88" r="32" fill="rgba(255,255,255,0.16)"/>
+
+  <!-- Busto (grudado na cabeça, sem "pescoço") -->
+  <path d="M 38,240
+           Q 38,118 100,118
+           Q 162,118 162,240
+           Z"
+        fill="rgba(255,255,255,0.16)"/>
+</svg>
