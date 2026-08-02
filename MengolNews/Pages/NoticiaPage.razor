@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @inject MengolNews.Services.NewsApiService NewsService
 @inject HttpClient Http
+@using System.Text.Json.Serialization
 
 <PageTitle>@(noticia?.Titulo ?? "Notícia") | MengolNews</PageTitle>
 
@@ -20,11 +21,17 @@
         <meta property="og:description" content="@MetaDescricao" />
         <meta property="og:image" content="@MetaImagem" />
         <meta property="og:url" content="@Nav.Uri" />
+        <meta property="article:published_time" content="@DataIso" />
+        <meta property="article:section" content="Flamengo" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="@noticia.Titulo" />
         <meta name="twitter:description" content="@MetaDescricao" />
         <meta name="twitter:image" content="@MetaImagem" />
+
+        <script type="application/ld+json">
+            @((MarkupString)JsonLd)
+        </script>
     }
 </HeadContent>
 
@@ -125,6 +132,58 @@
 
     private string MetaImagem =>
         !string.IsNullOrWhiteSpace(noticia?.Imagem) ? noticia!.Imagem! : ImagemPadrao;
+
+    private string DataIso =>
+        noticia?.Data.ToString("yyyy-MM-ddTHH:mm:sszzz") ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz");
+
+    private string JsonLd
+    {
+        get
+        {
+            var schema = new
+            {
+                context = "https://schema.org",
+                type = "NewsArticle",
+                headline = noticia?.Titulo ?? "",
+                description = MetaDescricao,
+                image = new[] { MetaImagem },
+                datePublished = DataIso,
+                dateModified = DataIso,
+                author = new
+                {
+                    type = "Organization",
+                    name = "MengolNews",
+                    url = SiteUrl
+                },
+                publisher = new
+                {
+                    type = "Organization",
+                    name = "MengolNews",
+                    logo = new
+                    {
+                        type = "ImageObject",
+                        url = SiteUrl + "/images/Flamengo.png"
+                    }
+                },
+                mainEntityOfPage = new
+                {
+                    type = "WebPage",
+                    id = Nav.Uri
+                }
+            };
+
+            var opcoes = new JsonSerializerOptions { WriteIndented = false };
+            var json = JsonSerializer.Serialize(schema, opcoes);
+
+            // Corrige os nomes das propriedades reservadas do JSON-LD (@context, @type, @id)
+            json = json
+                .Replace("\"context\":", "\"@context\":")
+                .Replace("\"type\":", "\"@type\":")
+                .Replace("\"id\":", "\"@id\":");
+
+            return json;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
