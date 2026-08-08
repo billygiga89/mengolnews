@@ -63,7 +63,7 @@ public class SerieAService
 			return isHoje && (status == "IN_PLAY" || status == "PAUSED" || status == "FINISHED");
 		});
 
-		var duracao = temJogoAtivo ? TimeSpan.FromMinutes(1) : TimeSpan.FromMinutes(30);
+		var duracao = temJogoAtivo ? TimeSpan.FromMinutes(30) : TimeSpan.FromMinutes(30);
 		_cache.Set(cacheKey, data, duracao);
 
 		return data;
