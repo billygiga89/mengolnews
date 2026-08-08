@@ -1723,9 +1723,28 @@ html, body {
     min-width: 0;
 }
 
+/* Wrap circular atrás do escudo — ancora visualmente o brasão no card escuro */
+.pj-escudo-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.pj-time:hover .pj-escudo-wrap {
+    background: rgba(200,16,46,0.1);
+    border-color: rgba(200,16,46,0.3);
+}
+
 .pj-escudo {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
     filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
     transition: transform 0.3s ease;
@@ -1781,16 +1800,18 @@ html, body {
     letter-spacing: 0.3px;
 }
 
+/* Countdown com maior destaque — badge vermelho sólido em vez de texto discreto */
 .pj-countdown {
     font-size: 0.75rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.6);
-    background: rgba(255,255,255,0.07);
-    border-radius: 6px;
-    padding: 3px 8px;
+    font-weight: 800;
+    color: #fff;
+    background: #C8102E;
+    border-radius: 20px;
+    padding: 4px 12px;
     margin-top: 2px;
     letter-spacing: 0.3px;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(200,16,46,0.4);
     animation: countdown-tick 1s step-end infinite;
 }
 
@@ -1800,14 +1821,19 @@ html, body {
     }
 
     50% {
-        opacity: 0.6;
+        opacity: 0.75;
     }
 }
 
 @media (max-width: 480px) {
+    .pj-escudo-wrap {
+        width: 44px;
+        height: 44px;
+    }
+
     .pj-escudo {
-        width: 38px;
-        height: 38px;
+        width: 30px;
+        height: 30px;
     }
 
     .pj-nome {
@@ -1880,6 +1906,12 @@ html, body {
     background: linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(10,0,0,0.75) 35%, transparent 65%), linear-gradient(to right, rgba(200,16,46,0.18) 0%, transparent 60%);
 }
 
+/* Overlay reforçado quando o slide usa imagem de fallback (aleatória, sem foto própria da notícia).
+   Adicionar a classe "is-fallback" na .carrossel-slide via Razor quando EhImagemInvalida()/sem imagem própria. */
+.carrossel-slide.is-fallback .carrossel-overlay {
+    background: linear-gradient(to top, rgba(0,0,0,0.98) 0%, rgba(10,0,0,0.88) 45%, rgba(10,0,0,0.35) 75%), linear-gradient(to right, rgba(200,16,46,0.18) 0%, transparent 60%);
+}
+
 .carrossel-slide .hero-content {
     position: absolute;
     bottom: 32px;
@@ -1888,30 +1920,53 @@ html, body {
     z-index: 2;
 }
 
-.hero-dots {
+/* Barra de progresso do carrossel — substitui os antigos hero-dots.
+   Um .hero-progress-bar por slide; o slide ativo recebe .ativo (anima 0% -> 100%
+   durante a duração do autoplay) e os slides já exibidos recebem .completo (100% fixo). */
+.hero-progress {
     position: absolute;
     bottom: 12px;
-    right: 16px;
+    left: 32px;
+    right: 32px;
     display: flex;
     gap: 6px;
     z-index: 3;
 }
 
-.hero-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.35);
-    cursor: pointer;
-    padding: 0;
-    transition: background 0.2s, transform 0.2s;
+.hero-progress-bar {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.25);
+    overflow: hidden;
 }
 
-    .hero-dot.active {
-        background: #fff;
-        transform: scale(1.3);
+.hero-progress-fill {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: #C8102E;
+    border-radius: 2px;
+}
+
+.hero-progress-bar.ativo .hero-progress-fill {
+    animation: hero-progress-anim linear forwards;
+    animation-duration: var(--hero-slide-duration, 6s);
+}
+
+.hero-progress-bar.completo .hero-progress-fill {
+    width: 100%;
+}
+
+@keyframes hero-progress-anim {
+    from {
+        width: 0%;
     }
+
+    to {
+        width: 100%;
+    }
+}
 
 @media (max-width: 768px) {
     .carrossel-slide .hero-content {
@@ -1919,6 +1974,11 @@ html, body {
         left: 14px;
         right: 14px;
         max-width: 100%;
+    }
+
+    .hero-progress {
+        left: 14px;
+        right: 14px;
     }
 }
 

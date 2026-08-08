@@ -18,7 +18,7 @@ else
             {
                 var n = Slides[i];
                 var imagem = ObterImagem(n);
-                <div class="carrossel-slide" @onclick="() => AbrirNoticia(n)" style="cursor:pointer;">
+                <div class="carrossel-slide @(EhFallback(n) ? "is-fallback" : "")" @onclick="() => AbrirNoticia(n)" style="cursor:pointer;">
                     <img src="@imagem" alt="@n.Titulo" />
                     <div class="carrossel-overlay"></div>
                     <div class="hero-content">
@@ -28,13 +28,14 @@ else
                 </div>
             }
         </div>
-        <div class="hero-dots" @onclick:stopPropagation="true">
+        <div class="hero-progress" @onclick:stopPropagation="true">
             @for (int i = 0; i < TotalSlides; i++)
             {
                 var idx = i;
-                <button class="hero-dot @(i == indiceAtual ? "active" : "")"
-                        @onclick="() => IrPara(idx)">
-                </button>
+                var classe = idx == indiceAtual ? "ativo" : (idx < indiceAtual ? "completo" : "");
+                <div class="hero-progress-bar @classe" style="--hero-slide-duration: 5s;" @onclick="() => IrPara(idx)">
+                    <span class="hero-progress-fill"></span>
+                </div>
             }
         </div>
     </section>
@@ -49,6 +50,8 @@ else
 
     // Pega as 5 primeiras — com ou sem imagem
     List<NoticiaModel> Slides => Noticias.Take(5).ToList();
+
+    private bool EhFallback(NoticiaModel n) => string.IsNullOrWhiteSpace(n.Imagem);
 
     private string ObterImagem(NoticiaModel n)
     {
