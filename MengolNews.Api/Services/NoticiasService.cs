@@ -1,7 +1,9 @@
 using HtmlAgilityPack;
 using MengolNews.Api.Models;
+using System.Globalization;
 using System.Net;
 using System.ServiceModel.Syndication;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -62,12 +64,13 @@ namespace MengolNews.Api.Services
                 }
             }));
 
-            var noticias = resultados
+            var noticiasBrutas = resultados
                 .SelectMany(r => r.Take(15))
-                .GroupBy(n => n.Titulo.ToLower().Trim())
-                .Select(g => g.First())
                 .Where(n => n.Data >= DateTime.Now.AddDays(-30))
                 .OrderByDescending(n => n.Data)
+                .ToList();
+
+            var noticias = RemoverDuplicadas(noticiasBrutas)
                 .Take(50)
                 .ToList();
 
@@ -301,6 +304,132 @@ namespace MengolNews.Api.Services
                 titulo.Contains(p, StringComparison.OrdinalIgnoreCase) ||
                 descricao.Contains(p, StringComparison.OrdinalIgnoreCase)
             );
+        }
+
+        /* =======================
+           DEDUPLICAÇÃO POR SIMILARIDADE DE TÍTULO
+        ======================= */
+
+        // Ordem de preferência de fontes usada como critério de desempate quando
+        // duas notícias de fontes diferentes são consideradas a mesma matéria.
+        // Quanto mais no topo, mais prioridade. Reordene à vontade.
+        private static readonly List<string> PrioridadeFontes = new()
+        {
+            "ESPN",
+            "COLUNA DO FLA",
+            "URUBU INTERATIVO",
+            "NETFLA",
+            "BOLAVIP",
+            "PLACAR",
+            "BOL ESPORTE",
+            "NOTÍCIAS FLA",
+        };
+
+        // Similaridade mínima (Jaccard) entre os tokens de dois títulos para
+        // serem tratados como a mesma notícia. Suba para 0.7 se estiver
+        // agrupando notícias diferentes demais; desça para 0.5 se ainda
+        // passarem duplicatas.
+        private const double LimiarSimilaridadeTitulo = 0.5;
+
+        private static readonly HashSet<string> StopWordsTitulo = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "a","o","os","as","de","da","do","das","dos","e","em","no","na","nos","nas",
+            "para","por","com","um","uma","que","é","ao","à","se","sobre","apos","antes",
+            "flamengo","fla"
+        };
+
+        private List<NoticiaDto> RemoverDuplicadas(List<NoticiaDto> noticias)
+        {
+            var resultado = new List<NoticiaDto>();
+
+            foreach (var noticia in noticias)
+            {
+                var tokensAtual = TokenizarTitulo(noticia.Titulo);
+
+                NoticiaDto? duplicata = null;
+                foreach (var existente in resultado)
+                {
+                    var similaridade = CalcularSimilaridade(tokensAtual, TokenizarTitulo(existente.Titulo));
+                    if (similaridade >= LimiarSimilaridadeTitulo)
+                    {
+                        duplicata = existente;
+                        break;
+                    }
+                }
+
+                if (duplicata == null)
+                {
+                    resultado.Add(noticia);
+                }
+                else if (EhMelhorVersao(noticia, duplicata))
+                {
+                    var idx = resultado.IndexOf(duplicata);
+                    resultado[idx] = noticia;
+                }
+            }
+
+            return resultado;
+        }
+
+        private HashSet<string> TokenizarTitulo(string titulo)
+        {
+            var texto = RemoverAcentos(titulo.ToLowerInvariant());
+            texto = Regex.Replace(texto, @"[^a-z0-9\s]", " ");
+
+            return texto
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(t => t.Length > 2 && !StopWordsTitulo.Contains(t))
+                .ToHashSet();
+        }
+
+        private double CalcularSimilaridade(HashSet<string> a, HashSet<string> b)
+        {
+            if (a.Count == 0 || b.Count == 0) return 0;
+
+            var intersecao = a.Intersect(b).Count();
+            var uniao = a.Union(b).Count();
+
+            return (double)intersecao / uniao; // índice de Jaccard
+        }
+
+        private static string RemoverAcentos(string texto)
+        {
+            var normalizado = texto.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder();
+
+            foreach (var c in normalizado)
+            {
+                var categoria = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (categoria != UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+
+            return sb.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private int PrioridadeFonte(string fonte)
+        {
+            var idx = PrioridadeFontes.FindIndex(f => string.Equals(f, fonte, StringComparison.OrdinalIgnoreCase));
+            return idx == -1 ? PrioridadeFontes.Count : idx; // fontes não listadas ficam por último
+        }
+
+        private bool EhMelhorVersao(NoticiaDto candidata, NoticiaDto atual)
+        {
+            var prioridadeCandidata = PrioridadeFonte(candidata.Fonte);
+            var prioridadeAtual = PrioridadeFonte(atual.Fonte);
+
+            // Fonte com maior prioridade (número menor) vence direto.
+            if (prioridadeCandidata != prioridadeAtual)
+                return prioridadeCandidata < prioridadeAtual;
+
+            // Mesma prioridade: desempata por qualidade de conteúdo (imagem + descrição).
+            var pontosCandidata = (string.IsNullOrWhiteSpace(candidata.Imagem) ? 0 : 1)
+                + (candidata.Descricao?.Length ?? 0) / 100;
+
+            var pontosAtual = (string.IsNullOrWhiteSpace(atual.Imagem) ? 0 : 1)
+                + (atual.Descricao?.Length ?? 0) / 100;
+
+            return pontosCandidata > pontosAtual;
         }
 
         /* =======================
