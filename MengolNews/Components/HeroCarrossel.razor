@@ -56,7 +56,7 @@ else
     private string ObterImagem(NoticiaModel n)
     {
         if (!string.IsNullOrWhiteSpace(n.Imagem))
-            return n.Imagem;
+            return MengolNews.Services.ImageHelper.Proxy(n.Imagem);
 
         // Fallback estável — mesma notícia sempre mostra a mesma imagem,
         // não fica trocando sozinha a cada re-render do timer.

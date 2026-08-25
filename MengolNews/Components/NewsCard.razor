@@ -51,7 +51,7 @@
     private string ImagemFinal =>
         string.IsNullOrWhiteSpace(Noticia.Imagem)
             ? FallbackImages.ObterPara(Noticia.Titulo)
-            : Noticia.Imagem;
+            : MengolNews.Services.ImageHelper.Proxy(Noticia.Imagem);
 
     private string UrlNoSite =>
     $"https://www.mengolnews.com.br/noticia?url={Uri.EscapeDataString(Noticia.Link)}";
