@@ -4,7 +4,7 @@
 	{
 		public static string ApiBase { get; set; } = "https://mengolnews-api.onrender.com";
 
-		public static string Proxy(string? url, string fallback = "/images/logo-canal.png")
+		public static string Proxy(string? url, string fallback = "/images/Flamengo.png")
 		{
 			if (string.IsNullOrWhiteSpace(url) || url.StartsWith("/"))
 				return fallback;

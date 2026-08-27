@@ -497,6 +497,12 @@ html, body {
     display: block;
 }
 
+    .news-open-img.news-open-img-fallback {
+        object-fit: contain;
+        background: #0a0a0a;
+        padding: 2rem;
+    }
+
 .news-open .news-tag {
     display: inline-block;
     background: #C8102E;

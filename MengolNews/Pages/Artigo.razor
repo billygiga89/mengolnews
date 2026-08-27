@@ -15,7 +15,7 @@
         <h1 class="artigo-titulo">@artigo.Titulo</h1>
         <p class="artigo-data">@artigo.DataPublicacao.ToString("dd/MM/yyyy")</p>
 
-        <div class="artigo-actions" style="margin-bottom: 1.5rem;">
+        <div class="news-open-actions" style="margin-bottom: 1.5rem;">
             <button @onclick="Voltar">⬅ Voltar</button>
         </div>
 
@@ -28,7 +28,7 @@
             @((MarkupString)artigo.ConteudoHtml)
         </div>
 
-        <div class="artigo-actions" style="margin-top: 2.5rem;">
+        <div class="news-open-actions" style="margin-top: 2.5rem;">
             <button @onclick="Voltar">⬅ Voltar</button>
         </div>
     }

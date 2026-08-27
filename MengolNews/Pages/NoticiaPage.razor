@@ -62,7 +62,7 @@
             {
                 <img src="@MengolNews.Services.ImageHelper.Proxy(noticia.Imagem)"
                      alt="@noticia.Titulo"
-                     class="news-open-img"
+                     class="@(string.IsNullOrWhiteSpace(noticia.Imagem) || noticia.Imagem.StartsWith("/")) ? " news-open-img news-open-img-fallback" : "news-open-img" )"
                      onerror="this.src='/images/Flamengo.png'; this.classList.add('news-open-img-fallback'); this.onerror=null;" />
             }
 
