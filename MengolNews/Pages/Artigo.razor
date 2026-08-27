@@ -1,7 +1,7 @@
 ﻿@page "/artigo/{Slug}"
 @using System.Net.Http.Json
 @inject HttpClient Http
-
+@inject NavigationManager Nav
 
 <PageTitle>@(artigo?.Titulo ?? "Artigo") - MengolNews</PageTitle>
 
@@ -15,6 +15,10 @@
         <h1 class="artigo-titulo">@artigo.Titulo</h1>
         <p class="artigo-data">@artigo.DataPublicacao.ToString("dd/MM/yyyy")</p>
 
+        <div class="artigo-actions" style="margin-bottom: 1.5rem;">
+            <button @onclick="Voltar">⬅ Voltar</button>
+        </div>
+
         @if (!string.IsNullOrEmpty(artigo.Imagem))
         {
             <img src="@ImageHelper.Proxy(artigo.Imagem)" alt="@artigo.Titulo" class="artigo-imagem" />
@@ -22,6 +26,10 @@
 
         <div class="artigo-corpo">
             @((MarkupString)artigo.ConteudoHtml)
+        </div>
+
+        <div class="artigo-actions" style="margin-top: 2.5rem;">
+            <button @onclick="Voltar">⬅ Voltar</button>
         </div>
     }
 </div>
@@ -33,5 +41,10 @@
     protected override async Task OnInitializedAsync()
     {
         artigo = await Http.GetFromJsonAsync<ArtigoDto>($"api/artigos/{Slug}");
+    }
+
+    private void Voltar()
+    {
+        Nav.NavigateTo("/artigos");
     }
 }
