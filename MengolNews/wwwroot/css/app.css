@@ -4013,3 +4013,102 @@ html, body {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ===== Listagem de Artigos ===== */
+.artigos-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.artigos-titulo {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.artigos-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.artigo-card {
+    display: flex;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--card-bg, #1a1a1a);
+    padding: 0.75rem;
+    transition: transform 0.15s ease;
+}
+
+    .artigo-card:hover {
+        transform: translateY(-2px);
+    }
+
+.artigo-card-imagem {
+    width: 120px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.artigo-card-conteudo h2 {
+    font-size: 1.05rem;
+    margin: 0 0 0.4rem;
+}
+
+.artigo-card-data {
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+/* ===== Página do artigo ===== */
+.artigo-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.artigo-titulo {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.artigo-data {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    margin-bottom: 1.5rem;
+}
+
+.artigo-imagem {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.artigo-corpo {
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+    .artigo-corpo h2 {
+        font-size: 1.4rem;
+        margin-top: 2rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .artigo-corpo p {
+        margin-bottom: 1.25rem;
+    }
+
+    .artigo-corpo img {
+        max-width: 100%;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }

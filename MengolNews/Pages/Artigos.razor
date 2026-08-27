@@ -1,0 +1,46 @@
+﻿@page "/artigos"
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+
+<PageTitle>Artigos - MengolNews</PageTitle>
+
+<div class="artigos-container">
+    <h1 class="artigos-titulo">Artigos</h1>
+
+    @if (artigos == null)
+    {
+        <p>Carregando...</p>
+    }
+    else if (!artigos.Any())
+    {
+        <p>Nenhum artigo publicado ainda.</p>
+    }
+    else
+    {
+        <div class="artigos-lista">
+            @foreach (var artigo in artigos)
+            {
+                <a class="artigo-card" href="@($"/artigo/{artigo.Slug}")">
+                    @if (!string.IsNullOrEmpty(artigo.Imagem))
+                    {
+                        <img src="@ImageHelper.Proxy(artigo.Imagem)" alt="@artigo.Titulo" class="artigo-card-imagem" />
+                    }
+                    <div class="artigo-card-conteudo">
+                        <h2>@artigo.Titulo</h2>
+                        <span class="artigo-card-data">@artigo.DataPublicacao.ToString("dd/MM/yyyy")</span>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ArtigoDto>? artigos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        artigos = await Http.GetFromJsonAsync<List<ArtigoDto>>("api/artigos");
+    }
+}

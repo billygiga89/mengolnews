@@ -1,0 +1,37 @@
+﻿@page "/artigo/{Slug}"
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+
+<PageTitle>@(artigo?.Titulo ?? "Artigo") - MengolNews</PageTitle>
+
+<div class="artigo-container">
+    @if (artigo == null)
+    {
+        <p>Carregando...</p>
+    }
+    else
+    {
+        <h1 class="artigo-titulo">@artigo.Titulo</h1>
+        <p class="artigo-data">@artigo.DataPublicacao.ToString("dd/MM/yyyy")</p>
+
+        @if (!string.IsNullOrEmpty(artigo.Imagem))
+        {
+            <img src="@ImageHelper.Proxy(artigo.Imagem)" alt="@artigo.Titulo" class="artigo-imagem" />
+        }
+
+        <div class="artigo-corpo">
+            @((MarkupString)artigo.ConteudoHtml)
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    private ArtigoDto? artigo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        artigo = await Http.GetFromJsonAsync<ArtigoDto>($"api/artigos/{Slug}");
+    }
+}
