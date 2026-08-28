@@ -19,7 +19,8 @@ else
                 var n = Slides[i];
                 var imagem = ObterImagem(n);
                 <div class="carrossel-slide @(EhFallback(n) ? "is-fallback" : "")" @onclick="() => AbrirNoticia(n)" style="cursor:pointer;">
-                    <img src="@imagem" alt="@n.Titulo" />
+                    <img src="@imagem" alt="@n.Titulo"
+                         onerror="this.onerror=null; this.src='@FallbackImages.ObterPara(n.Titulo)';" />
                     <div class="carrossel-overlay"></div>
                     <div class="hero-content">
                         <h1>@n.Titulo</h1>
