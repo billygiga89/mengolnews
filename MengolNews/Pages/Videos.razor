@@ -1,6 +1,5 @@
 ﻿@page "/videos"
 @inject HttpClient Http
-@inject IJSRuntime JS
 
 <PageTitle>Vídeos – MengolNews</PageTitle>
 
@@ -45,9 +44,8 @@
             @foreach (var video in videos)
             {
                 bool tocando = videoTocando == video.VideoId;
-                bool ehShort = EhShort(video);
 
-                <div class="video-card @(tocando ? "is-playing" : "") @(ehShort ? "is-short" : "")">
+                <div class="video-card">
 
                     @if (tocando)
                     {
@@ -58,6 +56,11 @@
                                     allowfullscreen>
                             </iframe>
                             <button class="video-fechar" @onclick="FecharVideo">✕</button>
+                            <a href="https://www.youtube.com/watch?v=@video.VideoId"
+                               target="_blank"
+                               class="video-link-alternativo">
+                                Não carregou? Assistir no YouTube
+                            </a>
                         </div>
                     }
                     else
@@ -127,26 +130,14 @@
         carregando = false;
     }
 
-    private async Task TocarVideo(VideoDto video)
+    private void TocarVideo(VideoDto video)
     {
         videoTocando = video.VideoId;
-
-        if (EhShort(video))
-        {
-            await JS.InvokeVoidAsync("document.body.classList.add", "video-lock-scroll");
-        }
     }
 
-    private async Task FecharVideo()
+    private void FecharVideo()
     {
         videoTocando = null;
-        await JS.InvokeVoidAsync("document.body.classList.remove", "video-lock-scroll");
-    }
-
-    private bool EhShort(VideoDto video)
-    {
-        return (video.Titulo?.Contains("#shorts", StringComparison.OrdinalIgnoreCase) ?? false)
-            || (video.Descricao?.Contains("#shorts", StringComparison.OrdinalIgnoreCase) ?? false);
     }
 
     private string ObterUrlEmbedAutoplay(VideoDto video)
