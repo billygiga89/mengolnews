@@ -2354,7 +2354,8 @@ html, body {
     }
 
 /* =====================
-   MODAL DE VÍDEO
+   MODAL DE VÍDEO (legado — não é mais usado pelo Videos.razor,
+   mantido apenas para não quebrar outras referências antigas)
 ===================== */
 .vmodal-overlay {
     position: fixed;
@@ -2476,6 +2477,88 @@ html, body {
     .vmodal-titulo {
         font-size: .88rem;
     }
+}
+
+/* =====================
+   VÍDEO INLINE (tocando dentro do próprio card, sem modal)
+===================== */
+.video-thumb-playing {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+    .video-thumb-playing iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+.video-fechar {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+    .video-fechar:hover {
+        background: #C8102E;
+    }
+
+/* Trava o scroll do body enquanto um Short está em tela cheia no mobile */
+body.video-lock-scroll {
+    overflow: hidden;
+}
+
+/* Expande apenas Shorts em tela cheia, apenas no mobile — vídeos normais
+   continuam tocando inline dentro do card, do tamanho normal */
+@media (max-width: 768px) {
+    .video-card.is-short.is-playing {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        border-radius: 0;
+        border: none;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        animation: none;
+    }
+
+        .video-card.is-short.is-playing .video-thumb-playing {
+            flex: 1;
+            aspect-ratio: unset;
+            height: 100%;
+        }
+
+        .video-card.is-short.is-playing .video-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+            padding: 1rem 1.2rem 1.5rem;
+            z-index: 2;
+        }
+
+        .video-card.is-short.is-playing .video-titulo {
+            color: #fff;
+            -webkit-line-clamp: 3;
+        }
 }
 
 /* ================================================================
@@ -4036,30 +4119,6 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-}
-
-.artigo-card {
-    display: flex;
-    gap: 1rem;
-    text-decoration: none;
-    color: inherit;
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--card-bg, #1a1a1a);
-    padding: 0.75rem;
-    transition: transform 0.15s ease;
-}
-
-    .artigo-card:hover {
-        transform: translateY(-2px);
-    }
-
-.artigo-card-imagem {
-    width: 120px;
-    height: 90px;
-    object-fit: cover;
-    border-radius: 8px;
-    flex-shrink: 0;
 }
 
 .artigo-card-conteudo h2 {

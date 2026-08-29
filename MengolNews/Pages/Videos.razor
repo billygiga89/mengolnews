@@ -44,16 +44,35 @@
         <div class="videos-grid">
             @foreach (var video in videos)
             {
-                <div class="video-card" @onclick="() => AbrirPlayer(video)">
-                    <div class="video-thumb">
-                        <img src="@video.Thumbnail" alt="@video.Titulo" loading="lazy" />
-                        <div class="video-play-btn">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8 5.14v14l11-7-11-7z" fill="white" />
-                            </svg>
+                bool tocando = videoTocando == video.VideoId;
+                bool ehShort = EhShort(video);
+
+                <div class="video-card @(tocando ? "is-playing" : "") @(ehShort ? "is-short" : "")">
+
+                    @if (tocando)
+                    {
+                        <div class="video-thumb video-thumb-playing">
+                            <iframe src="@ObterUrlEmbedAutoplay(video)"
+                                    frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen>
+                            </iframe>
+                            <button class="video-fechar" @onclick="FecharVideo">✕</button>
                         </div>
-                        <div class="video-thumb-overlay"></div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="video-thumb" @onclick="() => TocarVideo(video)">
+                            <img src="@video.Thumbnail" alt="@video.Titulo" loading="lazy" />
+                            <div class="video-play-btn">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M8 5.14v14l11-7-11-7z" fill="white" />
+                                </svg>
+                            </div>
+                            <div class="video-thumb-overlay"></div>
+                        </div>
+                    }
+
                     <div class="video-info">
                         <p class="video-titulo">@video.Titulo</p>
                         <span class="video-data">@FormatarData(video.PublicadoEm)</span>
@@ -65,36 +84,9 @@
 
 </div>
 
-@if (videoAtivo != null)
-{
-    <div class="vmodal-overlay" @onclick="FecharPlayer">
-        <div class="vmodal" @onclick:stopPropagation="true">
-
-            <div class="vmodal-header">
-                @*<span class="vmodal-tag">▶ Ao vivo no canal</span>*@
-                <button class="vmodal-close" @onclick="FecharPlayer">✕</button>
-            </div>
-
-            <div class="vmodal-iframe">
-                <iframe src="@videoAtivo.UrlEmbed"
-                        frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen>
-                </iframe>
-            </div>
-
-            <div class="vmodal-info">
-                <p class="vmodal-titulo">@videoAtivo.Titulo</p>
-                <span class="vmodal-data">@FormatarData(videoAtivo.PublicadoEm)</span>
-            </div>
-
-        </div>
-    </div>
-}
-
 @code {
     private List<VideoDto> videos = new();
-    private VideoDto? videoAtivo;
+    private string? videoTocando;
     private bool carregando = true;
     private bool erro = false;
 
@@ -117,7 +109,7 @@
                 var resultado = await Http.GetFromJsonAsync<List<VideoDto>>("api/videos");
                 videos = resultado ?? new List<VideoDto>();
                 erro = false;
-                break; // deu certo, sai do loop
+                break;
             }
             catch
             {
@@ -127,7 +119,7 @@
                 }
                 else
                 {
-                    await Task.Delay(800 * tentativa); // espera um pouco mais a cada nova tentativa
+                    await Task.Delay(800 * tentativa);
                 }
             }
         }
@@ -135,14 +127,32 @@
         carregando = false;
     }
 
-    private void AbrirPlayer(VideoDto video)
+    private async Task TocarVideo(VideoDto video)
     {
-        videoAtivo = video;
+        videoTocando = video.VideoId;
+
+        if (EhShort(video))
+        {
+            await JS.InvokeVoidAsync("document.body.classList.add", "video-lock-scroll");
+        }
     }
 
-    private void FecharPlayer()
+    private async Task FecharVideo()
     {
-        videoAtivo = null;
+        videoTocando = null;
+        await JS.InvokeVoidAsync("document.body.classList.remove", "video-lock-scroll");
+    }
+
+    private bool EhShort(VideoDto video)
+    {
+        return (video.Titulo?.Contains("#shorts", StringComparison.OrdinalIgnoreCase) ?? false)
+            || (video.Descricao?.Contains("#shorts", StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private string ObterUrlEmbedAutoplay(VideoDto video)
+    {
+        var separador = video.UrlEmbed.Contains('?') ? "&" : "?";
+        return $"{video.UrlEmbed}{separador}autoplay=1&mute=1&playsinline=1";
     }
 
     private string FormatarData(string isoDate)
