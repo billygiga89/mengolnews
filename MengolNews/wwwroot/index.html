@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MengolNews</title>
     <base href="/" />
+
+    <script>
+        (function () {
+            var theme = localStorage.getItem('mn-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/png" href="/images/logo-canal.png" />
     <style>
@@ -22,6 +30,10 @@
         <a href="." class="reload">Recarregar</a>
         <span class="dismiss">🗙</span>
     </div>
+    <script src="js/theme.js"></script>
+    <script src="js/drawer.js"></script>
+    <script src="js/ripple.js"></script>
+    <script src="js/materialyou.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="js/infiniteScroll.js"></script>
     <script>

@@ -59,6 +59,8 @@ namespace MengolNews.Api.Controllers
                 // evita ObjectDisposedException quando o resultado é escrito depois do retorno
                 var bytes = await response.Content.ReadAsByteArrayAsync();
 
+                Response.Headers.Append("Access-Control-Allow-Origin", "*");
+
                 return File(bytes, contentType);
             }
             catch
