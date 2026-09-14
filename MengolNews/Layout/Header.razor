@@ -41,61 +41,63 @@
         </div>
 
         <nav class="nav @(menuAberto ? "nav-open" : "")">
-            <NavLink href="/" Match="NavLinkMatch.All" @onclick="FecharMenu">
-                <span>Início</span>
-                <span class="nav-link-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5" /><path d="M5 9.5V21h5v-6h4v6h5V9.5" /></svg>
-                </span>
-            </NavLink>
-            <NavLink href="/noticias" @onclick="FecharMenu">
-                <span>Notícias</span>
-                <span class="nav-link-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Z" /><path d="M8 8h8M8 12h8M8 16h4" /><path d="M19 8h2v11a1 1 0 0 1-1 1h-2" /></svg>
-                </span>
-            </NavLink>
-            <NavLink href="/videos" @onclick="FecharMenu">
-                <span>Vídeos</span>
-                <span class="nav-link-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2" /><path d="M16 10l6-3v10l-6-3" /></svg>
-                </span>
-            </NavLink>
-            <NavLink href="/serie-a" @onclick="FecharMenu">
-                <span>Brasileirão</span>
-                <span class="nav-link-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" /><path d="M8 5H5a2 2 0 0 0 2 4M16 5h3a2 2 0 0 1-2 4" /><path d="M10 14v3M14 14v3M8 21h8M9 17h6v4H9v-4Z" /></svg>
-                </span>
-            </NavLink>
-            <NavLink href="/elenco" @onclick="FecharMenu">
-                <span>Elenco</span>
-                <span class="nav-link-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4 4 7l2 3 2-1v11h8V9l2 1 2-3-4-3-2 2h-4L8 4Z" /></svg>
-                </span>
-            </NavLink>
-            <NavLink href="/artigos" @onclick="FecharMenu">
-                <span>Artigos</span>
-                <span class="nav-link-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h6" /></svg>
-                </span>
-            </NavLink>
-            <NavLink href="/sobre" @onclick="FecharMenu">
-                <span>Sobre</span>
-                <span class="nav-link-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>
-                </span>
-            </NavLink>
-            <div class="nav-footer">
-                <div class="nav-footer-brand">
-                    <img src="/images/Flamengo.png" alt="Flamengo" />
-                    <span>MENGOLNEWS</span>
+            <button class="drawer-handle @(menuAberto ? "hide" : "")" @onclick="AbrirMenu" aria-label="Abrir menu"></button>
+
+            <div class="nav-scroll">
+                <NavLink href="/" Match="NavLinkMatch.All" @onclick="FecharMenu">
+                    <span>Início</span>
+                    <span class="nav-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5" /><path d="M5 9.5V21h5v-6h4v6h5V9.5" /></svg>
+                    </span>
+                </NavLink>
+                <NavLink href="/noticias" @onclick="FecharMenu">
+                    <span>Notícias</span>
+                    <span class="nav-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Z" /><path d="M8 8h8M8 12h8M8 16h4" /><path d="M19 8h2v11a1 1 0 0 1-1 1h-2" /></svg>
+                    </span>
+                </NavLink>
+                <NavLink href="/videos" @onclick="FecharMenu">
+                    <span>Vídeos</span>
+                    <span class="nav-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2" /><path d="M16 10l6-3v10l-6-3" /></svg>
+                    </span>
+                </NavLink>
+                <NavLink href="/serie-a" @onclick="FecharMenu">
+                    <span>Brasileirão</span>
+                    <span class="nav-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" /><path d="M8 5H5a2 2 0 0 0 2 4M16 5h3a2 2 0 0 1-2 4" /><path d="M10 14v3M14 14v3M8 21h8M9 17h6v4H9v-4Z" /></svg>
+                    </span>
+                </NavLink>
+                <NavLink href="/elenco" @onclick="FecharMenu">
+                    <span>Elenco</span>
+                    <span class="nav-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4 4 7l2 3 2-1v11h8V9l2 1 2-3-4-3-2 2h-4L8 4Z" /></svg>
+                    </span>
+                </NavLink>
+                <NavLink href="/artigos" @onclick="FecharMenu">
+                    <span>Artigos</span>
+                    <span class="nav-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h6" /></svg>
+                    </span>
+                </NavLink>
+                <NavLink href="/sobre" @onclick="FecharMenu">
+                    <span>Sobre</span>
+                    <span class="nav-link-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>
+                    </span>
+                </NavLink>
+
+                <div class="nav-footer">
+                    <div class="nav-footer-brand">
+                        <img src="/images/Flamengo.png" alt="Flamengo" />
+                        <span>MENGOLNEWS</span>
+                    </div>
                 </div>
             </div>
         </nav>
 
         <!-- Fundo escurecido atrás da gaveta — fecha o menu ao tocar fora -->
         <div class="nav-backdrop @(menuAberto ? "show" : "")" @onclick="FecharMenu"></div>
-
-        <!-- Puxadeira na borda esquerda — indício visual + toque alternativo ao gesto de arrastar -->
-        <button class="drawer-handle @(menuAberto ? "hide" : "")" @onclick="AbrirMenu" aria-label="Abrir menu"></button>
 
         <!-- Ícones desktop: fora do nav, no container -->
         <div class="social-icons social-icons-desktop">

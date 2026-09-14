@@ -1348,36 +1348,6 @@ html, body {
         left: 18px;
     }
 
-    /* Puxadeira fixa na borda esquerda — indício visual + toque alternativo ao arrastar */
-    .drawer-handle {
-        display: block;
-        position: fixed;
-        left: 0;
-        bottom: 110px;
-        top: auto;
-        width: 7px;
-        height: 64px;
-        border: none;
-        border-radius: 0 10px 10px 0;
-        background: var(--mn-red);
-        opacity: 0.55;
-        z-index: 1500;
-        padding: 0;
-        cursor: pointer;
-        transition: opacity 0.2s ease, transform 0.2s ease;
-    }
-
-        .drawer-handle:active {
-            opacity: 0.9;
-            width: 10px;
-        }
-
-        .drawer-handle.hide {
-            opacity: 0;
-            pointer-events: none;
-            transform: translateX(-10px);
-        }
-
     /* ===== Gaveta lateral (slide-in da esquerda) ===== */
     .nav {
         display: flex !important;
@@ -1392,20 +1362,26 @@ html, body {
         max-width: 300px;
         background: color-mix(in srgb, var(--mn-surface-solid) var(--mn-nav-bg-mix), transparent);
         padding: 32px 24px 24px;
-        gap: .25rem;
         z-index: 2000;
         margin-left: 0;
         box-shadow: 8px 0 32px rgba(0,0,0,0.35);
         transform: translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        overflow-y: auto;
     }
 
         .nav.nav-open {
             transform: translateX(0);
         }
 
-        .nav > a {
+    .nav-scroll {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+        .nav-scroll > a {
             margin-left: 0;
             font-size: 1.05rem;
             padding: .7rem 0;
@@ -1418,7 +1394,7 @@ html, body {
             justify-content: space-between;
         }
 
-            .nav > a::after {
+            .nav-scroll > a::after {
                 display: none;
             }
 
@@ -1433,12 +1409,12 @@ html, body {
             height: 20px;
         }
 
-    .nav > a:hover .nav-link-icon,
-    .nav > a.active .nav-link-icon {
+    .nav-scroll > a:hover .nav-link-icon,
+    .nav-scroll > a.active .nav-link-icon {
         opacity: 0.9;
     }
 
-    /* Rodapé da gaveta: escudo + nome + redes sociais */
+    /* Rodapé da gaveta: escudo + nome */
     .nav-footer {
         display: flex;
         flex-direction: column;
@@ -1469,12 +1445,49 @@ html, body {
             color: var(--mn-text);
         }
 
-    .nav-footer .social-icons {
-        margin-left: 0;
-        padding-left: 0;
-        border-left: none;
-        gap: 18px;
+    /* Puxadeira: filha do próprio .nav, "grudada" na borda dele. Com a
+           gaveta fechada (translateX(-100%)), essa parte de fora do corpo
+           do bloco fica visível colada na borda esquerda da tela — e quando
+           a gaveta abre, ela desliza junto, porque está dentro do mesmo
+           elemento que se move. */
+    .drawer-handle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 50%;
+        right: -14px;
+        transform: translateY(-50%);
+        width: 14px;
+        height: 64px;
+        border: none;
+        border-radius: 0 10px 10px 0;
+        background: var(--mn-red);
+        opacity: 0.85;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.35);
+        z-index: 1;
+        padding: 0;
+        cursor: pointer;
+        transition: opacity 0.2s ease, transform 0.2s ease, width 0.2s ease;
     }
+
+        .drawer-handle::after {
+            content: "";
+            width: 4px;
+            height: 28px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.75);
+        }
+
+        .drawer-handle:active {
+            width: 18px;
+        }
+
+        .drawer-handle.hide {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-50%) translateX(-10px);
+        }
 
     /* Fundo escurecido atrás da gaveta */
     .nav-backdrop {
@@ -4175,6 +4188,7 @@ html, body {
     .elenco-filtros {
         justify-content: flex-start;
     }
+
     .elenco-grid {
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
         gap: 10px;
