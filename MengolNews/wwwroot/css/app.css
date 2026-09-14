@@ -1146,17 +1146,21 @@ html, body {
         display: flex;
         flex-direction: column;
         gap: 2px;
+        min-width: 0;
+        flex: 1;
     }
 
     .sobre-tech-item strong {
         font-size: 1rem;
         color: var(--mn-text);
         font-weight: 700;
+        overflow-wrap: break-word;
     }
 
     .sobre-tech-item small {
         font-size: 0.82rem;
         color: var(--mn-text-faint);
+        overflow-wrap: break-word;
     }
 
 .tech-dot {
@@ -1456,20 +1460,25 @@ html, body {
         justify-content: center;
         position: absolute;
         top: 50%;
-        right: -14px;
+        right: -22px;
         transform: translateY(-50%);
-        width: 14px;
+        width: 22px;
         height: 64px;
         border: none;
         border-radius: 0 10px 10px 0;
         background: var(--mn-red);
-        opacity: 0.85;
+        opacity: 0.6;
         box-shadow: 2px 0 12px rgba(0,0,0,0.35);
         z-index: 1;
         padding: 0;
         cursor: pointer;
         transition: opacity 0.2s ease, transform 0.2s ease, width 0.2s ease;
     }
+
+        .drawer-handle:hover,
+        .drawer-handle:active {
+            opacity: 0.9;
+        }
 
         .drawer-handle::after {
             content: "";
@@ -1480,7 +1489,7 @@ html, body {
         }
 
         .drawer-handle:active {
-            width: 18px;
+            width: 26px;
         }
 
         .drawer-handle.hide {
@@ -3649,10 +3658,24 @@ html, body {
 }
 
 .elenco-hero {
+    position: relative;
+    overflow: hidden;
     background: linear-gradient(180deg, #b71c1c 0%, #7f0000 100%);
     padding: 32px 20px;
     border-bottom: 3px solid #FFD700;
     animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+    .elenco-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 10px, transparent 10px, transparent 26px);
+        pointer-events: none;
+    }
+
+.elenco-hero-inner {
+    position: relative;
 }
 
 .elenco-hero-inner {
@@ -3867,15 +3890,15 @@ html, body {
 
 .card-numero {
     position: absolute;
-    top: 8px;
-    left: 10px;
+    top: 6px;
+    right: 10px;
     font-family: 'Rajdhani', sans-serif;
-    font-size: 24px;
+    font-size: 34px;
     font-weight: 700;
-    color: rgba(255,255,255,0.45);
+    color: rgba(255,255,255,0.55);
     text-shadow: 0 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
     line-height: 1;
-    z-index: 1;
+    z-index: 2;
 }
 
 .card-foto-wrap {
@@ -3883,7 +3906,7 @@ html, body {
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    padding-top: 16px;
+    padding-top: 30px;
     overflow: hidden;
 }
 
@@ -3895,21 +3918,34 @@ html, body {
     display: block;
 }
 
+/* Barra de nome/idade agora "nasce" da própria foto, em vez de ser um
+   bloco sólido separado embaixo do card. */
 .card-info {
-    background: rgba(0,0,0,0.65);
-    padding: 8px 10px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(0deg, rgba(0,0,0,0.92) 45%, transparent 100%);
+    padding: 24px 10px 8px;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    backdrop-filter: blur(4px);
+    z-index: 2;
 }
 
+/* Selo de posição: cantinho colorido no topo do card, em vez de texto
+   discreto dentro da barra de info. */
 .card-pos-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
     font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.5);
+    padding: 4px 10px 4px 8px;
+    border-radius: 0 0 10px 0;
+    z-index: 2;
 }
 
 .card-nome {
@@ -3932,37 +3968,29 @@ html, body {
 .card-shine {
     position: absolute;
     inset: 0;
-    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.14) 50%, transparent 70%);
-    background-size: 250% 250%;
-    background-position: 200% 200%;
-    animation: mn-card-shine-move 5s ease-in-out infinite;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%);
     pointer-events: none;
-}
-
-@keyframes mn-card-shine-move {
-    0% {
-        background-position: 200% 200%;
-    }
-
-    100% {
-        background-position: -50% -50%;
-    }
+    z-index: 1;
 }
 
 .pos-gk .card-pos-badge {
-    color: #81c784;
+    background: #2d5a1a;
+    color: #d4f5c4;
 }
 
 .pos-def .card-pos-badge {
-    color: #64b5f6;
+    background: #123a63;
+    color: #d4e9ff;
 }
 
 .pos-mei .card-pos-badge {
-    color: #FFD700;
+    background: #7a5c00;
+    color: #fff3c4;
 }
 
 .pos-ata .card-pos-badge {
-    color: #ef9a9a;
+    background: #7a1414;
+    color: #ffd9d9;
 }
 
 /* ── Modal Elenco ── */
@@ -4192,6 +4220,29 @@ html, body {
     .elenco-grid {
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
         gap: 10px;
+    }
+
+    .card-numero {
+        font-size: 24px;
+        top: 4px;
+        right: 8px;
+    }
+
+    .card-foto-wrap {
+        padding-top: 22px;
+    }
+
+    .card-pos-badge {
+        font-size: 8px;
+        padding: 3px 8px 3px 6px;
+    }
+
+    .card-info {
+        padding: 18px 8px 6px;
+    }
+
+    .card-nome {
+        font-size: 13px;
     }
 
     .elenco-titulo {
