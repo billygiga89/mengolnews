@@ -289,11 +289,17 @@ html, body {
     flex-shrink: 0;
 }
 
-    .brand img {
-        height: 36px;
-        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
-        animation: logo-spin-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    }
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand img {
+    height: 36px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+    animation: logo-spin-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
 
 @keyframes logo-spin-in {
     from {
@@ -371,6 +377,10 @@ html, body {
     display: none;
 }
 
+.hamburger-btn {
+    display: none;
+}
+
 .nav a {
     color: var(--mn-text-dim);
     margin-left: 18px;
@@ -408,13 +418,6 @@ html, body {
         .nav a.active::after {
             width: 100%;
         }
-
-/* =====================
-   HAMBURGUER
-===================== */
-.drawer-handle {
-    display: none;
-}
 
 /* =====================
    HERO
@@ -1309,26 +1312,55 @@ html, body {
     }
 
     .brand {
-        display: flex;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
         align-items: center;
-        justify-content: flex-start;
         width: 100%;
         gap: 8px;
         padding-bottom: 0;
     }
 
-        /* Nome por extenso some no mobile — só o escudo representa a marca,
+    .brand-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    /* Nome por extenso some no mobile — só o escudo representa a marca,
        liberando espaço pros ícones + seletor + hambúrguer não brigarem */
-        /* Nome por extenso volta a aparecer no mobile — coube porque o
+    /* Nome por extenso volta a aparecer no mobile — coube porque o
        hambúrguer saiu da linha (virou puxadeira fixa fora do fluxo) */
-        .brand h1 {
-            font-size: 1.15rem;
+    .brand h1 {
+        font-size: 1.15rem;
+        white-space: nowrap;
+    }
+
+    /* Hambúrguer: primeiro elemento da barra, abre a gaveta com um clique */
+    .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        background: none;
+        border: none;
+        color: var(--mn-text);
+        padding: 0;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+        .hamburger-btn svg {
+            width: 24px;
+            height: 24px;
         }
 
+    /* Ícones de rede social saem da barra do cabeçalho — agora ficam
+       dentro da gaveta, embaixo do escudo/nome (ver .nav-footer) */
     .social-icons-mobile {
-        display: flex !important;
-        margin-left: auto;
-        gap: 12px;
+        display: none !important;
     }
 
     .social-icons-desktop {
@@ -1338,7 +1370,7 @@ html, body {
     .theme-toggle {
         width: 36px;
         height: 21px;
-        margin-left: 12px;
+        margin-left: auto;
         flex-shrink: 0;
     }
 
@@ -1448,54 +1480,13 @@ html, body {
             color: var(--mn-text);
         }
 
-    /* Puxadeira: filha do próprio .nav, "grudada" na borda dele. Com a
-           gaveta fechada (translateX(-100%)), essa parte de fora do corpo
-           do bloco fica visível colada na borda esquerda da tela — e quando
-           a gaveta abre, ela desliza junto, porque está dentro do mesmo
-           elemento que se move. */
-    .drawer-handle {
-        display: flex;
-        align-items: center;
+    .nav-footer .social-icons {
         justify-content: center;
-        position: absolute;
-        top: 50%;
-        right: -42px;
-        transform: translateY(-50%);
-        width: 42px;
-        height: 74px;
-        border: none;
-        border-radius: 0 10px 10px 0;
-        background: var(--mn-red);
-        opacity: 0.36;
-        box-shadow: 2px 0 12px rgba(0,0,0,0.35);
-        z-index: 1;
-        padding: 0;
-        cursor: pointer;
-        transition: opacity 0.2s ease, transform 0.2s ease, width 0.2s ease;
+        margin: 12px 0 0;
+        padding-left: 0;
+        border-left: none;
+        gap: 20px;
     }
-
-        .drawer-handle:hover,
-        .drawer-handle:active {
-            opacity: 0.9;
-        }
-
-        .drawer-handle::after {
-            content: "";
-            width: 4px;
-            height: 28px;
-            border-radius: 3px;
-            background: rgba(255,255,255,0.75);
-        }
-
-        .drawer-handle:active {
-            width: 26px;
-        }
-
-        .drawer-handle.hide {
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(-50%) translateX(-10px);
-        }
 
     /* Fundo escurecido atrás da gaveta */
     .nav-backdrop {
@@ -1615,6 +1606,7 @@ html, body {
         gap: 18px;
         padding: 0 16px;
     }
+
     .sobre-tech-grid {
         grid-template-columns: 1fr;
         gap: 14px;
