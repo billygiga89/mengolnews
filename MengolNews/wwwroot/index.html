@@ -3,14 +3,23 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MengolNews</title>
+    <title>MengolNews | Notícias do Flamengo hoje, jogos, tabela e vídeos</title>
+    <meta name="theme-color" content="#C8102E" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MengolNews" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="MengolNews | Notícias do Flamengo" />
+    <meta property="og:description" content="Notícias do Flamengo, próximo jogo, tabela do Brasileirão, elenco e vídeos. Conteúdo rubro-negro com alma de torcedor." />
+    <meta property="og:image" content="https://www.mengolnews.com.br/images/logo-canal.png" />
+    <meta property="og:url" content="https://www.mengolnews.com.br/" />
+    <meta name="twitter:card" content="summary" />
     <base href="/" />
 
     <script>
-        (function () {
-            var theme = localStorage.getItem('mn-theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
+                        (function () {
+                            var theme = localStorage.getItem('mn-theme') || 'dark';
+                            document.documentElement.setAttribute('data-theme', theme);
+                        })();
     </script>
 
     <link rel="stylesheet" href="css/app.css" />
@@ -21,11 +30,52 @@
             margin: 0;
         }
     </style>
+
+    <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "WebSite",
+              "name": "MengolNews",
+              "url": "https://www.mengolnews.com.br/",
+              "inLanguage": "pt-BR",
+              "description": "Portal independente com notícias do Flamengo, jogos, tabela do Brasileirão, elenco e vídeos."
+            },
+            {
+              "@type": "Organization",
+              "name": "MengolNews",
+              "url": "https://www.mengolnews.com.br/",
+              "logo": "https://www.mengolnews.com.br/images/logo-canal.png",
+              "sameAs": [
+                "https://www.youtube.com/@MengolOficial",
+                "https://www.instagram.com/blackbillygiga/",
+                "https://www.tiktok.com/@mengolnews"
+              ]
+            }
+          ]
+        }
+    </script>
+
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4848196754894012" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div id="app"></div>
-    <div id="blazor-error-ui">
+    <div id="app">
+        <div class="mn-splash">
+            <h1>MengolNews</h1>
+            <p>Notícias do Flamengo, jogos, tabela do Brasileirão, elenco e vídeos.</p>
+            <nav>
+                <a href="/noticias">Notícias</a>
+                <a href="/videos">Vídeos</a>
+                <a href="/serie-a">Brasileirão</a>
+                <a href="/elenco">Elenco</a>
+                <a href="/artigos">Artigos</a>
+                <a href="/sobre">Sobre</a>
+            </nav>
+        </div>
+    </div>
+    <div id="pix-flutuante"></div>
+    <div id="blazor-error-ui" data-nosnippet>
         Ocorreu um erro inesperado.
         <a href="." class="reload">Recarregar</a>
         <span class="dismiss">🗙</span>
@@ -37,55 +87,60 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="js/infiniteScroll.js"></script>
     <script>
-        function atualizarHora() {
-            const el = document.getElementById('header-hora');
-            if (el) {
-                const agora = new Date();
-                el.textContent = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            }
-        }
-
-        function aplicarTemp(temp) {
-            const tentarAtualizar = setInterval(() => {
-                const el = document.getElementById('header-clima');
-                if (el) {
-                    el.textContent = `${temp}°C`;
-                    clearInterval(tentarAtualizar);
+                function atualizarHora() {
+                    const el = document.getElementById('header-hora');
+                    if (el) {
+                        const agora = new Date();
+                        el.textContent = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    }
                 }
-            }, 200);
-        }
 
-        const buscarClima = (lat, lon) => {
-            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
-                .then(r => r.json())
-                .then(d => {
-                    const temp = Math.round(d.current_weather.temperature);
-                    localStorage.setItem('clima-temp', temp);
-                    aplicarTemp(temp);
-                }).catch(() => { });
-        };
+                /** @param {number | string} temp */
+                function aplicarTemp(temp) {
+                    const tentarAtualizar = setInterval(() => {
+                        const el = document.getElementById('header-clima');
+                        if (el) {
+                            el.textContent = `${temp}°C`;
+                            clearInterval(tentarAtualizar);
+                        }
+                    }, 200);
+                }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            atualizarHora();
-            setInterval(atualizarHora, 1000);
+                /**
+                 * @param {number} lat
+                 * @param {number} lon
+                 */
+                const buscarClima = (lat, lon) => {
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
+                        .then(r => r.json())
+                        .then(d => {
+                            const temp = Math.round(d.current_weather.temperature);
+                            localStorage.setItem('clima-temp', String(temp));
+                            aplicarTemp(temp);
+                        }).catch(() => { });
+                };
 
-            // Mostra cache imediatamente
-            const cached = localStorage.getItem('clima-temp');
-            if (cached) aplicarTemp(cached);
+                document.addEventListener('DOMContentLoaded', () => {
+                    atualizarHora();
+                    setInterval(atualizarHora, 1000);
 
-            // Busca localização por IP (sem permissão, instantâneo)
-            fetch('https://ipapi.co/json/')
-                .then(r => r.json())
-                .then(d => buscarClima(d.latitude, d.longitude))
-                .catch(() => buscarClima(-3.72, -38.54)); // fallback Fortaleza
-        });
+                    // Mostra cache imediatamente
+                    const cached = localStorage.getItem('clima-temp');
+                    if (cached) aplicarTemp(cached);
+
+                    // Busca localização por IP (sem permissão, instantâneo)
+                    fetch('https://ipapi.co/json/')
+                        .then(r => r.json())
+                        .then(d => buscarClima(d.latitude, d.longitude))
+                        .catch(() => buscarClima(-3.72, -38.54)); // fallback Fortaleza
+                });
     </script>
     <script>
-        function playGolSound() {
-            const audio = new Audio('/sounds/gol.mp3');
-            audio.volume = 0.6;
-            audio.play().catch(() => { });
-        }
+                        function playGolSound() {
+                            const audio = new Audio('/sounds/gol.mp3');
+                            audio.volume = 0.6;
+                            audio.play().catch(() => { });
+                        }
     </script>
 </body>
 </html>

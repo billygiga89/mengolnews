@@ -1,0 +1,100 @@
+﻿@inject IJSRuntime JS
+
+@if (carregado && !oculto)
+{
+    @if (aberto)
+    {
+        <div class="pix-float">
+            <PixQr Flutuante="true" Titulo="Apoie via Pix" />
+            <div class="pix-float-fechar"
+                 role="button"
+                 tabindex="0"
+                 title="Fechar"
+                 aria-label="Fechar"
+                 @onclick="Fechar"
+                 @onkeydown="@(e => Tecla(e, Fechar))">
+                ×
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="pix-float">
+            <div class="pix-pilula"
+                 role="button"
+                 tabindex="0"
+                 aria-label="Apoie via Pix (abrir QR code)"
+                 @onclick="Abrir"
+                 @onkeydown="@(e => Tecla(e, Abrir))">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3h-3zM19 14h2M14 19h2M19 19h2v2h-2z" /></svg>
+                <span>Apoie via Pix</span>
+            </div>
+            <div class="pix-float-fechar"
+                 role="button"
+                 tabindex="0"
+                 title="Não mostrar mais"
+                 aria-label="Não mostrar mais"
+                 @onclick="Ocultar"
+                 @onkeydown="@(e => Tecla(e, Ocultar))">
+                ×
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private const string ChaveStorage = "mn-pix-oculto";
+    private static readonly TimeSpan TempoOculto = TimeSpan.FromDays(30);
+
+    private bool carregado;   // só desenha depois de ler o localStorage (evita "piscar")
+    private bool oculto;
+    private bool aberto;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var valor = await JS.InvokeAsync<string?>("sessionStorage.getItem", ChaveStorage);
+            if (long.TryParse(valor, out var quando))
+            {
+                var ate = DateTimeOffset.FromUnixTimeMilliseconds(quando) + TempoOculto;
+                oculto = DateTimeOffset.UtcNow < ate;
+            }
+        }
+        catch
+        {
+            // sem acesso ao localStorage: mostra normalmente
+        }
+
+        carregado = true;
+    }
+
+    private void Abrir() => aberto = true;
+
+    private void Fechar() => aberto = false;
+
+    private void Ocultar()
+    {
+        oculto = true;
+        _ = SalvarOcultoAsync();
+    }
+
+    private async Task SalvarOcultoAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("sessionStorage.setItem", ChaveStorage,
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+        }
+        catch
+        {
+            // falha silenciosa
+        }
+    }
+
+    // Enter ou Espaço fazem o mesmo que o clique (acessibilidade)
+    private void Tecla(KeyboardEventArgs e, Action acao)
+    {
+        if (e.Key == "Enter" || e.Key == " ") acao();
+    }
+}

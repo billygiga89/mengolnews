@@ -1,10 +1,14 @@
 using MengolNews;
+using MengolNews.Components;
 using MengolNews.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
+
+builder.RootComponents.Add<PixFlutuante>("#pix-flutuante");
+
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // URL da API vinda do appsettings.json

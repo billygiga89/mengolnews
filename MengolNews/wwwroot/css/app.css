@@ -978,17 +978,20 @@ html, body {
     align-items: center;
     gap: 28px;
     margin-bottom: 4px;
+    padding-top: 20px;
     padding-bottom: 28px;
     border-bottom: 1px solid var(--mn-border);
 }
 
 .sobre-escudo {
-    height: auto;
-    width: 150px;
-    object-fit: contain;
+    box-sizing: border-box; /* a borda entra na conta: a beirada externa fica alinhada com a do card */
+    width: 132px;
+    height: 132px;
     flex-shrink: 0;
-    filter: drop-shadow(0 4px 16px rgba(200,16,46,0.5));
-    animation: float 4s ease-in-out infinite;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid var(--mn-red);
+    box-shadow: 0 8px 24px rgba(200, 16, 46, 0.35);
 }
 
 @keyframes float {
@@ -1558,49 +1561,93 @@ html, body {
         height: 220px;
     }
 
+    /* Sobre: no tablet/mobile o topo continua igual ao desktop (logo à esquerda, texto à direita) */
     .sobre-hero {
-        flex-direction: column;
-        text-align: center;
-        gap: 14px;
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+        gap: 16px;
+        padding-top: 16px;
         padding-bottom: 20px;
         margin-bottom: 0 !important;
     }
 
+    .sobre-hero-text {
+        min-width: 0;
+    }
+
     .sobre-titulo {
-        font-size: 1.6rem;
+        font-size: 1.9rem;
+        letter-spacing: -1px;
     }
 
     .sobre-escudo {
-        animation: none;
+        width: 96px;
+        height: 96px;
     }
-    /* desativa float no mobile */
 }
 
 @media (max-width: 600px) {
+    /* Sobre (celular): logo + título/subtítulo em cima, pílulas numa linha só embaixo */
     .sobre-hero {
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-        gap: 10px;
-        padding-bottom: 16px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "logo titulo"
+            "logo subtitulo"
+            "badges badges";
+        column-gap: 14px;
+        row-gap: 2px;
+        align-items: center;
+        padding-top: 12px;
+        padding-bottom: 12px;
         margin-bottom: 0;
     }
 
-    .sobre-escudo {
-        width: 100%;
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-        margin-left: -20px;
+    /* "dissolve" o wrapper pra título, subtítulo e pílulas virarem itens da grade */
+    .sobre-hero-text {
+        display: contents;
     }
 
-    .sobre-hero-text {
-        align-items: flex-start;
+    .sobre-escudo {
+        grid-area: logo;
+        width: 80px;
+        height: 80px;
+        border-width: 2px;
+    }
+
+    .sobre-titulo {
+        grid-area: titulo;
+        align-self: end;
+        font-size: 1.55rem;
+        letter-spacing: -0.8px;
+    }
+
+    .sobre-subtitulo {
+        grid-area: subtitulo;
+        align-self: start;
+        font-size: 0.85rem;
     }
 
     .sobre-badges {
-        justify-content: flex-start;
+        grid-area: badges;
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* as duas primeiras com larguras iguais */
+        gap: 6px;
+        margin-top: 10px;
     }
+
+    .sobre-badge {
+        text-align: center;
+        white-space: nowrap;
+        font-size: 0.66rem;
+        padding: 5px 6px;
+    }
+
+        /* a última pílula (Flamenguista) ocupa a linha inteira, na largura do card */
+        .sobre-badge:last-child {
+            grid-column: 1 / -1;
+        }
 
     .sobre-container {
         gap: 18px;
@@ -4856,3 +4903,314 @@ html, body {
     .player-card.mn-colorized:hover {
         border-color: var(--mn-card-accent, rgba(255,255,255,0.08));
     }
+
+
+/* ===== Pix / Apoie (tema Flamengo) ===== */
+.pix-box,
+.pix-box * {
+    box-sizing: border-box;
+}
+
+.pix-box {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin: 32px 0;
+    padding: 16px 20px;
+    border-radius: 16px;
+    border: 1px solid var(--mn-border, rgba(128, 128, 128, 0.25));
+    background: var(--mn-card, rgba(128, 128, 128, 0.08));
+    color: var(--mn-text);
+}
+
+ 
+
+.pix-qr-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* moldura vermelha lisa em volta do QR */
+.pix-qr-frame {
+    position: relative;
+    padding: 4px;
+    border-radius: 18px;
+    line-height: 0;
+    background: #c8102e;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.pix-img {
+    display: block;
+    width: 120px;
+    height: 120px;
+    border-radius: 13px;
+    background: #fff; /* fundo branco fixo: o QR precisa de contraste nos dois temas */
+    padding: 10px; /* margem branca maior ajuda o leitor a reconhecer o QR */
+    object-fit: contain;
+}
+
+
+
+.pix-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.95rem;
+}
+
+    .pix-texto strong {
+        font-size: 1.05rem;
+    }
+
+/* Botão de copiar (é um <div role="button"> de propósito, pra ficar fora do ripple.js) */
+.pix-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    color: #fff;
+    background: #c8102e;
+    border: 1px solid #c8102e;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}
+
+    .pix-copy svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    .pix-copy:hover {
+        background: #a50d26;
+        border-color: #a50d26;
+    }
+
+    .pix-copy:active {
+        transform: scale(0.97);
+    }
+
+    .pix-copy:focus-visible {
+        outline: 2px solid var(--mn-text);
+        outline-offset: 2px;
+    }
+
+    .pix-copy.copiado {
+        background: #16a34a;
+        border-color: #16a34a;
+    }
+
+@media (max-width: 600px) {
+    .pix-box {
+        flex-direction: column;
+        text-align: center;
+        gap: 14px;
+    }
+}
+
+/* ===== Pix flutuante: pílula recolhida; ao clicar abre o card com o QR ===== */
+.pix-float {
+    display: none;
+}
+
+@media (min-width: 1385px) {
+    .pix-float {
+        display: block;
+        position: fixed; /* troque por "absolute" se quiser que saia junto com a rolagem */
+        top: 16px;
+        left: 6px;
+        z-index: 1001;
+    }
+
+    /* pílula recolhida */
+    .pix-pilula {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 11px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
+        color: #fff;
+        background: #c8102e;
+        border-radius: 999px;
+        cursor: pointer;
+        user-select: none;
+        box-shadow: 0 4px 14px rgba(200, 16, 46, 0.35);
+        transition: background 0.2s, transform 0.2s var(--mn-spring), box-shadow 0.2s;
+    }
+
+        .pix-pilula svg {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+        }
+
+        .pix-pilula:hover {
+            background: #a50d26;
+            transform: translateY(-1px);
+        }
+
+        .pix-pilula:active {
+            transform: scale(0.97);
+        }
+
+    /* botãozinho × no canto (fecha o card / esconde a pílula) */
+    .pix-float-fechar {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        font-size: 13px;
+        line-height: 1;
+        color: #fff;
+        background: #111;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 50%;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.2s, transform 0.15s;
+    }
+
+        .pix-float-fechar:hover {
+            background: #c8102e;
+        }
+
+        .pix-float-fechar:active {
+            transform: scale(0.9);
+        }
+
+        .pix-pilula:focus-visible,
+        .pix-float-fechar:focus-visible {
+            outline: 2px solid var(--mn-text);
+            outline-offset: 2px;
+        }
+
+    /* card aberto: o mesmo PixQr, em versão compacta e vertical */
+    .pix-float .pix-flutuante {
+        display: flex;
+        flex-direction: column;
+        width: 120px;
+        margin: 0;
+        padding: 12px 8px 8px;
+        gap: 6px;
+        text-align: center;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transform-origin: top left;
+        animation: mn-zoom-in 0.25s var(--mn-spring-soft);
+    }
+
+    .pix-flutuante .pix-texto strong {
+        font-size: 0.78rem;
+    }
+
+    .pix-flutuante .pix-sub {
+        display: none;
+    }
+
+    .pix-flutuante .pix-qr-col {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .pix-flutuante .pix-qr-frame {
+        width: 100%;
+        padding: 4px;
+    }
+
+    .pix-flutuante .pix-img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+        padding: 4px;
+    }
+
+    .pix-flutuante .pix-copy {
+        padding: 5px 8px;
+    }
+}
+
+/* ===== Splash (aparece enquanto o Blazor carrega; o Blazor troca tudo ao iniciar) ===== */
+.mn-splash {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+}
+
+    .mn-splash h1 {
+        margin: 0;
+        font-size: 2rem;
+        letter-spacing: -0.5px;
+    }
+
+    .mn-splash p {
+        margin: 0;
+        opacity: .7;
+        max-width: 420px;
+    }
+
+    .mn-splash nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        justify-content: center;
+        margin-top: 8px;
+    }
+
+    .mn-splash a {
+        color: inherit;
+        opacity: .85;
+        text-decoration: none;
+        padding: 4px 2px;
+        border-bottom: 1px solid rgba(200, 16, 46, .7);
+    }
+
+/* Link real cobrindo o card inteiro (o Google segue <a href>, não @onclick) */
+.news-card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 2; /* os botões de compartilhar têm z-index 3 e continuam clicáveis */
+    border-radius: inherit;
+}
+
+    .news-card-link:focus-visible {
+        outline: 2px solid var(--mn-red);
+        outline-offset: -2px;
+    }
+
+/* texto do link só pra leitores de tela e robôs */
+.news-card-link-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}

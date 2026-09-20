@@ -1,0 +1,68 @@
+﻿@inject IJSRuntime JS
+
+<div class="pix-box @(Flutuante ? "pix-flutuante" : "")">
+    <div class="pix-texto">
+        <strong>@Titulo</strong>
+        <span class="pix-sub">Apoie com qualquer valor via Pix</span>
+    </div>
+
+    <div class="pix-qr-col">
+        <div class="pix-qr-frame">
+    <img src="/images/qrcode-pix.jpg"
+         alt="QR Code Pix para apoiar o MengolNews"
+         class="pix-img"
+         loading="lazy" />
+</div>
+
+        <div class="pix-copy @(copiado ? "copiado" : "")"
+             role="button"
+             tabindex="0"
+             title="Copiar chave Pix (e-mail)"
+             aria-label="Copiar chave Pix"
+             @onclick="Copiar"
+             @onkeydown="AoTeclar">
+            @if (copiado)
+            {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+                <span>Copiado!</span>
+            }
+            else
+            {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>
+                <span>@(Flutuante ? "Copiar Pix" : "Copiar chave Pix")</span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool Flutuante { get; set; }
+    [Parameter] public string Titulo { get; set; } = "Curtiu o MengolNews?";
+
+    // TROQUE pelo e-mail da sua chave Pix
+    private const string ChavePix = "SEU-EMAIL-PIX@AQUI.COM";
+
+    private bool copiado;
+
+    private async Task AoTeclar(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+            await Copiar();
+    }
+
+    private async Task Copiar()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", ChavePix);
+            copiado = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            copiado = false;
+        }
+        catch
+        {
+            // clipboard indisponível — falha silenciosa
+        }
+    }
+}

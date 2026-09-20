@@ -4,7 +4,14 @@
 @using NoticiaModel = MengolNews.Models.Noticia
 @using MengolNews.Components
 @using MengolNews.Models
-<PageTitle>MengolNews – Notícias do Flamengo</PageTitle>
+
+<PageTitle>Notícias do Flamengo hoje | MengolNews</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="Últimas notícias do Flamengo, próximo jogo, resultados, tabela do Brasileirão e vídeos. Conteúdo rubro-negro com alma de torcedor no MengolNews." />
+    <link rel="canonical" href="https://www.mengolnews.com.br/" />
+</HeadContent>
+
 @if (isLoading)
 {
     <div class="content">
@@ -40,13 +47,16 @@ else
         </section>
     </div>
 }
+
 @code {
     private List<NoticiaModel> noticias = new();
     private bool isLoading = true;
+
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
         await InvokeAsync(StateHasChanged);
+
         try
         {
             var dados = await NewsService.GetNoticiasAsync();
@@ -64,11 +74,13 @@ else
             await InvokeAsync(StateHasChanged);
         }
     }
+
     private void AbrirNoticia(NoticiaModel noticia)
     {
         var url = Uri.EscapeDataString(noticia.Link);
         Nav.NavigateTo($"/noticia?url={url}");
     }
+
     private string ImagemHero =>
         noticias.Any() && !string.IsNullOrWhiteSpace(noticias[0].Imagem)
             ? noticias[0].Imagem!
