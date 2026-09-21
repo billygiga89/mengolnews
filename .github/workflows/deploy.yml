@@ -34,6 +34,14 @@ jobs:
           VERSION=$(date +%s)
           sed -i "s/css\/app\.css/css\/app.css?v=$VERSION/" publish/wwwroot/index.html
 
+      - name: Sanitize _routes.json (remove BOM e caracteres invisíveis)
+        run: |
+          echo "Primeiros bytes ANTES:"
+          head -c 24 publish/wwwroot/_routes.json | xxd
+          LC_ALL=C sed -i -e '1s/^\xEF\xBB\xBF//' -e 's/\xC2\xA0/ /g' -e 's/\xE2\x80\x8B//g' publish/wwwroot/_routes.json
+          echo "Primeiros bytes DEPOIS:"
+          head -c 24 publish/wwwroot/_routes.json | xxd
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
