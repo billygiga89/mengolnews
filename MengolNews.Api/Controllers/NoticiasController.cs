@@ -71,6 +71,7 @@ namespace MengolNews.Api.Controllers
         /// 🔥 Debug rápido (ver se API está viva)
         /// </summary>
         [HttpGet("ping")]
+        [HttpHead("ping")]
         public IActionResult Ping()
         {
             return Ok(new

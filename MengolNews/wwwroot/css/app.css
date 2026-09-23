@@ -22,15 +22,12 @@
     --mn-radius-lg: 22px;
     --mn-radius-md: 18px;
     --mn-radius-sm: 12px;
-    /* ── EFEITO: PROFUNDIDADE (escala de elevação reutilizável) ── */
     --mn-shadow-1: 0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.06);
     --mn-shadow-2: 0 2px 6px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.08);
     --mn-shadow-3: 0 8px 20px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.10);
     --mn-shadow-4: 0 16px 32px rgba(0,0,0,0.22), 0 6px 12px rgba(0,0,0,0.12);
     --mn-shadow-press: 0 1px 4px rgba(0,0,0,0.25);
-    /* Opacidade do fundo da gaveta mobile (maior = mais opaco/menos transparente) */
     --mn-nav-bg-mix: 82%;
-    /* ── EFEITO: SPRING / ZOOM FLUIDO (curvas de easing reutilizáveis) ── */
     --mn-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --mn-spring-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -49,7 +46,6 @@
     --mn-red-soft: rgba(200,16,46,0.08);
     --mn-shadow-elevate: 0 4px 18px rgba(0,0,0,0.08);
     --mn-shadow-elevate-hover: 0 12px 32px rgba(0,0,0,0.14);
-    /* ── EFEITO: PROFUNDIDADE (versão clara — sombras mais suaves) ── */
     --mn-shadow-1: 0 1px 2px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.04);
     --mn-shadow-2: 0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.05);
     --mn-shadow-3: 0 8px 20px rgba(0,0,0,0.10), 0 3px 6px rgba(0,0,0,0.06);
@@ -58,15 +54,6 @@
     --mn-nav-bg-mix: 92%;
 }
 
-/* ============================================
-   FIX: garantir que o tema claro chegue a TODO o
-   documento, mesmo que o atributo data-theme="light"
-   esteja em um elemento que não é ancestral direto de
-   todo o conteúdo (ex: um <div> interno em vez do <html>).
-   :has() faz a variável recomeçar a cascatear a partir
-   da raiz de verdade sempre que existir data-theme="light"
-   em QUALQUER lugar dentro do documento.
-   ============================================ */
 :root:has([data-theme="light"]) {
     --mn-bg-base: #f3f1f0;
     --mn-surface: rgba(0,0,0,0.035);
@@ -93,7 +80,6 @@ html {
     transition: background-color .25s ease;
 }
 
-/* Utilitário reaproveitável: vidro estilo iOS ("Liquid Glass" — com brilho que desliza sozinho) */
 .mn-glass {
     background: color-mix(in srgb, var(--mn-surface-solid) 70%, transparent);
     backdrop-filter: blur(18px);
@@ -137,7 +123,6 @@ html {
     }
 }
 
-/* Utilitário: "state layer" estilo Android no hover/press */
 .mn-elevated {
     position: relative;
     box-shadow: var(--mn-shadow-elevate);
@@ -168,16 +153,12 @@ html {
         box-shadow: var(--mn-shadow-press);
     }
 
-/* =====================
-   RESET / BASE
-===================== */
 html, body {
     height: 100%;
     margin: 0;
     font-family: 'Source Serif 4', Georgia, serif;
 }
 
-/* BACKGROUND GLOBAL */
 #app {
     min-height: 100vh;
     background-image: radial-gradient(ellipse at top left, rgba(200,16,46,0.35) 0%, transparent 45%), radial-gradient(ellipse at bottom right, rgba(200,16,46,0.25) 0%, transparent 45%), linear-gradient(160deg, rgba(10,0,0,0.72) 0%, rgba(5,0,0,0.78) 100%), url('/images/ctFLA.jpeg');
@@ -194,18 +175,12 @@ html, body {
     background-image: radial-gradient(ellipse at top left, rgba(200,16,46,0.10) 0%, transparent 45%), radial-gradient(ellipse at bottom right, rgba(200,16,46,0.08) 0%, transparent 45%), linear-gradient(160deg, rgba(255,255,255,0.95) 0%, rgba(243,241,240,0.98) 100%);
 }
 
-/* =====================
-   LAYOUT GERAL
-===================== */
 .content {
     max-width: 1100px;
     margin: 0 auto;
     padding: 20px;
 }
 
-/* =====================
-   HEADER
-===================== */
 .header {
     background: color-mix(in srgb, var(--mn-surface-solid) 75%, transparent);
     backdrop-filter: blur(18px);
@@ -219,9 +194,6 @@ html, body {
     transition: background-color .25s ease, border-color .25s ease;
 }
 
-/* =====================
-   THEME TOGGLE (switch no header)
-===================== */
 .theme-toggle {
     width: 44px;
     height: 26px;
@@ -320,9 +292,6 @@ html, body {
     letter-spacing: -0.5px;
 }
 
-/* =====================
-   SOCIAL ICONS — estado padrão desktop
-===================== */
 .social-icons-mobile {
     display: none !important;
 }
@@ -359,9 +328,6 @@ html, body {
         height: 20px;
     }
 
-/* =====================
-   NAV
-===================== */
 .nav {
     display: flex;
     align-items: center;
@@ -419,9 +385,6 @@ html, body {
             width: 100%;
         }
 
-/* =====================
-   HERO
-===================== */
 .hero {
     position: relative;
     height: 55vh;
@@ -502,38 +465,6 @@ html, body {
     letter-spacing: 0.3px;
 }
 
-@media (max-width: 768px) {
-    .hero {
-        height: 300px;
-        min-height: 260px;
-        border-radius: 10px;
-    }
-
-        .hero img {
-            object-position: center center;
-        }
-
-    .hero-content {
-        bottom: 14px;
-        left: 14px;
-        right: 14px;
-        max-width: 100%;
-    }
-
-        .hero-content h1 {
-            font-size: 1.75rem;
-            margin: 6px 0 4px;
-            line-height: 1.2;
-        }
-
-    .hero-tag {
-        font-size: 0.65rem;
-    }
-}
-
-/* =====================
-   SECTIONS
-===================== */
 .section {
     margin: 48px 0;
 }
@@ -546,30 +477,20 @@ html, body {
         background: linear-gradient(to right, transparent, rgba(200,16,46,0.3), transparent);
     }
 
-/* =====================
-   NEWS GRID
-===================== */
 .news-list {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
 
-@media (max-width: 960px) {
-    .news-list {
-        grid-template-columns: repeat(2, 1fr);
+    .news-list .news-card:last-child:nth-child(3n - 1) {
+        grid-column: span 1;
     }
-}
 
-.news-list .news-card:last-child:nth-child(3n - 1) {
-    grid-column: span 1;
-}
+    .news-list .news-card:last-child:nth-child(3n + 1) {
+        grid-column: 2;
+    }
 
-.news-list .news-card:last-child:nth-child(3n + 1) {
-    grid-column: 2;
-}
-
-/* ── Entrada sequencial dos cards ── */
 .news-card {
     position: relative;
     height: 290px;
@@ -582,7 +503,6 @@ html, body {
     transition: transform 0.3s var(--mn-spring), box-shadow 0.3s var(--mn-spring-soft), border-color 0.25s ease;
 }
 
-    /* Delay escalonado para os primeiros 9 cards */
     .news-card:nth-child(1) {
         animation-delay: 0.05s;
     }
@@ -692,9 +612,6 @@ html, body {
     border: none;
 }
 
-/* =====================
-   NOTÍCIA ABERTA
-===================== */
 .news-open {
     max-width: 720px;
     margin: 2rem auto;
@@ -823,28 +740,6 @@ html, body {
             border-color: rgba(255,255,255,0.35);
         }
 
-@media (max-width: 768px) {
-    .news-open {
-        margin: 0.75rem;
-    }
-
-    .news-open-title {
-        font-size: 1.6rem;
-        letter-spacing: -0.5px;
-    }
-
-    .news-open p:first-of-type {
-        font-size: 1.05rem;
-    }
-
-    .news-open p {
-        font-size: 1rem;
-    }
-}
-
-/* =====================
-   FOOTER
-===================== */
 .footer {
     background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.5) 100%);
     padding: 40px 20px 24px;
@@ -905,9 +800,6 @@ html, body {
     color: var(--mn-text-faint);
 }
 
-/* =====================
-   SKELETON SHIMMER
-===================== */
 @keyframes shimmer {
     0% {
         background-position: 200% 0;
@@ -953,16 +845,10 @@ html, body {
     margin-bottom: 16px;
 }
 
-/* =====================
-   BLAZOR ERROR
-===================== */
 #blazor-error-ui {
     display: none !important;
 }
 
-/* =====================
-   SOBRE
-===================== */
 .sobre-container {
     max-width: 820px;
     margin: 0 auto;
@@ -984,7 +870,7 @@ html, body {
 }
 
 .sobre-escudo {
-    box-sizing: border-box; /* a borda entra na conta: a beirada externa fica alinhada com a do card */
+    box-sizing: border-box;
     width: 132px;
     height: 132px;
     flex-shrink: 0;
@@ -1069,7 +955,6 @@ html, body {
     transition: border-color 0.2s, transform 0.25s var(--mn-spring), box-shadow 0.25s var(--mn-spring-soft);
 }
 
-    /* Fita de destaque no topo do card — sutil, some/aparece suavemente no hover */
     .sobre-card::before {
         content: "";
         position: absolute;
@@ -1301,395 +1186,6 @@ html, body {
 
 .section:has(.sobre-container)::after {
     display: none;
-}
-
-/* =====================
-   RESPONSIVO — TABLET/MOBILE
-===================== */
-@media (max-width: 768px) {
-    .header .container {
-        flex-direction: row;
-        align-items: center;
-        gap: 0;
-        padding: 10px 14px;
-    }
-
-    .brand {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        width: 100%;
-        gap: 8px;
-        padding-bottom: 0;
-    }
-
-    .brand-logo {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    /* Nome por extenso some no mobile — só o escudo representa a marca,
-       liberando espaço pros ícones + seletor + hambúrguer não brigarem */
-    /* Nome por extenso volta a aparecer no mobile — coube porque o
-       hambúrguer saiu da linha (virou puxadeira fixa fora do fluxo) */
-    .brand h1 {
-        font-size: 1.15rem;
-        white-space: nowrap;
-    }
-
-    /* Hambúrguer: primeiro elemento da barra, abre a gaveta com um clique */
-    .hamburger-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
-        background: none;
-        border: none;
-        color: var(--mn-text);
-        padding: 0;
-        cursor: pointer;
-        flex-shrink: 0;
-    }
-
-        .hamburger-btn svg {
-            width: 24px;
-            height: 24px;
-        }
-
-    /* Ícones de rede social saem da barra do cabeçalho — agora ficam
-       dentro da gaveta, embaixo do escudo/nome (ver .nav-footer) */
-    .social-icons-mobile {
-        display: none !important;
-    }
-
-    .social-icons-desktop {
-        display: none !important;
-    }
-
-    .theme-toggle {
-        width: 36px;
-        height: 21px;
-        margin-left: auto;
-        flex-shrink: 0;
-    }
-
-    .theme-toggle-knob {
-        width: 15px;
-        height: 15px;
-    }
-
-    [data-theme="light"] .theme-toggle-knob {
-        left: 18px;
-    }
-
-    /* ===== Gaveta lateral (slide-in da esquerda) ===== */
-    .nav {
-        display: flex !important;
-        flex-direction: column;
-        align-items: stretch;
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        height: 100dvh;
-        width: 78vw;
-        max-width: 300px;
-        background: color-mix(in srgb, var(--mn-surface-solid) var(--mn-nav-bg-mix), transparent);
-        padding: 32px 24px 24px;
-        z-index: 2000;
-        margin-left: 0;
-        box-shadow: 8px 0 32px rgba(0,0,0,0.35);
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-
-        .nav.nav-open {
-            transform: translateX(0);
-        }
-
-    .nav-scroll {
-        display: flex;
-        flex-direction: column;
-        gap: .25rem;
-        height: 100%;
-        overflow-y: auto;
-    }
-
-        .nav-scroll > a {
-            margin-left: 0;
-            font-size: 1.05rem;
-            padding: .7rem 0;
-            border-bottom: 1px solid var(--mn-border);
-            width: 100%;
-            white-space: normal;
-            color: var(--mn-text);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-            .nav-scroll > a::after {
-                display: none;
-            }
-
-    .nav-link-icon {
-        display: inline-flex;
-        opacity: 0.5;
-        transition: opacity 0.2s ease;
-    }
-
-        .nav-link-icon svg {
-            width: 20px;
-            height: 20px;
-        }
-
-    .nav-scroll > a:hover .nav-link-icon,
-    .nav-scroll > a.active .nav-link-icon {
-        opacity: 0.9;
-    }
-
-    /* Rodapé da gaveta: escudo + nome */
-    .nav-footer {
-        display: flex;
-        flex-direction: column;
-        flex-shrink: 0;
-        margin-top: 20px;
-        padding-top: 18px;
-    }
-
-    .nav-footer-brand {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-height: 28px;
-    }
-
-        .nav-footer-brand img {
-            height: 26px;
-            width: 26px;
-            object-fit: contain;
-            flex-shrink: 0;
-        }
-
-        .nav-footer-brand span {
-            font-weight: 800;
-            font-size: 0.95rem;
-            letter-spacing: -0.3px;
-            color: var(--mn-text);
-        }
-
-    .nav-footer .social-icons {
-        justify-content: center;
-        margin: 12px 0 0;
-        padding-left: 0;
-        border-left: none;
-        gap: 20px;
-    }
-
-    /* Fundo escurecido atrás da gaveta */
-    .nav-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        background: rgba(0,0,0,0.5);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-        z-index: 1999;
-    }
-
-        .nav-backdrop.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-    .hero {
-        height: 300px;
-        min-height: 260px;
-        border-radius: 10px;
-    }
-
-        .hero img {
-            object-position: center center;
-        }
-
-    .hero-content {
-        bottom: 14px;
-        left: 14px;
-        right: 14px;
-        max-width: 100%;
-    }
-
-        .hero-content h1 {
-            font-size: 1.75rem;
-            margin: 6px 0 4px;
-            line-height: 1.2;
-        }
-
-    .hero-tag {
-        font-size: 0.65rem;
-    }
-
-    .news-list {
-        grid-template-columns: 1fr;
-        gap: 14px;
-    }
-
-    .news-card {
-        height: 220px;
-    }
-
-    .news-open {
-        padding: 1rem;
-        margin: 0.75rem;
-        border-radius: 12px;
-    }
-
-    .news-open-title {
-        font-size: 1.4rem;
-    }
-
-    .skeleton-img-detalhe {
-        height: 220px;
-    }
-
-    /* Sobre: no tablet/mobile o topo continua igual ao desktop (logo à esquerda, texto à direita) */
-    .sobre-hero {
-        flex-direction: row;
-        align-items: center;
-        text-align: left;
-        gap: 16px;
-        padding-top: 16px;
-        padding-bottom: 20px;
-        margin-bottom: 0 !important;
-    }
-
-    .sobre-hero-text {
-        min-width: 0;
-    }
-
-    .sobre-titulo {
-        font-size: 1.9rem;
-        letter-spacing: -1px;
-    }
-
-    .sobre-escudo {
-        width: 96px;
-        height: 96px;
-    }
-}
-
-@media (max-width: 600px) {
-    /* Sobre (celular): logo + título/subtítulo em cima, pílulas numa linha só embaixo */
-    .sobre-hero {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        grid-template-areas:
-            "logo titulo"
-            "logo subtitulo"
-            "badges badges";
-        column-gap: 14px;
-        row-gap: 2px;
-        align-items: center;
-        padding-top: 12px;
-        padding-bottom: 12px;
-        margin-bottom: 0;
-    }
-
-    /* "dissolve" o wrapper pra título, subtítulo e pílulas virarem itens da grade */
-    .sobre-hero-text {
-        display: contents;
-    }
-
-    .sobre-escudo {
-        grid-area: logo;
-        width: 80px;
-        height: 80px;
-        border-width: 2px;
-    }
-
-    .sobre-titulo {
-        grid-area: titulo;
-        align-self: end;
-        font-size: 1.55rem;
-        letter-spacing: -0.8px;
-    }
-
-    .sobre-subtitulo {
-        grid-area: subtitulo;
-        align-self: start;
-        font-size: 0.85rem;
-    }
-
-    .sobre-badges {
-        grid-area: badges;
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* as duas primeiras com larguras iguais */
-        gap: 6px;
-        margin-top: 10px;
-    }
-
-    .sobre-badge {
-        text-align: center;
-        white-space: nowrap;
-        font-size: 0.66rem;
-        padding: 5px 6px;
-    }
-
-        /* a última pílula (Flamenguista) ocupa a linha inteira, na largura do card */
-        .sobre-badge:last-child {
-            grid-column: 1 / -1;
-        }
-
-    .sobre-container {
-        gap: 18px;
-        padding: 0 16px;
-    }
-
-    .sobre-tech-grid {
-        grid-template-columns: 1fr;
-        gap: 14px;
-    }
-}
-
-@media (max-width: 480px) {
-    .social-icons svg {
-        width: 18px;
-        height: 18px;
-    }
-
-    .brand h1 {
-        font-size: 1.2rem;
-    }
-
-    .brand img {
-        height: 28px;
-    }
-
-    .hero {
-        height: 260px;
-    }
-
-    .hero-content h1 {
-        font-size: 1.05rem;
-    }
-
-    .content {
-        padding: 12px;
-    }
-
-    .footer-links {
-        flex-wrap: wrap;
-        gap: 12px;
-    }
 }
 
 /* ══════════════════════════════════════
@@ -2125,7 +1621,6 @@ html, body {
     font-weight: 600;
 }
 
-/* ── Match card clickable ── */
 .match-card.clickable {
     cursor: pointer;
 }
@@ -2142,9 +1637,6 @@ html, body {
     color: rgba(255,255,255,0.7);
 }
 
-/* =====================
-   GOL TOAST
-===================== */
 .gol-toast-container {
     position: fixed;
     top: 80px;
@@ -2194,21 +1686,6 @@ html, body {
     }
 }
 
-@media (max-width: 480px) {
-    .gol-toast-container {
-        right: 12px;
-        left: 12px;
-    }
-
-    .gol-toast {
-        max-width: 100%;
-        font-size: 0.85rem;
-    }
-}
-
-/* =====================
-   PRÓXIMO JOGO
-===================== */
 .proximo-jogo-card {
     background: rgba(0,0,0,0.6);
     border: 1px solid rgba(200,16,46,0.35);
@@ -2265,7 +1742,6 @@ html, body {
     min-width: 0;
 }
 
-/* Wrap circular atrás do escudo — ancora visualmente o brasão no card escuro */
 .pj-escudo-wrap {
     width: 56px;
     height: 56px;
@@ -2311,10 +1787,8 @@ html, body {
     transform: scale(1.12);
 }
 
-/* Escudo do Flamengo no próximo jogo: pulse vermelho */
 .pj-time.home .pj-escudo,
 .pj-time.away .pj-escudo {
-    /* identidade visual neutra; a classe fla-escudo é adicionada via Razor se necessário */
 }
 
 .pj-nome {
@@ -2357,7 +1831,6 @@ html, body {
     letter-spacing: 0.3px;
 }
 
-/* Countdown com maior destaque — badge vermelho sólido em vez de texto discreto */
 .pj-countdown {
     font-size: 0.75rem;
     font-weight: 800;
@@ -2382,33 +1855,6 @@ html, body {
     }
 }
 
-@media (max-width: 480px) {
-    .pj-escudo-wrap {
-        width: 44px;
-        height: 44px;
-    }
-
-    .pj-escudo {
-        width: 30px;
-        height: 30px;
-    }
-
-    .pj-nome {
-        font-size: 0.75rem;
-    }
-
-    .pj-data {
-        font-size: 0.72rem;
-    }
-
-    .pj-countdown {
-        font-size: 0.68rem;
-    }
-}
-
-/* =====================
-   HERO CARROSSEL
-===================== */
 .hero-carrossel {
     position: relative;
     height: 55vh;
@@ -2463,8 +1909,6 @@ html, body {
     background: linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(10,0,0,0.75) 35%, transparent 65%), linear-gradient(to right, rgba(200,16,46,0.18) 0%, transparent 60%);
 }
 
-/* Overlay reforçado quando o slide usa imagem de fallback (aleatória, sem foto própria da notícia).
-   Adicionar a classe "is-fallback" na .carrossel-slide via Razor quando EhImagemInvalida()/sem imagem própria. */
 .carrossel-slide.is-fallback .carrossel-overlay {
     background: linear-gradient(to top, rgba(0,0,0,0.98) 0%, rgba(10,0,0,0.88) 45%, rgba(10,0,0,0.35) 75%), linear-gradient(to right, rgba(200,16,46,0.18) 0%, transparent 60%);
 }
@@ -2477,9 +1921,6 @@ html, body {
     z-index: 2;
 }
 
-/* Barra de progresso do carrossel — substitui os antigos hero-dots.
-   Um .hero-progress-bar por slide; o slide ativo recebe .ativo (anima 0% -> 100%
-   durante a duração do autoplay) e os slides já exibidos recebem .completo (100% fixo). */
 .hero-progress {
     position: absolute;
     bottom: 12px;
@@ -2525,23 +1966,6 @@ html, body {
     }
 }
 
-@media (max-width: 768px) {
-    .carrossel-slide .hero-content {
-        bottom: 14px;
-        left: 14px;
-        right: 14px;
-        max-width: 100%;
-    }
-
-    .hero-progress {
-        left: 14px;
-        right: 14px;
-    }
-}
-
-/* =====================
-   HEADER INFO (hora · clima)
-===================== */
 .header-info {
     display: flex;
     align-items: center;
@@ -2558,15 +1982,6 @@ html, body {
     color: var(--mn-text-faint);
 }
 
-@media (max-width: 768px) {
-    .header-info {
-        display: none;
-    }
-}
-
-/* =====================
-   SHARE BUTTONS
-===================== */
 .news-share {
     position: absolute;
     top: 10px;
@@ -2621,16 +2036,6 @@ html, body {
         fill: #fff;
     }
 
-@media (max-width: 768px) {
-    .news-share {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* =====================
-   BUSCA
-===================== */
 .busca-wrapper {
     margin-top: 14px;
 }
@@ -2659,15 +2064,6 @@ html, body {
         background: rgba(255,255,255,0.09);
     }
 
-@media (max-width: 768px) {
-    .busca-input {
-        max-width: 100%;
-    }
-}
-
-/* =====================
-   VÍDEOS
-===================== */
 .videos-page {
     max-width: 1100px;
     margin: 0 auto;
@@ -2700,18 +2096,6 @@ html, body {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
-}
-
-@media (max-width: 960px) {
-    .videos-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 560px) {
-    .videos-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 .video-card {
@@ -2909,10 +2293,6 @@ html, body {
         transform: translateY(-1px);
     }
 
-/* =====================
-   MODAL DE VÍDEO (legado — não é mais usado pelo Videos.razor,
-   mantido apenas para não quebrar outras referências antigas)
-===================== */
 .vmodal-overlay {
     position: fixed;
     inset: 0;
@@ -3021,23 +2401,6 @@ html, body {
     font-weight: 600;
 }
 
-@media (max-width: 600px) {
-    .videos-page {
-        padding: 1.5rem 1rem 3rem;
-    }
-
-    .vmodal {
-        border-radius: 14px;
-    }
-
-    .vmodal-titulo {
-        font-size: .88rem;
-    }
-}
-
-/* =====================
-   VÍDEO INLINE (tocando dentro do próprio card, sem modal)
-===================== */
 .video-thumb-playing {
     position: relative;
     width: 100%;
@@ -3096,9 +2459,6 @@ html, body {
         color: #fff;
     }
 
-/* ================================================================
-   CAMPO VIRTUAL
-   ================================================================ */
 :root {
     --azul-home: #1565C0;
     --vermelho-away: #C62828;
@@ -3179,7 +2539,6 @@ html, body {
         font-weight: 600;
     }
 
-/* ── Wrapper ── */
 .campo-wrapper {
     max-width: 860px;
     margin: 0 auto;
@@ -3188,7 +2547,6 @@ html, body {
     overflow: hidden;
 }
 
-/* ── Campo SVG ── */
 .campo-svg-container {
     position: relative;
     background: #111214;
@@ -3249,7 +2607,6 @@ html, body {
     }
 }
 
-/* ── Placar ── */
 .placar {
     display: flex;
     align-items: center;
@@ -3350,7 +2707,6 @@ html, body {
     }
 }
 
-/* ── Tabs ── */
 .tabs {
     display: flex;
     background: rgba(0,0,0,0.55);
@@ -3393,7 +2749,6 @@ html, body {
     padding: 16px;
 }
 
-/* ── Eventos ── */
 .eventos-lista {
     display: flex;
     flex-direction: column;
@@ -3462,7 +2817,6 @@ html, body {
     letter-spacing: 0.5px;
 }
 
-/* ── Estatísticas ── */
 .stats-grid {
     display: flex;
     flex-direction: column;
@@ -3532,7 +2886,6 @@ html, body {
         text-align: right;
     }
 
-/* ── Escalação ── */
 .escalacao-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -3610,88 +2963,6 @@ html, body {
     font-family: var(--fonte-body);
 }
 
-/* ── Responsivo Campo Virtual ── */
-@media (max-width: 600px) {
-    .time-nome {
-        font-size: 11px;
-        max-width: 72px;
-    }
-
-    .stats-grid {
-        gap: 16px;
-    }
-
-    .gols {
-        font-size: 28px;
-        min-width: 28px;
-    }
-
-    .placar {
-        padding: 12px 10px;
-    }
-
-    .escudo {
-        width: 26px;
-        height: 26px;
-    }
-
-    .placar-centro {
-        flex: 0 0 64px;
-    }
-
-    .minuto {
-        font-size: 15px;
-    }
-
-    .status-badge {
-        font-size: 9px;
-        padding: 2px 6px;
-    }
-
-    .tab {
-        font-size: 10px;
-        padding: 11px 4px;
-        letter-spacing: 0;
-    }
-
-    .escalacao-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .stat-val {
-        font-size: 15px;
-    }
-
-    .tab-content {
-        padding: 12px 8px;
-        overflow: hidden;
-    }
-
-    .campo-wrapper {
-        padding: 0 8px;
-        overflow: hidden;
-    }
-
-    .campo-svg-container {
-        transform: perspective(600px) rotateX(45deg);
-        transform-origin: top center;
-    }
-}
-
-@media (max-width: 400px) {
-    .time-nome {
-        display: none;
-    }
-
-    .campo-svg-container {
-        transform: perspective(500px) rotateX(40deg);
-        transform-origin: top center;
-    }
-}
-
-/* ================================================================
-   ELENCO
-   ================================================================ */
 .elenco-page {
     min-height: 100vh;
     background: linear-gradient(135deg, #0a0a1a 0%, #1a0005 50%, #0d0000 100%);
@@ -3960,8 +3231,6 @@ html, body {
     display: block;
 }
 
-/* Barra de nome/idade agora "nasce" da própria foto, em vez de ser um
-   bloco sólido separado embaixo do card. */
 .card-info {
     position: absolute;
     left: 0;
@@ -3975,8 +3244,6 @@ html, body {
     z-index: 2;
 }
 
-/* Selo de posição: cantinho colorido no topo do card, em vez de texto
-   discreto dentro da barra de info. */
 .card-pos-badge {
     position: absolute;
     top: 0;
@@ -4035,7 +3302,6 @@ html, body {
     color: #ffd9d9;
 }
 
-/* ── Modal Elenco ── */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -4196,7 +3462,6 @@ html, body {
     margin: 0 0 16px;
 }
 
-/* stats-grid do modal (3 col — diferente do stats-grid do campo) */
 .modal-stats .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -4254,81 +3519,6 @@ html, body {
     padding: 60px;
 }
 
-@media (max-width: 600px) {
-    .elenco-filtros {
-        justify-content: flex-start;
-    }
-
-    .elenco-grid {
-        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-        gap: 10px;
-    }
-
-    .card-numero {
-        font-size: 24px;
-        top: 4px;
-        right: 8px;
-    }
-
-    .card-foto-wrap {
-        padding-top: 22px;
-    }
-
-    .card-pos-badge {
-        font-size: 8px;
-        padding: 3px 8px 3px 6px;
-    }
-
-    .card-info {
-        padding: 18px 8px 6px;
-    }
-
-    .card-nome {
-        font-size: 13px;
-    }
-
-    .elenco-titulo {
-        font-size: 28px;
-    }
-
-    .elenco-escudo {
-        width: 50px;
-        height: 50px;
-    }
-
-    .modal-stats .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    .modal-foto {
-        width: 70px;
-        height: 88px;
-    }
-
-    .modal-nome {
-        font-size: 18px;
-    }
-
-    .jogo-header-nav {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 12px 16px;
-    }
-
-    .competicao {
-        font-size: 11px;
-    }
-
-    .player-card {
-        animation: none;
-    }
-    /* desativa delay no mobile para não atrasar scroll */
-}
-
-/* =====================
-   NEWS TICKER
-===================== */
 .ticker-wrapper {
     display: flex;
     align-items: center;
@@ -4412,20 +3602,6 @@ html, body {
     }
 }
 
-@media (max-width: 768px) {
-    .ticker-wrapper {
-        top: 57px;
-        height: 30px;
-    }
-
-    .ticker-item {
-        font-size: 0.75rem;
-    }
-}
-
-/* =====================
-   ÚLTIMOS RESULTADOS
-===================== */
 .ultimos-resultados-card {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(200,16,46,0.2);
@@ -4541,31 +3717,11 @@ html, body {
     font-size: 0.7rem;
 }
 
-@media (max-width: 768px) {
-    .ultimos-resultados-card {
-        margin-top: 12px;
-    }
-
-    .ur-nome {
-        max-width: 70px;
-        font-size: 0.68rem;
-    }
-
-    .ur-escudo {
-        height: 16px;
-        width: 16px;
-    }
-}
-
-/* ticker resultado */
 .ticker-resultado {
     color: #ff6b6b;
     font-weight: 700;
 }
 
-/* =====================
-   MATCH CARD V2
-===================== */
 .match-card-v2 {
     background: rgba(0,0,0,0.45);
     border: 1px solid rgba(255,255,255,0.07);
@@ -4696,26 +3852,6 @@ html, body {
     letter-spacing: 1px;
 }
 
-@media (max-width: 480px) {
-    .match-v2-crest {
-        width: 28px;
-        height: 28px;
-    }
-
-    .match-v2-nome {
-        font-size: 0.7rem;
-        max-width: 70px;
-    }
-
-    .match-v2-gol {
-        font-size: 1.3rem;
-    }
-}
-
-/* =====================
-   ANIMAÇÕES GLOBAIS
-   (usadas em múltiplos componentes)
-===================== */
 @keyframes fade-up {
     from {
         opacity: 0;
@@ -4728,18 +3864,6 @@ html, body {
     }
 }
 
-/* Respeita preferência do usuário por menos movimento */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-/* ===== Listagem de Artigos ===== */
 .artigos-container {
     max-width: 720px;
     margin: 0 auto;
@@ -4767,7 +3891,6 @@ html, body {
     opacity: 0.6;
 }
 
-/* ===== Página do artigo ===== */
 .artigo-container {
     max-width: 720px;
     margin: 0 auto;
@@ -4815,7 +3938,6 @@ html, body {
         margin: 1.5rem 0;
     }
 
-/* ===== Card de artigo na listagem ===== */
 .artigo-card {
     display: block;
     text-decoration: none;
@@ -4849,9 +3971,6 @@ html, body {
     padding: 1.25rem 1.5rem;
 }
 
-/* ============================================
-   EFEITO: SPRING / ZOOM FLUIDO — extras
-   ============================================ */
 @keyframes mn-zoom-in {
     from {
         transform: scale(0.92);
@@ -4864,16 +3983,6 @@ html, body {
     }
 }
 
-/* A gaveta lateral (.nav) e o backdrop já usam cubic-bezier próprio no bloco
-   mobile acima (0.25, 0.46, 0.45, 0.94) — deixado como está para não alterar
-   a física já calibrada do gesto de arrastar/puxadeira. */
-
-/* ============================================
-   EFEITO: MATERIAL YOU (cor dinâmica extraída da imagem)
-   Depende de wwwroot/js/materialyou.js, que adiciona a classe
-   .mn-colorized e as variáveis --mn-card-accent / --mn-card-accent-soft
-   diretamente no elemento via JS.
-   ============================================ */
 .news-card.mn-colorized,
 .artigo-card.mn-colorized,
 .video-card.mn-colorized,
@@ -4904,8 +4013,6 @@ html, body {
         border-color: var(--mn-card-accent, rgba(255,255,255,0.08));
     }
 
-
-/* ===== Pix / Apoie (tema Flamengo) ===== */
 .pix-box,
 .pix-box * {
     box-sizing: border-box;
@@ -4927,8 +4034,6 @@ html, body {
     color: var(--mn-text);
 }
 
- 
-
 .pix-qr-col {
     display: flex;
     flex-direction: column;
@@ -4937,7 +4042,6 @@ html, body {
     flex-shrink: 0;
 }
 
-/* moldura vermelha lisa em volta do QR */
 .pix-qr-frame {
     position: relative;
     padding: 4px;
@@ -4952,12 +4056,10 @@ html, body {
     width: 120px;
     height: 120px;
     border-radius: 13px;
-    background: #fff; /* fundo branco fixo: o QR precisa de contraste nos dois temas */
-    padding: 10px; /* margem branca maior ajuda o leitor a reconhecer o QR */
+    background: #fff;
+    padding: 10px;
     object-fit: contain;
 }
-
-
 
 .pix-texto {
     display: flex;
@@ -4970,7 +4072,6 @@ html, body {
         font-size: 1.05rem;
     }
 
-/* Botão de copiar (é um <div role="button"> de propósito, pra ficar fora do ripple.js) */
 .pix-copy {
     display: inline-flex;
     align-items: center;
@@ -5015,29 +4116,87 @@ html, body {
         border-color: #16a34a;
     }
 
-@media (max-width: 600px) {
-    .pix-box {
-        flex-direction: column;
-        text-align: center;
-        gap: 14px;
-    }
-}
-
-/* ===== Pix flutuante: pílula recolhida; ao clicar abre o card com o QR ===== */
 .pix-float {
     display: none;
 }
 
+.mn-splash {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+}
+
+    .mn-splash h1 {
+        margin: 0;
+        font-size: 2rem;
+        letter-spacing: -0.5px;
+    }
+
+    .mn-splash p {
+        margin: 0;
+        opacity: .7;
+        max-width: 420px;
+    }
+
+    .mn-splash nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        justify-content: center;
+        margin-top: 8px;
+    }
+
+    .mn-splash a {
+        color: inherit;
+        opacity: .85;
+        text-decoration: none;
+        padding: 4px 2px;
+        border-bottom: 1px solid rgba(200, 16, 46, .7);
+    }
+
+.news-card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+}
+
+    .news-card-link:focus-visible {
+        outline: 2px solid var(--mn-red);
+        outline-offset: -2px;
+    }
+
+.news-card-link-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RESPONSIVO — todos os @media reunidos aqui, do maior breakpoint
+   para o menor. Dentro de cada breakpoint, a ordem das regras foi
+   mantida igual à posição original de cada bloco no arquivo, pra
+   não alterar qual regra "ganha" em conflitos de especificidade.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ===== min-width: 1385px (pix flutuante — desktop grande) ===== */
 @media (min-width: 1385px) {
     .pix-float {
         display: block;
-        position: fixed; /* troque por "absolute" se quiser que saia junto com a rolagem */
+        position: fixed;
         top: 16px;
         left: 6px;
         z-index: 1001;
     }
 
-    /* pílula recolhida */
     .pix-pilula {
         display: flex;
         align-items: center;
@@ -5071,7 +4230,6 @@ html, body {
             transform: scale(0.97);
         }
 
-    /* botãozinho × no canto (fecha o card / esconde a pílula) */
     .pix-float-fechar {
         position: absolute;
         top: -6px;
@@ -5107,7 +4265,6 @@ html, body {
             outline-offset: 2px;
         }
 
-    /* card aberto: o mesmo PixQr, em versão compacta e vertical */
     .pix-float .pix-flutuante {
         display: flex;
         flex-direction: column;
@@ -5152,65 +4309,681 @@ html, body {
     }
 }
 
-/* ===== Splash (aparece enquanto o Blazor carrega; o Blazor troca tudo ao iniciar) ===== */
-.mn-splash {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 24px;
-    text-align: center;
+/* ===== max-width: 960px ===== */
+@media (max-width: 960px) {
+    .news-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .videos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
-    .mn-splash h1 {
-        margin: 0;
-        font-size: 2rem;
+/* ===== max-width: 768px ===== */
+@media (max-width: 768px) {
+    .hero {
+        height: 300px;
+        min-height: 260px;
+        border-radius: 10px;
+    }
+
+        .hero img {
+            object-position: center center;
+        }
+
+    .hero-content {
+        bottom: 14px;
+        left: 14px;
+        right: 14px;
+        max-width: 100%;
+    }
+
+        .hero-content h1 {
+            font-size: 1.75rem;
+            margin: 6px 0 4px;
+            line-height: 1.2;
+        }
+
+    .hero-tag {
+        font-size: 0.65rem;
+    }
+
+    .news-open {
+        margin: 0.75rem;
+    }
+
+    .news-open-title {
+        font-size: 1.6rem;
         letter-spacing: -0.5px;
     }
 
-    .mn-splash p {
-        margin: 0;
-        opacity: .7;
-        max-width: 420px;
+    .news-open p:first-of-type {
+        font-size: 1.05rem;
     }
 
-    .mn-splash nav {
+    .news-open p {
+        font-size: 1rem;
+    }
+
+    .header .container {
+        flex-direction: row;
+        align-items: center;
+        gap: 0;
+        padding: 10px 14px;
+    }
+
+    .brand {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        width: 100%;
+        gap: 8px;
+        padding-bottom: 0;
+    }
+
+    .brand-logo {
         display: flex;
-        flex-wrap: wrap;
-        gap: 14px;
+        align-items: center;
         justify-content: center;
-        margin-top: 8px;
+        gap: 8px;
+        min-width: 0;
     }
 
-    .mn-splash a {
-        color: inherit;
-        opacity: .85;
-        text-decoration: none;
-        padding: 4px 2px;
-        border-bottom: 1px solid rgba(200, 16, 46, .7);
+    .brand h1 {
+        font-size: 1.15rem;
+        white-space: nowrap;
     }
 
-/* Link real cobrindo o card inteiro (o Google segue <a href>, não @onclick) */
-.news-card-link {
-    position: absolute;
-    inset: 0;
-    z-index: 2; /* os botões de compartilhar têm z-index 3 e continuam clicáveis */
-    border-radius: inherit;
+    .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        background: none;
+        border: none;
+        color: var(--mn-text);
+        padding: 0;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+        .hamburger-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+    .social-icons-mobile {
+        display: none !important;
+    }
+
+    .social-icons-desktop {
+        display: none !important;
+    }
+
+    .theme-toggle {
+        width: 36px;
+        height: 21px;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .theme-toggle-knob {
+        width: 15px;
+        height: 15px;
+    }
+
+    [data-theme="light"] .theme-toggle-knob {
+        left: 18px;
+    }
+
+    .nav {
+        display: flex !important;
+        flex-direction: column;
+        align-items: stretch;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        height: 100dvh;
+        width: 78vw;
+        max-width: 300px;
+        background: color-mix(in srgb, var(--mn-surface-solid) var(--mn-nav-bg-mix), transparent);
+        padding: 32px 24px 24px;
+        z-index: 2000;
+        margin-left: 0;
+        box-shadow: 8px 0 32px rgba(0,0,0,0.35);
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+        .nav.nav-open {
+            transform: translateX(0);
+        }
+
+    .nav-scroll {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+        .nav-scroll > a {
+            margin-left: 0;
+            font-size: 1.05rem;
+            padding: .7rem 0;
+            border-bottom: 1px solid var(--mn-border);
+            width: 100%;
+            white-space: normal;
+            color: var(--mn-text);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+            .nav-scroll > a::after {
+                display: none;
+            }
+
+    .nav-link-icon {
+        display: inline-flex;
+        opacity: 0.5;
+        transition: opacity 0.2s ease;
+    }
+
+        .nav-link-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+    .nav-scroll > a:hover .nav-link-icon,
+    .nav-scroll > a.active .nav-link-icon {
+        opacity: 0.9;
+    }
+
+    .nav-footer {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        margin-top: 20px;
+        padding-top: 18px;
+    }
+
+    .nav-footer-brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 28px;
+    }
+
+        .nav-footer-brand img {
+            height: 26px;
+            width: 26px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .nav-footer-brand span {
+            font-weight: 800;
+            font-size: 0.95rem;
+            letter-spacing: -0.3px;
+            color: var(--mn-text);
+        }
+
+    .nav-footer .social-icons {
+        justify-content: center;
+        margin: 12px 0 0;
+        padding-left: 0;
+        border-left: none;
+        gap: 20px;
+    }
+
+    .nav-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        background: rgba(0,0,0,0.5);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 1999;
+    }
+
+        .nav-backdrop.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+    .news-list {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .news-card {
+        height: 220px;
+    }
+
+    .news-open {
+        padding: 1rem;
+        margin: 0.75rem;
+        border-radius: 12px;
+    }
+
+    .news-open-title {
+        font-size: 1.4rem;
+    }
+
+    .skeleton-img-detalhe {
+        height: 220px;
+    }
+
+    .sobre-hero {
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+        gap: 16px;
+        padding-top: 16px;
+        padding-bottom: 20px;
+        margin-bottom: 0 !important;
+    }
+
+    .sobre-hero-text {
+        min-width: 0;
+    }
+
+    .sobre-titulo {
+        font-size: 1.9rem;
+        letter-spacing: -1px;
+    }
+
+    .sobre-escudo {
+        width: 96px;
+        height: 96px;
+    }
+
+    .carrossel-slide .hero-content {
+        bottom: 14px;
+        left: 14px;
+        right: 14px;
+        max-width: 100%;
+    }
+
+    .hero-progress {
+        left: 14px;
+        right: 14px;
+    }
+
+    .header-info {
+        display: none;
+    }
+
+    .news-share {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .busca-input {
+        max-width: 100%;
+    }
+
+    .ticker-wrapper {
+        top: 57px;
+        height: 30px;
+    }
+
+    .ticker-item {
+        font-size: 0.75rem;
+    }
+
+    .ultimos-resultados-card {
+        margin-top: 12px;
+    }
+
+    .ur-nome {
+        max-width: 70px;
+        font-size: 0.68rem;
+    }
+
+    .ur-escudo {
+        height: 16px;
+        width: 16px;
+    }
 }
 
-    .news-card-link:focus-visible {
-        outline: 2px solid var(--mn-red);
-        outline-offset: -2px;
+/* ===== max-width: 600px ===== */
+@media (max-width: 600px) {
+    .sobre-hero {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "logo titulo"
+            "logo subtitulo"
+            "badges badges";
+        column-gap: 14px;
+        row-gap: 2px;
+        align-items: center;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        margin-bottom: 0;
     }
 
-/* texto do link só pra leitores de tela e robôs */
-.news-card-link-texto {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+    .sobre-hero-text {
+        display: contents;
+    }
+
+    .sobre-escudo {
+        grid-area: logo;
+        width: 80px;
+        height: 80px;
+        border-width: 2px;
+    }
+
+    .sobre-titulo {
+        grid-area: titulo;
+        align-self: end;
+        font-size: 1.55rem;
+        letter-spacing: -0.8px;
+    }
+
+    .sobre-subtitulo {
+        grid-area: subtitulo;
+        align-self: start;
+        font-size: 0.85rem;
+    }
+
+    .sobre-badges {
+        grid-area: badges;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 10px;
+    }
+
+    .sobre-badge {
+        text-align: center;
+        white-space: nowrap;
+        font-size: 0.66rem;
+        padding: 5px 6px;
+    }
+
+        .sobre-badge:last-child {
+            grid-column: 1 / -1;
+        }
+
+    .sobre-container {
+        gap: 18px;
+        padding: 0 16px;
+    }
+
+    .sobre-tech-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .videos-page {
+        padding: 1.5rem 1rem 3rem;
+    }
+
+    .vmodal {
+        border-radius: 14px;
+    }
+
+    .vmodal-titulo {
+        font-size: .88rem;
+    }
+
+    .time-nome {
+        font-size: 11px;
+        max-width: 72px;
+    }
+
+    .stats-grid {
+        gap: 16px;
+    }
+
+    .gols {
+        font-size: 28px;
+        min-width: 28px;
+    }
+
+    .placar {
+        padding: 12px 10px;
+    }
+
+    .escudo {
+        width: 26px;
+        height: 26px;
+    }
+
+    .placar-centro {
+        flex: 0 0 64px;
+    }
+
+    .minuto {
+        font-size: 15px;
+    }
+
+    .status-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+
+    .tab {
+        font-size: 10px;
+        padding: 11px 4px;
+        letter-spacing: 0;
+    }
+
+    .escalacao-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-val {
+        font-size: 15px;
+    }
+
+    .tab-content {
+        padding: 12px 8px;
+        overflow: hidden;
+    }
+
+    .campo-wrapper {
+        padding: 0 8px;
+        overflow: hidden;
+    }
+
+    .campo-svg-container {
+        transform: perspective(600px) rotateX(45deg);
+        transform-origin: top center;
+    }
+
+    .elenco-filtros {
+        justify-content: flex-start;
+    }
+
+    .elenco-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+    }
+
+    .card-numero {
+        font-size: 24px;
+        top: 4px;
+        right: 8px;
+    }
+
+    .card-foto-wrap {
+        padding-top: 22px;
+    }
+
+    .card-pos-badge {
+        font-size: 8px;
+        padding: 3px 8px 3px 6px;
+    }
+
+    .card-info {
+        padding: 18px 8px 6px;
+    }
+
+    .card-nome {
+        font-size: 13px;
+    }
+
+    .elenco-titulo {
+        font-size: 28px;
+    }
+
+    .elenco-escudo {
+        width: 50px;
+        height: 50px;
+    }
+
+    .modal-stats .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .modal-foto {
+        width: 70px;
+        height: 88px;
+    }
+
+    .modal-nome {
+        font-size: 18px;
+    }
+
+    .jogo-header-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 12px 16px;
+    }
+
+    .competicao {
+        font-size: 11px;
+    }
+
+    .player-card {
+        animation: none;
+    }
+
+    .pix-box {
+        flex-direction: column;
+        text-align: center;
+        gap: 14px;
+    }
+}
+
+/* ===== max-width: 560px ===== */
+@media (max-width: 560px) {
+    .videos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== max-width: 480px ===== */
+@media (max-width: 480px) {
+    .social-icons svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .brand h1 {
+        font-size: 1.2rem;
+    }
+
+    .brand img {
+        height: 28px;
+    }
+
+    .hero {
+        height: 260px;
+    }
+
+    .hero-content h1 {
+        font-size: 1.05rem;
+    }
+
+    .content {
+        padding: 12px;
+    }
+
+    .footer-links {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .gol-toast-container {
+        right: 12px;
+        left: 12px;
+    }
+
+    .gol-toast {
+        max-width: 100%;
+        font-size: 0.85rem;
+    }
+
+    .pj-escudo-wrap {
+        width: 44px;
+        height: 44px;
+    }
+
+    .pj-escudo {
+        width: 30px;
+        height: 30px;
+    }
+
+    .pj-nome {
+        font-size: 0.75rem;
+    }
+
+    .pj-data {
+        font-size: 0.72rem;
+    }
+
+    .pj-countdown {
+        font-size: 0.68rem;
+    }
+
+    .match-v2-crest {
+        width: 28px;
+        height: 28px;
+    }
+
+    .match-v2-nome {
+        font-size: 0.7rem;
+        max-width: 70px;
+    }
+
+    .match-v2-gol {
+        font-size: 1.3rem;
+    }
+}
+
+/* ===== max-width: 400px ===== */
+@media (max-width: 400px) {
+    .time-nome {
+        display: none;
+    }
+
+    .campo-svg-container {
+        transform: perspective(500px) rotateX(40deg);
+        transform-origin: top center;
+    }
+}
+
+/* ===== Preferência do usuário: menos movimento ===== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
