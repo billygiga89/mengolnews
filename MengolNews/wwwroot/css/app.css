@@ -1268,30 +1268,18 @@ html, body {
 }
 
 /* ═══ Bolinhas "Últimas 5" ═══ */
-.form-list {
-    display: flex;
-    gap: 3px;
-    justify-content: center;
+
+.form-badge.win {
+    background: #22c55e;
 }
 
-.form-badge {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    display: inline-block;
+.form-badge.draw {
+    background: #6b7280;
 }
 
-    .form-badge.win {
-        background: #22c55e;
-    }
-
-    .form-badge.draw {
-        background: #6b7280;
-    }
-
-    .form-badge.loss {
-        background: #ef4444;
-    }
+.form-badge.loss {
+    background: #ef4444;
+}
 
 /* ═══ Card de cartões amarelos ═══ */
 .seriea-cartoes-card {

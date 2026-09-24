@@ -57,7 +57,6 @@
                                 <th title="Derrotas">D</th>
                                 <th title="Saldo de gols">SG</th>
                                 <th title="Gols pró">GP</th>
-                                <th>Últimas 5</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -74,7 +73,6 @@
                                 var name = FixNome(team.GetProperty("team").GetProperty("shortName").GetString());
                                 var crest = team.GetProperty("team").GetProperty("crest").GetString() ?? "";
                                 var isFla = name.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
-                                var form = ExtrairForm(team);
 
                                 var zoneClass = pos <= 6 ? "zone-lib"
                                 : pos <= 12 ? "zone-sul"
@@ -105,18 +103,6 @@
                                         @(gd > 0 ? "+" : "")@gd
                                     </td>
                                     <td>@gf</td>
-                                    <td>
-                                        @if (form.Length > 0)
-                                        {
-                                            <div class="form-list">
-                                                @foreach (var r in form)
-                                                {
-                                                    var cls = r == "W" ? "win" : r == "L" ? "loss" : "draw";
-                                                    <span class="form-badge @cls" title="@r"></span>
-                                                }
-                                            </div>
-                                        }
-                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -268,17 +254,6 @@
         return NomesFix.TryGetValue(nome, out var fix) ? fix : nome;
     }
 
-    private string[] ExtrairForm(JsonElement team)
-    {
-        if (!team.TryGetProperty("form", out var formEl) || formEl.ValueKind != JsonValueKind.String)
-            return Array.Empty<string>();
-
-        var raw = formEl.GetString();
-        if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<string>();
-
-        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    }
-
     private (int hg, int ag)? ResolverPlacar(JsonElement m)
     {
         var score = m.GetProperty("score");
@@ -309,7 +284,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadStandings();
-        await LoadCartoes();
+        //await LoadCartoes();
     }
 
     async Task SetTab(string tab)
@@ -347,7 +322,7 @@
         {
             cartoes = await Http.GetFromJsonAsync<List<CartaoDto>>($"{Api}api/seriea/cartoes");
         }
-        catch { cartoes = null; } // se falhar, a página segue mostrando só a tabela
+        catch { cartoes = null; }
     }
 
     async Task LoadMatches()
@@ -396,3 +371,4 @@
         public int Amarelos { get; set; }
     }
 }
+
