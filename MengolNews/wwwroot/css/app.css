@@ -1255,6 +1255,108 @@ html, body {
     border-radius: 12px;
 }
 
+/* ═══ Empilhamento tabela + cartões (mobile = coluna, desktop = lado a lado) ═══ */
+.seriea-content-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.seriea-table-col {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ═══ Bolinhas "Últimas 5" ═══ */
+.form-list {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+}
+
+.form-badge {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+    .form-badge.win {
+        background: #22c55e;
+    }
+
+    .form-badge.draw {
+        background: #6b7280;
+    }
+
+    .form-badge.loss {
+        background: #ef4444;
+    }
+
+/* ═══ Card de cartões amarelos ═══ */
+.seriea-cartoes-card {
+    background: #1e0e0e;
+    border: 1px solid #2e1010;
+    border-radius: 12px;
+    overflow: hidden;
+    align-self: flex-start;
+    width: 100%;
+}
+
+.seriea-cartoes-header {
+    background: #c8102e;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 10px 14px;
+}
+
+.seriea-cartoes-lista {
+    display: flex;
+    flex-direction: column;
+}
+
+.cartao-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 14px;
+    border-bottom: 1px solid #2a1010;
+    font-size: 0.85rem;
+}
+
+    .cartao-item:last-child {
+        border-bottom: none;
+    }
+
+.cartao-nome {
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cartao-time {
+    color: #888;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.cartao-qtd {
+    background: #FFD700;
+    color: #1e0e0e;
+    font-weight: 800;
+    font-size: 0.78rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
 .seriea-table {
     width: 100%;
     border-collapse: collapse;
@@ -4306,6 +4408,18 @@ html, body {
 
     .pix-flutuante .pix-copy {
         padding: 5px 8px;
+    }
+}
+
+@media (min-width: 900px) {
+    .seriea-content-wrap {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .seriea-cartoes-card {
+        width: 300px;
+        flex-shrink: 0;
     }
 }
 

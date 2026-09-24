@@ -39,82 +39,116 @@
         <div class="seriea-error">⚠️ @error</div>
     }
 
-    @* ── TABELA ── *@
+    @* ── TABELA + CARTÕES ── *@
     else if (activeTab == "tabela" && standings != null)
     {
-        <div class="table-scroll">
-            <table class="seriea-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th class="left">Time</th>
-                        <th title="Pontos">PTS</th>
-                        <th title="Jogos">J</th>
-                        <th title="Vitórias">V</th>
-                        <th title="Empates">E</th>
-                        <th title="Derrotas">D</th>
-                        <th title="Saldo de gols">SG</th>
-                        <th title="Gols pró">GP</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var team in standings)
-                    {
-                        var pos = team.GetProperty("position").GetInt32();
-                        var pts = team.GetProperty("points").GetInt32();
-                        var played = team.GetProperty("playedGames").GetInt32();
-                        var won = team.GetProperty("won").GetInt32();
-                        var draw = team.GetProperty("draw").GetInt32();
-                        var lost = team.GetProperty("lost").GetInt32();
-                        var gd = team.GetProperty("goalDifference").GetInt32();
-                        var gf = team.GetProperty("goalsFor").GetInt32();
-                        var name = FixNome(team.GetProperty("team").GetProperty("shortName").GetString());
-                        var crest = team.GetProperty("team").GetProperty("crest").GetString() ?? "";
-                        var isFla = name.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
+        <div class="seriea-content-wrap">
+            <div class="seriea-table-col">
+                <div class="table-scroll">
+                    <table class="seriea-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th class="left">Time</th>
+                                <th title="Pontos">PTS</th>
+                                <th title="Jogos">J</th>
+                                <th title="Vitórias">V</th>
+                                <th title="Empates">E</th>
+                                <th title="Derrotas">D</th>
+                                <th title="Saldo de gols">SG</th>
+                                <th title="Gols pró">GP</th>
+                                <th>Últimas 5</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var team in standings)
+                            {
+                                var pos = team.GetProperty("position").GetInt32();
+                                var pts = team.GetProperty("points").GetInt32();
+                                var played = team.GetProperty("playedGames").GetInt32();
+                                var won = team.GetProperty("won").GetInt32();
+                                var draw = team.GetProperty("draw").GetInt32();
+                                var lost = team.GetProperty("lost").GetInt32();
+                                var gd = team.GetProperty("goalDifference").GetInt32();
+                                var gf = team.GetProperty("goalsFor").GetInt32();
+                                var name = FixNome(team.GetProperty("team").GetProperty("shortName").GetString());
+                                var crest = team.GetProperty("team").GetProperty("crest").GetString() ?? "";
+                                var isFla = name.Contains("Flamengo", StringComparison.OrdinalIgnoreCase);
+                                var form = ExtrairForm(team);
 
-                        var zoneClass = pos <= 6 ? "zone-lib"
-                        : pos <= 12 ? "zone-sul"
-                        : pos >= 17 ? "zone-rel" : "";
+                                var zoneClass = pos <= 6 ? "zone-lib"
+                                : pos <= 12 ? "zone-sul"
+                                : pos >= 17 ? "zone-rel" : "";
 
-                        <tr class="@zoneClass @(isFla ? "row-fla" : "")">
-                            <td class="td-pos">
-                                <span class="pos-badge @zoneClass">@pos</span>
-                            </td>
-                            <td class="td-team">
-                                @if (!string.IsNullOrEmpty(crest))
-                                {
-                                    <img src="@crest" class="team-crest"
-                                         onerror="this.style.display='none'" alt="" />
-                                }
-                                <span>@name</span>
-                                @if (isFla)
-                                {
-                                    <span class="fla-tag">FLA</span>
-                                }
-                            </td>
-                            <td class="td-pts">@pts</td>
-                            <td>@played</td>
-                            <td>@won</td>
-                            <td>@draw</td>
-                            <td>@lost</td>
-                            <td class="@(gd > 0 ? "pos-gd" : gd < 0 ? "neg-gd" : "")">
-                                @(gd > 0 ? "+" : "")@gd
-                            </td>
-                            <td>@gf</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                                <tr class="@zoneClass @(isFla ? "row-fla" : "")">
+                                    <td class="td-pos">
+                                        <span class="pos-badge @zoneClass">@pos</span>
+                                    </td>
+                                    <td class="td-team">
+                                        @if (!string.IsNullOrEmpty(crest))
+                                        {
+                                            <img src="@crest" class="team-crest"
+                                                 onerror="this.style.display='none'" alt="" />
+                                        }
+                                        <span>@name</span>
+                                        @if (isFla)
+                                        {
+                                            <span class="fla-tag">FLA</span>
+                                        }
+                                    </td>
+                                    <td class="td-pts">@pts</td>
+                                    <td>@played</td>
+                                    <td>@won</td>
+                                    <td>@draw</td>
+                                    <td>@lost</td>
+                                    <td class="@(gd > 0 ? "pos-gd" : gd < 0 ? "neg-gd" : "")">
+                                        @(gd > 0 ? "+" : "")@gd
+                                    </td>
+                                    <td>@gf</td>
+                                    <td>
+                                        @if (form.Length > 0)
+                                        {
+                                            <div class="form-list">
+                                                @foreach (var r in form)
+                                                {
+                                                    var cls = r == "W" ? "win" : r == "L" ? "loss" : "draw";
+                                                    <span class="form-badge @cls" title="@r"></span>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
-        <div class="zone-legend">
-            <div class="legend-item"><span class="lz lib"></span> Libertadores</div>
-            <div class="legend-item"><span class="lz sul"></span> Sul-Americana</div>
-            <div class="legend-item"><span class="lz rel"></span> Rebaixamento</div>
+                <div class="zone-legend">
+                    <div class="legend-item"><span class="lz lib"></span> Libertadores</div>
+                    <div class="legend-item"><span class="lz sul"></span> Sul-Americana</div>
+                    <div class="legend-item"><span class="lz rel"></span> Rebaixamento</div>
+                </div>
+            </div>
+
+            @if (cartoes != null && cartoes.Count > 0)
+            {
+                <div class="seriea-cartoes-card">
+                    <div class="seriea-cartoes-header">🟨 Mais cartões amarelos</div>
+                    <div class="seriea-cartoes-lista">
+                        @foreach (var j in cartoes.Take(10))
+                        {
+                            <div class="cartao-item">
+                                <span class="cartao-nome">@j.Nome</span>
+                                <span class="cartao-time">@j.Time</span>
+                                <span class="cartao-qtd">@j.Amarelos</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     }
 
-    @* ── PARTIDAS ── *@
     @* ── PARTIDAS ── *@
     else if (activeTab == "partidas" && matches != null)
     {
@@ -209,6 +243,7 @@
     string? error;
     List<JsonElement>? standings;
     List<JsonElement>? matches;
+    List<CartaoDto>? cartoes;
     int selectedMatchday = 1;
 
     bool navegacaoManual = false;
@@ -227,11 +262,21 @@
         if (clickable) Nav.NavigateTo("/jogo?fdId=" + id);
     }
 
-
     private string FixNome(string? nome)
     {
         if (nome == null) return "?";
         return NomesFix.TryGetValue(nome, out var fix) ? fix : nome;
+    }
+
+    private string[] ExtrairForm(JsonElement team)
+    {
+        if (!team.TryGetProperty("form", out var formEl) || formEl.ValueKind != JsonValueKind.String)
+            return Array.Empty<string>();
+
+        var raw = formEl.GetString();
+        if (string.IsNullOrWhiteSpace(raw)) return Array.Empty<string>();
+
+        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private (int hg, int ag)? ResolverPlacar(JsonElement m)
@@ -262,7 +307,10 @@
     }
 
     protected override async Task OnInitializedAsync()
-        => await LoadStandings();
+    {
+        await LoadStandings();
+        await LoadCartoes();
+    }
 
     async Task SetTab(string tab)
     {
@@ -291,6 +339,15 @@
         }
         catch (Exception ex) { error = "Não foi possível carregar a tabela. " + ex.Message; }
         finally { loading = false; }
+    }
+
+    async Task LoadCartoes()
+    {
+        try
+        {
+            cartoes = await Http.GetFromJsonAsync<List<CartaoDto>>($"{Api}api/seriea/cartoes");
+        }
+        catch { cartoes = null; } // se falhar, a página segue mostrando só a tabela
     }
 
     async Task LoadMatches()
@@ -329,5 +386,13 @@
         selectedMatchday++;
         matches = null;
         await LoadMatches();
+    }
+
+    public class CartaoDto
+    {
+        public string Nome { get; set; } = "";
+        public string Foto { get; set; } = "";
+        public string Time { get; set; } = "";
+        public int Amarelos { get; set; }
     }
 }
