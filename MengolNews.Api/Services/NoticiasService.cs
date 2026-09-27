@@ -443,6 +443,8 @@ namespace MengolNews.Api.Services
             "sem-imagem",
             "placeholder",
             "default.jpg",
+            "tiktokcdn",
+            "futbolsites.net/generic",
         };
 
         private bool EhImagemInvalida(string? url)

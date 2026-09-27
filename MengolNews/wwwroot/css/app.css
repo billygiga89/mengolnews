@@ -4270,6 +4270,35 @@ html, body {
     white-space: nowrap;
 }
 
+.noticia-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.25rem 0;
+    font-size: 0.92rem;
+    color: var(--mn-text-dim);
+}
+
+    .noticia-tabela th,
+    .noticia-tabela td {
+        padding: 8px 12px;
+        border: 1px solid var(--mn-border);
+        text-align: left;
+    }
+
+    .noticia-tabela th {
+        background: var(--mn-surface);
+        color: var(--mn-text);
+        font-weight: 700;
+    }
+
+.noticia-corpo-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    display: block;
+    margin: 1.5rem 0;
+}
+
 /* ════════════════════════════════════════════════════════════════
    RESPONSIVO — todos os @media reunidos aqui, do maior breakpoint
    para o menor. Dentro de cada breakpoint, a ordem das regras foi
