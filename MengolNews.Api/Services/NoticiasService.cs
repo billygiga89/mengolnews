@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Net;
 using System.ServiceModel.Syndication;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -12,6 +13,7 @@ namespace MengolNews.Api.Services
     public class NoticiasService
     {
         private readonly HttpClient _http;
+        private readonly CloudflareKvService _kv;
 
         // CACHE
         private List<NoticiaDto>? _cache;
@@ -21,9 +23,10 @@ namespace MengolNews.Api.Services
         // Limita scraping paralelo para não sobrecarregar
         private static readonly SemaphoreSlim _semaforo = new(5, 5);
 
-        public NoticiasService(HttpClient http)
+        public NoticiasService(HttpClient http, CloudflareKvService kv)
         {
             _http = http;
+            _kv = kv;
             _http.Timeout = TimeSpan.FromSeconds(15);
             _http.DefaultRequestHeaders.UserAgent.ParseAdd(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
@@ -85,7 +88,70 @@ namespace MengolNews.Api.Services
             _cache = noticias;
             _ultimaAtualizacao = DateTime.Now;
 
+            // Arquiva as notícias novas no Cloudflare KV, em segundo plano —
+            // nunca atrasa nem quebra a resposta normal da listagem.
+            ArquivarEmSegundoPlano(noticias);
+
             return noticias;
+        }
+
+        /* =======================
+           ARQUIVAMENTO PERMANENTE (Cloudflare KV)
+        ======================= */
+
+        private static string ChaveArquivo(string link)
+        {
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(link));
+            var hex = Convert.ToHexString(bytes).ToLowerInvariant();
+            return $"noticia:{hex}";
+        }
+
+        private void ArquivarEmSegundoPlano(List<NoticiaDto> noticias)
+        {
+            _ = Task.Run(async () =>
+            {
+                foreach (var noticia in noticias)
+                {
+                    try
+                    {
+                        if (string.IsNullOrWhiteSpace(noticia.Link)) continue;
+
+                        var chave = ChaveArquivo(noticia.Link);
+
+                        // Só grava se ainda não existir — protege a cota de
+                        // escrita do plano free (1.000/dia), bem mais
+                        // apertada que a de leitura (100.000/dia).
+                        if (await _kv.ExistsAsync(chave)) continue;
+
+                        var json = JsonSerializer.Serialize(noticia);
+                        await _kv.SetAsync(chave, json);
+                    }
+                    catch
+                    {
+                        // Falha silenciosa — arquivamento é best-effort,
+                        // nunca deve atrapalhar a listagem normal.
+                    }
+                }
+            });
+        }
+
+        public async Task<NoticiaDto?> BuscarNoArquivoAsync(string link)
+        {
+            if (string.IsNullOrWhiteSpace(link)) return null;
+
+            var chave = ChaveArquivo(link);
+            var json = await _kv.GetAsync(chave);
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<NoticiaDto>(json);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /* =======================
@@ -96,7 +162,6 @@ namespace MengolNews.Api.Services
         {
             try
             {
-                // Windows
                 var tz = TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
                 return TimeZoneInfo.ConvertTimeFromUtc(utc, tz);
             }
@@ -104,13 +169,12 @@ namespace MengolNews.Api.Services
             {
                 try
                 {
-                    // Linux/Docker
                     var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
                     return TimeZoneInfo.ConvertTimeFromUtc(utc, tz);
                 }
                 catch
                 {
-                    return utc.AddHours(-3); // fallback manual
+                    return utc.AddHours(-3);
                 }
             }
         }
@@ -137,7 +201,6 @@ namespace MengolNews.Api.Services
         private Task<List<NoticiaDto>> GetFlamengoRj()
              => LerRss("https://urubuinterativo.com/feed/", "URUBU INTERATIVO", filtrarFlamengo: false);
 
-        // Fontes gerais de esporte — precisam filtrar só notícias do Flamengo
         private Task<List<NoticiaDto>> GetPlacar()
             => LerRss("https://placar.com.br/feed/", "PLACAR", filtrarFlamengo: true);
 
@@ -184,7 +247,7 @@ namespace MengolNews.Api.Services
                         await Task.Delay(TimeSpan.FromSeconds(1.5));
                 }
 
-                using var _ = response; // garante Dispose ao sair do escopo
+                using var _ = response;
 
                 if (response == null || !response.IsSuccessStatusCode)
                 {
@@ -194,9 +257,6 @@ namespace MengolNews.Api.Services
 
                 var xml = await response.Content.ReadAsStringAsync();
 
-                // O Rss20FeedFormatter só aceita version="2.0". Feeds antigos (ex: BOL Esporte)
-                // ainda usam RSS 0.9x, que é compatível o suficiente nos campos que usamos
-                // (title, link, description, pubDate) — só normalizamos o atributo de versão.
                 xml = Regex.Replace(
                     xml,
                     @"(<rss[^>]*\bversion\s*=\s*"")[^""]+("")",
@@ -243,7 +303,7 @@ namespace MengolNews.Api.Services
 
                     if (EhImagemInvalida(imagem))
                     {
-                        imagem = ""; // descarta placeholder da fonte (ex: noimg.jpg do NetFla)
+                        imagem = "";
 
                         if (!string.IsNullOrWhiteSpace(link))
                         {
@@ -261,7 +321,6 @@ namespace MengolNews.Api.Services
                         }
                     }
 
-                    // ✅ Converte data para horário de Brasília
                     var dataUtc = item.PublishDate.UtcDateTime == DateTime.MinValue
                         ? DateTime.UtcNow
                         : item.PublishDate.UtcDateTime;
@@ -310,9 +369,6 @@ namespace MengolNews.Api.Services
            DEDUPLICAÇÃO POR SIMILARIDADE DE TÍTULO
         ======================= */
 
-        // Ordem de preferência de fontes usada como critério de desempate quando
-        // duas notícias de fontes diferentes são consideradas a mesma matéria.
-        // Quanto mais no topo, mais prioridade. Reordene à vontade.
         private static readonly List<string> PrioridadeFontes = new()
         {
             "ESPN",
@@ -325,10 +381,6 @@ namespace MengolNews.Api.Services
             "NOTÍCIAS FLA",
         };
 
-        // Similaridade mínima (Jaccard) entre os tokens de dois títulos para
-        // serem tratados como a mesma notícia. Suba para 0.7 se estiver
-        // agrupando notícias diferentes demais; desça para 0.5 se ainda
-        // passarem duplicatas.
         private const double LimiarSimilaridadeTitulo = 0.5;
 
         private static readonly HashSet<string> StopWordsTitulo = new(StringComparer.OrdinalIgnoreCase)
@@ -389,7 +441,7 @@ namespace MengolNews.Api.Services
             var intersecao = a.Intersect(b).Count();
             var uniao = a.Union(b).Count();
 
-            return (double)intersecao / uniao; // índice de Jaccard
+            return (double)intersecao / uniao;
         }
 
         private static string RemoverAcentos(string texto)
@@ -410,7 +462,7 @@ namespace MengolNews.Api.Services
         private int PrioridadeFonte(string fonte)
         {
             var idx = PrioridadeFontes.FindIndex(f => string.Equals(f, fonte, StringComparison.OrdinalIgnoreCase));
-            return idx == -1 ? PrioridadeFontes.Count : idx; // fontes não listadas ficam por último
+            return idx == -1 ? PrioridadeFontes.Count : idx;
         }
 
         private bool EhMelhorVersao(NoticiaDto candidata, NoticiaDto atual)
@@ -418,11 +470,9 @@ namespace MengolNews.Api.Services
             var prioridadeCandidata = PrioridadeFonte(candidata.Fonte);
             var prioridadeAtual = PrioridadeFonte(atual.Fonte);
 
-            // Fonte com maior prioridade (número menor) vence direto.
             if (prioridadeCandidata != prioridadeAtual)
                 return prioridadeCandidata < prioridadeAtual;
 
-            // Mesma prioridade: desempata por qualidade de conteúdo (imagem + descrição).
             var pontosCandidata = (string.IsNullOrWhiteSpace(candidata.Imagem) ? 0 : 1)
                 + (candidata.Descricao?.Length ?? 0) / 100;
 
@@ -651,6 +701,7 @@ namespace MengolNews.Api.Services
                 @"Qual o horário .+\?",
                 @"Como assistir .+\?",
                 @"Onde comprar .+\?",
+                @"(Veja|Assista|Confira|Olha|Aperte o play (n[oa])?)\s+(o|a|os|as|esse|essa|este|esta|nesse|nessa)?\s*(v[ií]deos?|reels?|stor(y|ies))\b[^\n\.]{0,120}\.?",
             };
 
             var resultado = texto;

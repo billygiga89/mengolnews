@@ -139,5 +139,29 @@ namespace MengolNews.Api.Controllers
                 return StatusCode(500, "Erro ao buscar conteúdo.");
             }
         }
+
+        /// <summary>
+        /// 🔥 Busca uma notícia arquivada permanentemente (Cloudflare KV) —
+        /// usado quando a notícia já saiu da lista recente (30 dias / 50 itens)
+        /// </summary>
+        [HttpGet("arquivo")]
+        public async Task<IActionResult> GetDoArquivo([FromQuery] string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return BadRequest("URL não informada.");
+
+            try
+            {
+                var noticia = await _service.BuscarNoArquivoAsync(url);
+                if (noticia == null) return NotFound();
+
+                return Ok(noticia);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar notícia arquivada: {url}", url);
+                return StatusCode(500, "Erro ao buscar notícia arquivada.");
+            }
+        }
     }
 }

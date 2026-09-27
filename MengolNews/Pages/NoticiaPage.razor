@@ -177,7 +177,6 @@
             var opcoes = new JsonSerializerOptions { WriteIndented = false };
             var json = JsonSerializer.Serialize(schema, opcoes);
 
-            // Corrige os nomes das propriedades reservadas do JSON-LD (@context, @type, @id)
             json = json
                 .Replace("\"context\":", "\"@context\":")
                 .Replace("\"type\":", "\"@type\":")
@@ -207,6 +206,13 @@
         var todas = await NewsService.GetNoticiasAsync();
         noticia = todas.FirstOrDefault(n => n.Link == link);
 
+        // Não achou na lista recente (saiu por passar de 30 dias ou de 50
+        // itens) — tenta buscar no arquivo permanente antes de desistir.
+        if (noticia == null)
+        {
+            noticia = await BuscarNoArquivoAsync(link);
+        }
+
         carregando = false;
 
         if (noticia == null)
@@ -217,6 +223,27 @@
 
         await InvokeAsync(StateHasChanged);
         await CarregarConteudoCompleto(link);
+    }
+
+    private async Task<Noticia?> BuscarNoArquivoAsync(string link)
+    {
+        try
+        {
+            var urlEncoded = Uri.EscapeDataString(link);
+            var response = await Http.GetAsync($"api/noticias/arquivo?url={urlEncoded}");
+
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Noticia>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task CarregarConteudoCompleto(string link)

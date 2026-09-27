@@ -8,11 +8,11 @@ builder.Services.AddControllers();
 // HttpClient GLOBAL
 builder.Services.AddHttpClient("default", client =>
 {
-	client.Timeout = TimeSpan.FromSeconds(15);
+    client.Timeout = TimeSpan.FromSeconds(15);
 })
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
-	AllowAutoRedirect = true
+    AllowAutoRedirect = true
 });
 
 // Services
@@ -36,16 +36,20 @@ builder.Services.AddHostedService<CacheWarmupService>();
 
 builder.Services.AddHttpClient<SquadService>();
 
+// Cloudflare KV — arquivamento permanente de notícias
+builder.Services.AddHttpClient("cloudflarekv");
+builder.Services.AddSingleton<CloudflareKvService>();
+
 // CORS
 builder.Services.AddCors(options =>
 {
-	options.AddPolicy("AllowBlazor", policy =>
-	{
-		policy
-			.AllowAnyOrigin()
-			.AllowAnyHeader()
-			.AllowAnyMethod();
-	});
+    options.AddPolicy("AllowBlazor", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
 var app = builder.Build();
@@ -53,7 +57,7 @@ var app = builder.Build();
 // Pipeline
 if (app.Environment.IsDevelopment())
 {
-	app.UseHttpsRedirection();
+    app.UseHttpsRedirection();
 }
 
 app.UseCors("AllowBlazor");
