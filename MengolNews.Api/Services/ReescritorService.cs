@@ -18,7 +18,7 @@ namespace MengolNews.Api.Services
             _http = http;
             _http.Timeout = TimeSpan.FromSeconds(90);
             _apiKey = config["Gemini:ApiKey"] ?? "";
-            _modelo = config["Gemini:Modelo"] ?? "gemini-2.5-flash";
+            _modelo = config["Gemini:Modelo"] ?? "gemini-3.8-flash";
         }
 
         public bool Configurado => !string.IsNullOrWhiteSpace(_apiKey);
@@ -148,8 +148,8 @@ Responda somente com o texto final da matéria.
             var config = new Dictionary<string, object>
             {
                 ["temperature"] = respostaJson ? 0.3 : 0.5,
-                ["maxOutputTokens"] = 8192,
-                ["thinkingConfig"] = new { thinkingBudget = 0 } // sem "pensar": mais rápido e gasta menos cota
+                ["maxOutputTokens"] = 16384,
+                ["thinkingConfig"] = new { thinkingLevel = "low" } // pensa pouco: mais rápido e gasta menos cota
             };
             if (respostaJson) config["responseMimeType"] = "application/json";
 
