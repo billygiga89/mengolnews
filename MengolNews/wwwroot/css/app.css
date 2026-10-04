@@ -3612,18 +3612,43 @@ html, body {
 .ticker-wrapper {
     display: flex;
     align-items: center;
-    background: var(--mn-surface-solid);
-    border: 1px solid var(--mn-border);
-    border-radius: var(--mn-radius-sm);
-    margin: 8px auto 0;
-    max-width: 1100px;
+    width: 100%;
+    box-sizing: border-box;
     height: 36px;
+    margin: 0;
+    /* alinha o conteúdo com o logo do cabeçalho (container de 1100px + 20px de padding) */
+    padding-inline: 0;
+    /* mesmo vidro do cabeçalho: os dois viram um bloco só */
+    background: color-mix(in srgb, var(--mn-surface-solid) 75%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: none;
+    border-bottom: 1px solid var(--mn-border);
+    border-radius: 0;
+    box-shadow: var(--mn-shadow-elevate);
     overflow: hidden;
     position: sticky;
     top: 64px;
     z-index: 999;
     transition: background-color .25s ease, border-color .25s ease;
 }
+
+/* a sombra passa a ficar embaixo da faixa, e não entre o cabeçalho e ela */
+.header:has(+ .ticker-wrapper) {
+    box-shadow: none;
+}
+
+.header-stack {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+    .header-stack .header,
+    .header-stack .ticker-wrapper {
+        position: relative;
+        top: auto;
+    }
 
     .ticker-wrapper::after {
         content: "";
@@ -3657,6 +3682,8 @@ html, body {
     height: 100%;
     display: flex;
     align-items: center;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent 100%);
 }
 
 .ticker-track {
@@ -4764,8 +4791,8 @@ html, body {
     }
 
     .ticker-wrapper {
-        top: 57px;
         height: 30px;
+        padding-inline: 0;
     }
 
     .ticker-item {

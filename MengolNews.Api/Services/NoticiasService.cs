@@ -767,42 +767,121 @@ namespace MengolNews.Api.Services
         {
             try
             {
-                var web = new HtmlWeb();
-                var doc = await web.LoadFromWebAsync(url);
+                using var resp = await _http.GetAsync(url);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[IA] Página da fonte respondeu HTTP {(int)resp.StatusCode}");
+                    return null;
+                }
 
-                HtmlNodeCollection? paragrafos = null;
+                var html = await resp.Content.ReadAsStringAsync();
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
 
-                if (url.Contains("espn.com.br"))
-                    paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'article-body')]//p");
-                else if (url.Contains("ge.globo.com"))
-                    paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'content-text')]//p");
-                else if (url.Contains("lance.com.br"))
-                    paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'content')]//p");
-                else if (url.Contains("colunadofla.com"))
-                    paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'entry-content')]//p");
-                else if (url.Contains("urubuinterativo.com"))
-                    paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'entry-content')]//p");
-                else if (url.Contains("flanoticias.com.br"))
-                    paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'entry-content')]//p");
-                else if (url.Contains("placar.com.br"))
-                    paragrafos = doc.DocumentNode.SelectNodes("//div[contains(@class,'entry-content')]//p | //article//p");
-                else
-                    paragrafos = doc.DocumentNode.SelectNodes("//article//p | //div[contains(@class,'content')]//p");
+                // 1) Muitos sites entregam o texto inteiro no JSON-LD (dados estruturados para o Google)
+                var corpo = ArticleBodyDoJsonLd(doc);
 
-                if (paragrafos == null) return null;
+                // 2) Senão, lê os parágrafos do container principal do artigo
+                if (string.IsNullOrWhiteSpace(corpo))
+                    corpo = ParagrafosDoArtigo(doc);
 
-                var conteudo = string.Join("\n\n",
-                    paragrafos
-                        .Select(p => System.Net.WebUtility.HtmlDecode(p.InnerText.Trim()))
-                        .Where(t => t.Length > 50)
-                );
-
-                return LimparTextoRss(conteudo);
+                return string.IsNullOrWhiteSpace(corpo) ? null : LimparTextoRss(corpo);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[IA] Erro ao ler página da fonte: {ex.Message}");
                 return null;
             }
+        }
+
+        private static string? ArticleBodyDoJsonLd(HtmlDocument doc)
+        {
+            var scripts = doc.DocumentNode.SelectNodes("//script[@type='application/ld+json']");
+            if (scripts == null) return null;
+
+            foreach (var s in scripts)
+            {
+                try
+                {
+                    using var json = JsonDocument.Parse(s.InnerText);
+                    var corpo = ProcurarArticleBody(json.RootElement);
+                    if (!string.IsNullOrWhiteSpace(corpo) && corpo.Length > 300)
+                        return WebUtility.HtmlDecode(corpo);
+                }
+                catch { /* JSON-LD malformado: segue para o próximo */ }
+            }
+
+            return null;
+        }
+
+        private static string? ProcurarArticleBody(JsonElement el)
+        {
+            if (el.ValueKind == JsonValueKind.Object)
+            {
+                if (el.TryGetProperty("articleBody", out var ab) && ab.ValueKind == JsonValueKind.String)
+                    return ab.GetString();
+
+                foreach (var p in el.EnumerateObject())
+                {
+                    var r = ProcurarArticleBody(p.Value);
+                    if (r != null) return r;
+                }
+            }
+            else if (el.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in el.EnumerateArray())
+                {
+                    var r = ProcurarArticleBody(item);
+                    if (r != null) return r;
+                }
+            }
+
+            return null;
+        }
+
+        private static string? ParagrafosDoArtigo(HtmlDocument doc)
+        {
+            // tira o que nunca é texto de matéria
+            foreach (var xp in new[] { "//script", "//style", "//nav", "//footer", "//aside", "//form", "//noscript" })
+            {
+                var nos = doc.DocumentNode.SelectNodes(xp);
+                if (nos == null) continue;
+                foreach (var n in nos.ToList()) n.Remove();
+            }
+
+            var containers = new[]
+            {
+        "//div[contains(@class,'entry-content')]",
+        "//div[contains(@class,'article-body')]",
+        "//div[contains(@class,'post-content')]",
+        "//div[contains(@class,'content-text')]",
+        "//div[contains(@class,'td-post-content')]",
+        "//article",
+        "//main",
+    };
+
+            foreach (var xp in containers)
+            {
+                var container = doc.DocumentNode.SelectSingleNode(xp);
+                if (container == null) continue;
+
+                var texto = JuntarParagrafos(container.SelectNodes(".//p"));
+                if (texto.Length >= 300) return texto;
+            }
+
+            // último recurso: todos os parágrafos longos da página
+            var geral = JuntarParagrafos(doc.DocumentNode.SelectNodes("//p"), minimo: 60);
+            return geral.Length >= 300 ? geral : null;
+        }
+
+        private static string JuntarParagrafos(HtmlNodeCollection? paragrafos, int minimo = 40)
+        {
+            if (paragrafos == null) return "";
+
+            return string.Join("\n\n",
+                paragrafos
+                    .Select(p => WebUtility.HtmlDecode(p.InnerText).Trim())
+                    .Where(t => t.Length >= minimo));
         }
 
         /* =======================

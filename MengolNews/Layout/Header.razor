@@ -1,6 +1,7 @@
 ﻿@inject IJSRuntime JS
 @implements IAsyncDisposable
 
+<div class="header-stack">
 <header class="header">
     <div class="container">
         <div class="brand">
@@ -120,6 +121,7 @@
 </header>
 
 <NewsTicker />
+</div>
 @code {
     bool menuAberto = false;
     bool isDark = true;

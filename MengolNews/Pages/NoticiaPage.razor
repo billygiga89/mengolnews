@@ -60,9 +60,9 @@
         <article class="news-open">
             @if (!string.IsNullOrWhiteSpace(noticia.Imagem))
             {
-                <img src="@MengolNews.Services.ImageHelper.Proxy(noticia.Imagem)"
+                <img src="@ImagemFinal"
                      alt="@noticia.Titulo"
-                     class="@(noticia.Imagem.StartsWith("/") ? "news-open-img news-open-img-fallback" : "news-open-img")"
+                     class="@(EhFallback ? "news-open-img news-open-img-fallback" : "news-open-img")"
                      onerror="this.src='/images/Flamengo.png'; this.classList.add('news-open-img-fallback'); this.onerror=null;" />
             }
 
@@ -138,8 +138,25 @@
         }
     }
 
-    private string MetaImagem =>
-        !string.IsNullOrWhiteSpace(noticia?.Imagem) ? noticia!.Imagem! : ImagemPadrao;
+    private bool EhFallback =>
+    string.IsNullOrWhiteSpace(noticia?.Imagem) || noticia!.Imagem!.StartsWith("/");
+
+    private string ImagemFinal =>
+        string.IsNullOrWhiteSpace(noticia?.Imagem)
+            ? FallbackImages.ObterPara(noticia?.Titulo ?? "")
+            : MengolNews.Services.ImageHelper.Proxy(noticia!.Imagem!);
+
+    private string MetaImagem
+    {
+        get
+        {
+            var img = string.IsNullOrWhiteSpace(noticia?.Imagem)
+                ? FallbackImages.ObterPara(noticia?.Titulo ?? "")
+                : noticia!.Imagem!;
+
+            return img.StartsWith("/") ? SiteUrl + img : img;
+        }
+    }
 
     private string DataIso =>
         noticia?.Data.ToString("yyyy-MM-ddTHH:mm:sszzz") ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:sszzz");
