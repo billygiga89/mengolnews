@@ -178,7 +178,7 @@ Responda somente com o texto final da matéria.
                         if (resp.IsSuccessStatusCode) return ExtrairTexto(conteudo);
 
                         var codigo = (int)resp.StatusCode;
-                        Console.WriteLine($"[IA] ⚠️ HTTP {codigo} (tentativa {tentativa}/3)");
+                        Console.WriteLine($"[IA] ⚠️ HTTP {codigo} (tentativa {tentativa}/3): {Cortar(conteudo, 300)}");
 
                         // só repete em erro transitório
                         if (codigo is not (429 or 500 or 502 or 503 or 504)) return null;
