@@ -84,49 +84,61 @@ namespace MengolNews.Api.Controllers
         /// <summary>
         /// 🔥 Metadados de uma notícia específica pelo link (usado pelo dynamic rendering / bots)
         /// </summary>
-        [HttpGet("meta")]
-        public async Task<IActionResult> GetMeta([FromQuery] string url)
+        private async Task<string?> ResolverLinkAsync(string? id, string? url)
         {
-            if (string.IsNullOrWhiteSpace(url))
-                return BadRequest("URL não informada.");
+            if (!string.IsNullOrWhiteSpace(id))
+                return await _service.LinkPorIdAsync(id);
+
+            return string.IsNullOrWhiteSpace(url) ? null : url;
+        }
+
+        [HttpGet("meta")]
+        public async Task<IActionResult> GetMeta([FromQuery] string? id, [FromQuery] string? url)
+        {
+            if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(url))
+                return BadRequest("Notícia não informada.");
 
             try
             {
-                var noticias = await _service.GetTodasNoticias();
-                var noticia = noticias.FirstOrDefault(n => n.Link == url);
+                var link = await ResolverLinkAsync(id, url);
+                if (link == null) return NotFound();
 
-                if (noticia == null)
-                    return NotFound();
+                var noticias = await _service.GetTodasNoticias();
+                var noticia = noticias.FirstOrDefault(n => n.Link == link)
+                              ?? await _service.BuscarNoArquivoAsync(link);
+
+                if (noticia == null) return NotFound();
 
                 return Ok(new
                 {
+                    id = NoticiasService.IdDoLink(noticia.Link),
                     titulo = noticia.Titulo,
                     descricao = noticia.Descricao,
                     imagem = noticia.Imagem,
                     data = noticia.Data,
-                    fonte = noticia.Fonte,
-                    link = noticia.Link
+                    fonte = noticia.Fonte,   // mantido por compatibilidade com a Function; vamos tirar depois
+                    link = noticia.Link      // idem
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao buscar metadados da URL: {url}", url);
+                _logger.LogError(ex, "Erro ao buscar metadados da notícia.");
                 return StatusCode(500, "Erro ao buscar metadados.");
             }
         }
 
-        /// <summary>
-        /// 🔥 Busca conteúdo completo de uma notícia pelo link
-        /// </summary>
         [HttpGet("conteudo")]
-        public async Task<IActionResult> GetConteudo([FromQuery] string url)
+        public async Task<IActionResult> GetConteudo([FromQuery] string? id, [FromQuery] string? url)
         {
-            if (string.IsNullOrWhiteSpace(url))
-                return BadRequest("URL não informada.");
+            if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(url))
+                return BadRequest("Notícia não informada.");
 
             try
             {
-                var conteudo = await _service.ExtrairConteudoDaPaginaAsync(url);
+                var link = await ResolverLinkAsync(id, url);
+                if (link == null) return NotFound();
+
+                var conteudo = await _service.ObterConteudoReescritoAsync(link);
 
                 if (string.IsNullOrWhiteSpace(conteudo))
                     return NoContent();
@@ -135,31 +147,30 @@ namespace MengolNews.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao buscar conteúdo da URL: {url}", url);
+                _logger.LogError(ex, "Erro ao buscar conteúdo da notícia.");
                 return StatusCode(500, "Erro ao buscar conteúdo.");
             }
         }
 
-        /// <summary>
-        /// 🔥 Busca uma notícia arquivada permanentemente (Cloudflare KV) —
-        /// usado quando a notícia já saiu da lista recente (30 dias / 50 itens)
-        /// </summary>
         [HttpGet("arquivo")]
-        public async Task<IActionResult> GetDoArquivo([FromQuery] string url)
+        public async Task<IActionResult> GetDoArquivo([FromQuery] string? id, [FromQuery] string? url)
         {
-            if (string.IsNullOrWhiteSpace(url))
-                return BadRequest("URL não informada.");
+            if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(url))
+                return BadRequest("Notícia não informada.");
 
             try
             {
-                var noticia = await _service.BuscarNoArquivoAsync(url);
+                var link = await ResolverLinkAsync(id, url);
+                if (link == null) return NotFound();
+
+                var noticia = await _service.BuscarNoArquivoAsync(link);
                 if (noticia == null) return NotFound();
 
                 return Ok(noticia);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao buscar notícia arquivada: {url}", url);
+                _logger.LogError(ex, "Erro ao buscar notícia arquivada.");
                 return StatusCode(500, "Erro ao buscar notícia arquivada.");
             }
         }

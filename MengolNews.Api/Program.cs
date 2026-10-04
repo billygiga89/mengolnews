@@ -23,6 +23,8 @@ builder.Services.AddHostedService<VideosWarmupHostedService>();
 //builder.Services.AddHttpClient<MatchService>();
 builder.Services.AddScoped<MatchService>();
 
+builder.Services.AddHttpClient<ReescritorService>();
+
 // HttpClients nomeados (necessário para o MatchService usar dois clientes)
 builder.Services.AddHttpClient("apifootball");
 builder.Services.AddHttpClient("footballdata");

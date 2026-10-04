@@ -60,6 +60,13 @@ function montarUrl({ loc, lastmod, changefreq, priority }) {
         .join("\n");
 }
 
+// Endereço da notícia: novo (com id) ou, se a API ainda não mandar id, o antigo
+function enderecoNoticia(n) {
+    return n.id
+        ? `${SITE_URL}/noticia?id=${encodeURIComponent(n.id)}`
+        : `${SITE_URL}/noticia?url=${encodeURIComponent(n.link)}`;
+}
+
 export async function onRequest() {
     const [noticias, artigos] = await Promise.all([
         buscarLista("/api/noticias"),
@@ -85,10 +92,10 @@ export async function onRequest() {
     );
 
     const urlsNoticias = noticias
-        .filter((n) => n && n.link)
+        .filter((n) => n && (n.id || n.link))
         .map((n) =>
             montarUrl({
-                loc: `${SITE_URL}/noticia?url=${encodeURIComponent(n.link)}`,
+                loc: enderecoNoticia(n),
                 lastmod: dataIso(n.data),
                 changefreq: "daily",
                 priority: "0.8",

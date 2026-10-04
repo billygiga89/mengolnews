@@ -8,6 +8,9 @@
 		public string Fonte { get; set; } = "";
 		public DateTime Data { get; set; }
 		public string Link { get; set; } = "";
-		public string? Imagem { get; set; }	
-	}
+		public string? Imagem { get; set; }
+        public string Id => Convert.ToHexString(
+			System.Security.Cryptography.SHA256.HashData(
+				System.Text.Encoding.UTF8.GetBytes(Link ?? ""))).ToLowerInvariant();
+    }
 }

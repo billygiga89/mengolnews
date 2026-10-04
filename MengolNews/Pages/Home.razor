@@ -78,7 +78,7 @@ else
     private void AbrirNoticia(NoticiaModel noticia)
     {
         var url = Uri.EscapeDataString(noticia.Link);
-        Nav.NavigateTo($"/noticia?url={url}");
+        Nav.NavigateTo(noticia.CaminhoSite);
     }
 
     private string ImagemHero =>

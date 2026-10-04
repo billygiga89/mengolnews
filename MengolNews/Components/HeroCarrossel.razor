@@ -88,8 +88,7 @@ else
 
     void AbrirNoticia(NoticiaModel n)
     {
-        var url = Uri.EscapeDataString(n.Link);
-        Nav.NavigateTo($"/noticia?url={url}");
+        Nav.NavigateTo(n.CaminhoSite);
     }
 
     public void Dispose() => timer?.Dispose();

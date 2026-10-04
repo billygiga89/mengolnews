@@ -57,11 +57,9 @@
             ? FallbackImages.ObterPara(Noticia.Titulo)
             : MengolNews.Services.ImageHelper.Proxy(Noticia.Imagem);
 
-    private string HrefNoticia =>
-        $"/noticia?url={Uri.EscapeDataString(Noticia.Link)}";
+    private string HrefNoticia => Noticia.CaminhoSite;
 
-    private string UrlNoSite =>
-        $"https://www.mengolnews.com.br/noticia?url={Uri.EscapeDataString(Noticia.Link)}";
+    private string UrlNoSite => "https://www.mengolnews.com.br" + Noticia.CaminhoSite;
 
     private string WhatsappUrl =>
         $"https://wa.me/?text={Uri.EscapeDataString(Noticia.Titulo + " " + UrlNoSite)}";

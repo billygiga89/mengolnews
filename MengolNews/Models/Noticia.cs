@@ -1,4 +1,6 @@
-﻿namespace MengolNews.Models
+﻿using System.Text.Json.Serialization;
+
+namespace MengolNews.Models
 {
 	public class Noticia
 	{
@@ -10,5 +12,12 @@
 		public string Link { get; set; } = "";
 		public string? Imagem { get; set; }
 
-	}
+        public string Id { get; set; } = "";
+
+        [JsonIgnore]
+        public string CaminhoSite => string.IsNullOrWhiteSpace(Id)
+            ? $"/noticia?url={Uri.EscapeDataString(Link)}"
+            : $"/noticia?id={Id}";
+
+    }
 }

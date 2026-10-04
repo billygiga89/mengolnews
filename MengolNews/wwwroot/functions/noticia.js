@@ -4,13 +4,15 @@
 // JavaScript (Facebook, Twitter/X, WhatsApp, Telegram, Google em alguns casos)
 // recebem HTML vazio e não conseguem indexar/gerar preview das notícias.
 //
-// Esta function intercepta pedidos a /noticia?url=... vindos de bots
-// conhecidos, busca os metadados na API e devolve um HTML já pronto,
+// Esta function intercepta pedidos a /noticia?id=... (ou ?url=..., links antigos)
+// vindos de bots conhecidos, busca os metadados na API e devolve um HTML já pronto,
 // com todas as meta tags. Usuários reais (navegador) passam direto
 // para o fluxo normal do Blazor.
 
 const BOT_REGEX =
   /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|Googlebot|bingbot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|Baiduspider|YandexBot/i;
+
+const ID_REGEX = /^[0-9a-f]{64}$/i;
 
 const API_BASE = "https://mengolnews-api.onrender.com";
 const SITE_URL = "https://www.mengolnews.com.br";
@@ -41,16 +43,26 @@ export async function onRequest(context) {
   }
 
   const requestUrl = new URL(request.url);
-  const noticiaUrl = requestUrl.searchParams.get("url");
+  const noticiaId = requestUrl.searchParams.get("id");
+  const noticiaUrl = requestUrl.searchParams.get("url"); // links antigos
 
   // Sem parâmetro de notícia -> deixa o Blazor tratar (tela de "não encontrada")
-  if (!noticiaUrl) {
+  if (!noticiaId && !noticiaUrl) {
     return next();
   }
 
+  // id inválido -> não gasta chamada na API
+  if (noticiaId && !ID_REGEX.test(noticiaId)) {
+    return next();
+  }
+
+  const consulta = noticiaId
+    ? `id=${encodeURIComponent(noticiaId)}`
+    : `url=${encodeURIComponent(noticiaUrl)}`;
+
   try {
     const apiRes = await fetch(
-      `${API_BASE}/api/noticias/meta?url=${encodeURIComponent(noticiaUrl)}`,
+      `${API_BASE}/api/noticias/meta?${consulta}`,
       { cf: { cacheTtl: 300, cacheEverything: true } }
     );
 
@@ -60,10 +72,15 @@ export async function onRequest(context) {
 
     const noticia = await apiRes.json();
 
+    // Endereço oficial da notícia: sempre o novo, com id (sem domínio de fonte)
+    const enderecoOficial = noticia.id
+      ? `${SITE_URL}/noticia?id=${noticia.id}`
+      : requestUrl.toString();
+
     const titulo = escapeHtml(noticia.titulo || "Notícia");
     const descricao = escapeHtml(truncar(noticia.descricao));
     const imagem = escapeHtml(noticia.imagem || IMAGEM_PADRAO);
-    const paginaUrl = escapeHtml(requestUrl.toString());
+    const paginaUrl = escapeHtml(enderecoOficial);
     const dataPublicacao = noticia.data ? new Date(noticia.data).toISOString() : "";
 
     const jsonLd = JSON.stringify({

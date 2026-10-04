@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Collections.Concurrent;
 
 namespace MengolNews.Api.Services
 {
@@ -14,6 +15,15 @@ namespace MengolNews.Api.Services
     {
         private readonly HttpClient _http;
         private readonly CloudflareKvService _kv;
+
+        private readonly ReescritorService _reescritor;
+
+        // Memória rápida das reescritas (evita ir ao KV ou à IA a cada atualização)
+        private static readonly ConcurrentDictionary<string, NoticiaDto> _resumosReescritos = new();
+        private static readonly ConcurrentDictionary<string, string> _corposReescritos = new();
+        private static readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _corposEmAndamento = new();
+        private static readonly SemaphoreSlim _lockReescrita = new(1, 1);
+        private const int MaxResumosPorLote = 20;
 
         // CACHE
         private List<NoticiaDto>? _cache;
@@ -23,10 +33,11 @@ namespace MengolNews.Api.Services
         // Limita scraping paralelo para não sobrecarregar
         private static readonly SemaphoreSlim _semaforo = new(5, 5);
 
-        public NoticiasService(HttpClient http, CloudflareKvService kv)
+        public NoticiasService(HttpClient http, CloudflareKvService kv, ReescritorService reescritor)
         {
             _http = http;
             _kv = kv;
+            _reescritor = reescritor;
             _http.Timeout = TimeSpan.FromSeconds(15);
             _http.DefaultRequestHeaders.UserAgent.ParseAdd(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
@@ -85,12 +96,12 @@ namespace MengolNews.Api.Services
 
             Console.WriteLine($"TOTAL FINAL: {noticias.Count}");
 
+            // Reescreve títulos/resumos com IA (usa memória/KV; só chama a IA para o que for novo).
+            // O arquivamento no KV agora acontece aqui dentro, já com a versão reescrita.
+            await AplicarReescritaAsync(noticias);
+
             _cache = noticias;
             _ultimaAtualizacao = DateTime.Now;
-
-            // Arquiva as notícias novas no Cloudflare KV, em segundo plano —
-            // nunca atrasa nem quebra a resposta normal da listagem.
-            ArquivarEmSegundoPlano(noticias);
 
             return noticias;
         }
@@ -136,23 +147,209 @@ namespace MengolNews.Api.Services
             });
         }
 
+        private static string HashLink(string link)
+        {
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(link))).ToLowerInvariant();
+        }
+
+        private static string ChaveReescrita(string link) => $"reesc:{HashLink(link)}";
+        private static string ChaveCorpo(string link) => $"texto:{HashLink(link)}";
+
+        private static NoticiaDto? LerNoticia(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            try { return JsonSerializer.Deserialize<NoticiaDto>(json); }
+            catch { return null; }
+        }
+
         public async Task<NoticiaDto?> BuscarNoArquivoAsync(string link)
         {
             if (string.IsNullOrWhiteSpace(link)) return null;
 
-            var chave = ChaveArquivo(link);
-            var json = await _kv.GetAsync(chave);
-            if (string.IsNullOrWhiteSpace(json)) return null;
+            // 1) versão já reescrita
+            var dto = LerNoticia(await _kv.GetAsync(ChaveReescrita(link)));
+            if (dto != null) return dto;
 
+            // 2) arquivo antigo (texto original da fonte): reescreve agora e passa a usar a versão nova
+            dto = LerNoticia(await _kv.GetAsync(ChaveArquivo(link)));
+            if (dto != null)
+                await AplicarReescritaAsync(new List<NoticiaDto> { dto });
+
+            return dto;
+        }
+
+        /* =======================
+           REESCRITA POR IA — TÍTULO E RESUMO
+        ======================= */
+
+        private async Task AplicarReescritaAsync(List<NoticiaDto> noticias)
+        {
+            await _lockReescrita.WaitAsync();
             try
             {
-                return JsonSerializer.Deserialize<NoticiaDto>(json);
+                if (_resumosReescritos.Count > 2000) _resumosReescritos.Clear();
+
+                // 1) o que já foi reescrito antes (memória ou KV)
+                var achados = await Task.WhenAll(noticias.Select(TentarAplicarSalvoAsync));
+
+                var pendentes = new List<NoticiaDto>();
+                for (int i = 0; i < noticias.Count; i++)
+                    if (!achados[i] && !string.IsNullOrWhiteSpace(noticias[i].Link))
+                        pendentes.Add(noticias[i]);
+
+                if (pendentes.Count == 0) return;
+                Console.WriteLine($"[IA] ✍️ Reescrevendo {pendentes.Count} títulos/resumos novos");
+
+                // 2) o que é novo vai para a IA, em lotes
+                await Task.WhenAll(pendentes.Chunk(MaxResumosPorLote).Select(async lote =>
+                {
+                    var itens = lote.Select(n => (n.Titulo, n.Descricao ?? "")).ToList();
+                    var novos = await _reescritor.ReescreverResumosAsync(itens);
+
+                    for (int i = 0; i < lote.Length; i++)
+                    {
+                        if (!novos.TryGetValue(i, out var novo)) continue; // falhou: fica o original, tenta de novo depois
+
+                        var n = lote[i];
+                        n.Titulo = novo.Titulo;
+                        n.Descricao = novo.Descricao;
+                        n.Conteudo = novo.Descricao;
+
+                        var salvo = new NoticiaDto
+                        {
+                            Titulo = n.Titulo,
+                            Descricao = n.Descricao,
+                            Conteudo = n.Conteudo,
+                            Link = n.Link,
+                            Fonte = n.Fonte,
+                            Data = n.Data,
+                            Imagem = n.Imagem
+                        };
+
+                        _resumosReescritos[n.Link] = salvo;
+                        _ = SalvarReescritaAsync(salvo);
+                    }
+                }));
             }
-            catch
+            finally
             {
-                return null;
+                _lockReescrita.Release();
             }
         }
+
+        private async Task<bool> TentarAplicarSalvoAsync(NoticiaDto n)
+        {
+            if (string.IsNullOrWhiteSpace(n.Link)) return false;
+
+            NoticiaDto? salvo;
+            if (!_resumosReescritos.TryGetValue(n.Link, out salvo))
+            {
+                await _semaforo.WaitAsync();
+                try { salvo = LerNoticia(await _kv.GetAsync(ChaveReescrita(n.Link))); }
+                catch { salvo = null; }
+                finally { _semaforo.Release(); }
+
+                if (salvo == null || string.IsNullOrWhiteSpace(salvo.Titulo)) return false;
+                _resumosReescritos[n.Link] = salvo;
+            }
+
+            n.Titulo = salvo!.Titulo;
+            n.Descricao = salvo.Descricao;
+            n.Conteudo = salvo.Descricao;
+            return true;
+        }
+
+        private async Task SalvarReescritaAsync(NoticiaDto n)
+        {
+            try { await _kv.SetAsync(ChaveReescrita(n.Link), JsonSerializer.Serialize(n)); }
+            catch { /* best-effort: nunca atrapalha a listagem */ }
+        }
+
+        /* =======================
+           REESCRITA POR IA — CORPO DA MATÉRIA (sob demanda)
+        ======================= */
+
+        public async Task<string?> ObterConteudoReescritoAsync(string link)
+        {
+            if (string.IsNullOrWhiteSpace(link)) return null;
+            if (_corposReescritos.TryGetValue(link, out var pronto)) return pronto;
+
+            // se duas pessoas abrirem a mesma notícia ao mesmo tempo, só uma chamada à IA é feita
+            var tarefa = _corposEmAndamento.GetOrAdd(link,
+                l => new Lazy<Task<string?>>(() => GerarCorpoReescritoAsync(l)));
+
+            try { return await tarefa.Value; }
+            finally { _corposEmAndamento.TryRemove(link, out _); }
+        }
+
+        private async Task<string?> GerarCorpoReescritoAsync(string link)
+        {
+            var chave = ChaveCorpo(link);
+
+            // 1) já foi reescrito antes? (KV)
+            try
+            {
+                var salvo = await _kv.GetAsync(chave);
+                if (!string.IsNullOrWhiteSpace(salvo))
+                {
+                    _corposReescritos[link] = salvo;
+                    return salvo;
+                }
+            }
+            catch { }
+
+            // 2) título (já reescrito) só para dar contexto à IA
+            var titulo = _cache?.FirstOrDefault(n => n.Link == link)?.Titulo
+                         ?? (await BuscarNoArquivoAsync(link))?.Titulo
+                         ?? "";
+
+            // 3) texto original da página
+            var original = await ExtrairConteudoDaPaginaAsync(link);
+            if (string.IsNullOrWhiteSpace(original) || original.Length < 300) return null;
+
+            // 4) reescreve
+            var novo = await _reescritor.ReescreverCorpoAsync(titulo, original);
+            if (string.IsNullOrWhiteSpace(novo)) return null; // não guarda falha: tenta de novo na próxima abertura
+
+            if (_corposReescritos.Count > 500) _corposReescritos.Clear();
+            _corposReescritos[link] = novo;
+
+            _ = Task.Run(async () =>
+            {
+                try { await _kv.SetAsync(chave, novo); } catch { }
+            });
+
+            return novo;
+        }
+
+        public static string IdDoLink(string link) => HashLink(link);
+
+        private static readonly Regex RegexId = new(@"^[0-9a-f]{64}$", RegexOptions.Compiled);
+
+        /// <summary>Descobre o link original a partir do Id (lista recente ou arquivo no KV).</summary>
+        public async Task<string?> LinkPorIdAsync(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return null;
+
+            id = id.Trim().ToLowerInvariant();
+            if (!RegexId.IsMatch(id)) return null;
+
+            // 1) lista recente
+            var lista = _cache ?? await GetTodasNoticias();
+            var achada = lista.FirstOrDefault(n => IdDoLink(n.Link) == id);
+            if (achada != null) return achada.Link;
+
+            // 2) arquivo (KV): as chaves usam o mesmo hash do link
+            var dto = LerNoticia(await _kv.GetAsync($"reesc:{id}"))
+                      ?? LerNoticia(await _kv.GetAsync($"noticia:{id}"));
+
+            return dto?.Link;
+        }
+
+        // Fontes cuja capa é uma arte com a logo/título dela: ignora a capa e usa o FallbackImages
+        private static readonly HashSet<string> FontesComCapaDeMarca =
+            new(StringComparer.OrdinalIgnoreCase) { "NETFLA" };
 
         /* =======================
            TIMEZONE BRASÍLIA
@@ -196,7 +393,7 @@ namespace MengolNews.Api.Services
             => LerRss("https://br.bolavip.com/rss/flamengo", "BOLAVIP", filtrarFlamengo: false);
 
         private Task<List<NoticiaDto>> GetNetFla()
-            => LerRss("https://netfla.com.br/feed", "NETFLA", filtrarFlamengo: false);
+            => LerRss("https://netfla.com.br/feed", "NETFLA", filtrarFlamengo: true);
 
         private Task<List<NoticiaDto>> GetFlamengoRj()
              => LerRss("https://urubuinterativo.com/feed/", "URUBU INTERATIVO", filtrarFlamengo: false);
@@ -299,9 +496,11 @@ namespace MengolNews.Api.Services
                 {
                     var (item, titulo, descricao, link) = entry;
 
-                    var imagem = NormalizarImagem(ExtrairImagem(item), url);
+                    // Fontes com capa de marca (ex.: NETFLA): ignora a capa e usa o FallbackImages
+                    var semCapa = FontesComCapaDeMarca.Contains(fonte);
+                    var imagem = semCapa ? "" : NormalizarImagem(ExtrairImagem(item), url);
 
-                    if (EhImagemInvalida(imagem))
+                    if (!semCapa && EhImagemInvalida(imagem))
                     {
                         imagem = "";
 
@@ -337,6 +536,8 @@ namespace MengolNews.Api.Services
                     };
                 });
 
+                //lista = (await Task.WhenAll(tarefasImagem)).ToList();
+
                 lista = (await Task.WhenAll(tarefasImagem)).ToList();
             }
             catch (TaskCanceledException)
@@ -355,14 +556,13 @@ namespace MengolNews.Api.Services
            FILTRO FLAMENGO
         ======================= */
 
+        private static readonly Regex RegexFlamengo = new(
+            @"\b(Flamengo|Fla|Meng[ãa]o|Mengo|Rubro-Negro|CRF)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private bool EhRelacionadoAoFlamengo(string titulo, string descricao)
         {
-            var palavras = new[] { "Flamengo", "Fla", "Mengão", "Rubro-Negro", "CRF" };
-
-            return palavras.Any(p =>
-                titulo.Contains(p, StringComparison.OrdinalIgnoreCase) ||
-                descricao.Contains(p, StringComparison.OrdinalIgnoreCase)
-            );
+            return RegexFlamengo.IsMatch(titulo) || RegexFlamengo.IsMatch(descricao);
         }
 
         /* =======================

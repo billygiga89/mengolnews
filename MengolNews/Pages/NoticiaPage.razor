@@ -12,7 +12,7 @@
     @if (noticia != null)
     {
         <meta name="description" content="@MetaDescricao" />
-        <link rel="canonical" href="@Nav.Uri" />
+        <link rel="canonical" href="@UrlCanonica" />
 
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="MengolNews" />
@@ -20,7 +20,7 @@
         <meta property="og:title" content="@noticia.Titulo" />
         <meta property="og:description" content="@MetaDescricao" />
         <meta property="og:image" content="@MetaImagem" />
-        <meta property="og:url" content="@Nav.Uri" />
+        <meta property="og:url" content="@UrlCanonica" />
         <meta property="article:published_time" content="@DataIso" />
         <meta property="article:section" content="Flamengo" />
 
@@ -116,6 +116,8 @@
     private bool carregandoConteudo = false;
     private bool naoEncontrada = false;
 
+    private string UrlCanonica => noticia == null ? Nav.Uri : SiteUrl + noticia.CaminhoSite;
+
     private const string SiteUrl = "https://www.mengolnews.com.br";
     private const string ImagemPadrao = SiteUrl + "/images/Flamengo.png";
 
@@ -170,7 +172,7 @@
                 mainEntityOfPage = new
                 {
                     type = "WebPage",
-                    id = Nav.Uri
+                    id = UrlCanonica
                 }
             };
 
@@ -187,94 +189,99 @@
     }
 
     protected override async Task OnInitializedAsync()
+{
+    var uri = new Uri(Nav.Uri);
+
+    var parametros = uri.Query.TrimStart('?')
+        .Split('&')
+        .Select(p => p.Split('=', 2))
+        .Where(p => p.Length == 2)
+        .ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]), StringComparer.OrdinalIgnoreCase);
+
+    parametros.TryGetValue("id", out var id);
+    parametros.TryGetValue("url", out var link); // links antigos
+
+    if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(link))
     {
-        var uri = new Uri(Nav.Uri);
-
-        var query = uri.Query.TrimStart('?');
-        var parametros = query.Split('&')
-            .Select(p => p.Split('='))
-            .Where(p => p.Length == 2)
-            .ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]));
-
-        if (!parametros.TryGetValue("url", out var link) || string.IsNullOrWhiteSpace(link))
-        {
-            naoEncontrada = true;
-            carregando = false;
-            return;
-        }
-
-        var todas = await NewsService.GetNoticiasAsync();
-        noticia = todas.FirstOrDefault(n => n.Link == link);
-
-        // Não achou na lista recente (saiu por passar de 30 dias ou de 50
-        // itens) — tenta buscar no arquivo permanente antes de desistir.
-        if (noticia == null)
-        {
-            noticia = await BuscarNoArquivoAsync(link);
-        }
-
+        naoEncontrada = true;
         carregando = false;
-
-        if (noticia == null)
-        {
-            naoEncontrada = true;
-            return;
-        }
-
-        await InvokeAsync(StateHasChanged);
-        await CarregarConteudoCompleto(link);
+        return;
     }
 
-    private async Task<Noticia?> BuscarNoArquivoAsync(string link)
+    var todas = await NewsService.GetNoticiasAsync();
+    noticia = !string.IsNullOrWhiteSpace(id)
+        ? todas.FirstOrDefault(n => n.Id == id)
+        : todas.FirstOrDefault(n => n.Link == link);
+
+    // Não achou na lista recente — tenta o arquivo permanente
+    if (noticia == null)
+        noticia = await BuscarNoArquivoAsync(id, link);
+
+    carregando = false;
+
+    if (noticia == null)
     {
-        try
+        naoEncontrada = true;
+        return;
+    }
+
+    await InvokeAsync(StateHasChanged);
+    await CarregarConteudoCompleto(noticia);
+}
+
+private static string Consulta(string? id, string? link) =>
+    !string.IsNullOrWhiteSpace(id)
+        ? $"id={Uri.EscapeDataString(id)}"
+        : $"url={Uri.EscapeDataString(link ?? "")}";
+
+private async Task<Noticia?> BuscarNoArquivoAsync(string? id, string? link)
+{
+    try
+    {
+        var response = await Http.GetAsync($"api/noticias/arquivo?{Consulta(id, link)}");
+
+        if (!response.IsSuccessStatusCode) return null;
+
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<Noticia>(json, new JsonSerializerOptions
         {
-            var urlEncoded = Uri.EscapeDataString(link);
-            var response = await Http.GetAsync($"api/noticias/arquivo?url={urlEncoded}");
+            PropertyNameCaseInsensitive = true
+        });
+    }
+    catch
+    {
+        return null;
+    }
+}
 
-            if (!response.IsSuccessStatusCode) return null;
+private async Task CarregarConteudoCompleto(Noticia n)
+{
+    carregandoConteudo = true;
+    await InvokeAsync(StateHasChanged);
 
+    try
+    {
+        var response = await Http.GetAsync($"api/noticias/conteudo?{Consulta(n.Id, n.Link)}");
+
+        if (response.IsSuccessStatusCode)
+        {
             var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<Noticia>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-        }
-        catch
-        {
-            return null;
+            var doc = JsonDocument.Parse(json);
+
+            if (doc.RootElement.TryGetProperty("conteudo", out var prop))
+                conteudoCompleto = prop.GetString();
         }
     }
-
-    private async Task CarregarConteudoCompleto(string link)
+    catch
     {
-        carregandoConteudo = true;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            var urlEncoded = Uri.EscapeDataString(link);
-            var response = await Http.GetAsync($"api/noticias/conteudo?url={urlEncoded}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                var doc = JsonDocument.Parse(json);
-
-                if (doc.RootElement.TryGetProperty("conteudo", out var prop))
-                    conteudoCompleto = prop.GetString();
-            }
-        }
-        catch
-        {
-            // Silencioso — fallback para descrição já exibida
-        }
-        finally
-        {
-            carregandoConteudo = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        // Silencioso — fallback para descrição já exibida
     }
+    finally
+    {
+        carregandoConteudo = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}
 
     private void Voltar()
     {
