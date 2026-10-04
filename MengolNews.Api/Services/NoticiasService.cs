@@ -25,6 +25,21 @@ namespace MengolNews.Api.Services
         private static readonly SemaphoreSlim _lockReescrita = new(1, 1);
         private const int MaxResumosPorLote = 20;
 
+        // Texto original que veio no RSS (usado como plano B para reescrever o corpo)
+        private static readonly ConcurrentDictionary<string, string> _textosOriginais = new();
+
+        private static void GuardarOriginal(NoticiaDto n)
+        {
+            var texto = n.Conteudo ?? n.Descricao;
+            if (string.IsNullOrWhiteSpace(n.Link) || string.IsNullOrWhiteSpace(texto)) return;
+
+            if (_textosOriginais.Count > 300) _textosOriginais.Clear();
+
+            // só guarda se for maior que o que já tem (não troca o texto longo por um resumo curto)
+            if (!_textosOriginais.TryGetValue(n.Link, out var atual) || texto.Length > atual.Length)
+                _textosOriginais[n.Link] = texto;
+        }
+
         // CACHE
         private List<NoticiaDto>? _cache;
         private DateTime _ultimaAtualizacao;
@@ -190,6 +205,8 @@ namespace MengolNews.Api.Services
             {
                 if (_resumosReescritos.Count > 2000) _resumosReescritos.Clear();
 
+                foreach (var n in noticias) GuardarOriginal(n);
+
                 // 1) o que já foi reescrito antes (memória ou KV)
                 var achados = await Task.WhenAll(noticias.Select(TentarAplicarSalvoAsync));
 
@@ -304,8 +321,15 @@ namespace MengolNews.Api.Services
                          ?? (await BuscarNoArquivoAsync(link))?.Titulo
                          ?? "";
 
-            // 3) texto original da página
+            // 3) texto original: primeiro a página da fonte, depois o que veio no RSS
             var original = await ExtrairConteudoDaPaginaAsync(link);
+            var tamanhoPagina = original?.Length ?? 0;
+
+            if (tamanhoPagina < 300 && _textosOriginais.TryGetValue(link, out var doFeed) && doFeed.Length > tamanhoPagina)
+                original = doFeed;
+
+            Console.WriteLine($"[IA] Corpo: página={tamanhoPagina} chars, usado={original?.Length ?? 0} chars");
+
             if (string.IsNullOrWhiteSpace(original) || original.Length < 300) return null;
 
             // 4) reescreve
