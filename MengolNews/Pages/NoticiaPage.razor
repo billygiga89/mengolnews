@@ -79,10 +79,14 @@
 
             @if (carregandoConteudo)
             {
+                @if (!string.IsNullOrWhiteSpace(noticia.Descricao))
+                {
+                    <p class="news-open-desc">@noticia.Descricao</p>
+                }
+
                 <div style="margin: 1.5rem 0;">
                     <div class="skeleton-line" style="width:100%;"></div>
-                    <div class="skeleton-line" style="width:95%;"></div>
-                    <div class="skeleton-line" style="width:88%;"></div>
+                    <div class="skeleton-line" style="width:92%;"></div>
                     <div class="skeleton-line short" style="width:60%;"></div>
                 </div>
             }

@@ -118,6 +118,8 @@ namespace MengolNews.Api.Services
             _cache = noticias;
             _ultimaAtualizacao = DateTime.Now;
 
+            PreAquecerCorposEmSegundoPlano(noticias);
+
             return noticias;
         }
 
@@ -298,6 +300,36 @@ namespace MengolNews.Api.Services
 
             try { return await tarefa.Value; }
             finally { _corposEmAndamento.TryRemove(link, out _); }
+        }
+
+        private static readonly SemaphoreSlim _lockPreAquecimento = new(1, 1);
+
+        private void PreAquecerCorposEmSegundoPlano(List<NoticiaDto> noticias)
+        {
+            _ = Task.Run(async () =>
+            {
+                // se já tem um pré-aquecimento rodando, não começa outro
+                if (!await _lockPreAquecimento.WaitAsync(0)) return;
+
+                try
+                {
+                    foreach (var n in noticias.Take(15))
+                    {
+                        if (string.IsNullOrWhiteSpace(n.Link)) continue;
+                        if (_corposReescritos.ContainsKey(n.Link)) continue; // já está pronto
+
+                        try { await ObterConteudoReescritoAsync(n.Link); }
+                        catch { /* best-effort */ }
+
+                        // pausa curta entre uma e outra, para respeitar o limite por minuto do Gemini
+                        await Task.Delay(TimeSpan.FromSeconds(4));
+                    }
+                }
+                finally
+                {
+                    _lockPreAquecimento.Release();
+                }
+            });
         }
 
         private async Task<string?> GerarCorpoReescritoAsync(string link)
