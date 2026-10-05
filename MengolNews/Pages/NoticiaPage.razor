@@ -58,13 +58,10 @@
     else if (noticia != null)
     {
         <article class="news-open">
-            @if (!string.IsNullOrWhiteSpace(noticia.Imagem))
-            {
-                <img src="@ImagemFinal"
-                     alt="@noticia.Titulo"
-                     class="@(EhFallback ? "news-open-img news-open-img-fallback" : "news-open-img")"
-                     onerror="this.src='/images/Flamengo.png'; this.classList.add('news-open-img-fallback'); this.onerror=null;" />
-            }
+            <img src="@ImagemFinal"
+                 alt="@noticia.Titulo"
+                 class="@(EhFallback ? "news-open-img news-open-img-fallback" : "news-open-img")"
+                 onerror="this.onerror=null; this.src='@FallbackLocal'; this.classList.add('news-open-img-fallback');" />
 
             <div class="news-open-meta">
                 <span class="news-open-date">@noticia.Data.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"))</span>
@@ -138,12 +135,15 @@
         }
     }
 
+    // Mesmo fallback do NewsCard (mesma chave: o título)
+    private string FallbackLocal => FallbackImages.ObterPara(noticia?.Titulo ?? "");
+
     private bool EhFallback =>
-    string.IsNullOrWhiteSpace(noticia?.Imagem) || noticia!.Imagem!.StartsWith("/");
+        string.IsNullOrWhiteSpace(noticia?.Imagem) || noticia!.Imagem!.StartsWith("/");
 
     private string ImagemFinal =>
         string.IsNullOrWhiteSpace(noticia?.Imagem)
-            ? FallbackImages.ObterPara(noticia?.Titulo ?? "")
+            ? FallbackLocal
             : MengolNews.Services.ImageHelper.Proxy(noticia!.Imagem!);
 
     private string MetaImagem
@@ -151,7 +151,7 @@
         get
         {
             var img = string.IsNullOrWhiteSpace(noticia?.Imagem)
-                ? FallbackImages.ObterPara(noticia?.Titulo ?? "")
+                ? FallbackLocal
                 : noticia!.Imagem!;
 
             return img.StartsWith("/") ? SiteUrl + img : img;
@@ -210,99 +210,99 @@
     }
 
     protected override async Task OnInitializedAsync()
-{
-    var uri = new Uri(Nav.Uri);
-
-    var parametros = uri.Query.TrimStart('?')
-        .Split('&')
-        .Select(p => p.Split('=', 2))
-        .Where(p => p.Length == 2)
-        .ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]), StringComparer.OrdinalIgnoreCase);
-
-    parametros.TryGetValue("id", out var id);
-    parametros.TryGetValue("url", out var link); // links antigos
-
-    if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(link))
     {
-        naoEncontrada = true;
+        var uri = new Uri(Nav.Uri);
+
+        var parametros = uri.Query.TrimStart('?')
+            .Split('&')
+            .Select(p => p.Split('=', 2))
+            .Where(p => p.Length == 2)
+            .ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]), StringComparer.OrdinalIgnoreCase);
+
+        parametros.TryGetValue("id", out var id);
+        parametros.TryGetValue("url", out var link); // links antigos
+
+        if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(link))
+        {
+            naoEncontrada = true;
+            carregando = false;
+            return;
+        }
+
+        var todas = await NewsService.GetNoticiasAsync();
+        noticia = !string.IsNullOrWhiteSpace(id)
+            ? todas.FirstOrDefault(n => n.Id == id)
+            : todas.FirstOrDefault(n => n.Link == link);
+
+        // Não achou na lista recente — tenta o arquivo permanente
+        if (noticia == null)
+            noticia = await BuscarNoArquivoAsync(id, link);
+
         carregando = false;
-        return;
-    }
 
-    var todas = await NewsService.GetNoticiasAsync();
-    noticia = !string.IsNullOrWhiteSpace(id)
-        ? todas.FirstOrDefault(n => n.Id == id)
-        : todas.FirstOrDefault(n => n.Link == link);
-
-    // Não achou na lista recente — tenta o arquivo permanente
-    if (noticia == null)
-        noticia = await BuscarNoArquivoAsync(id, link);
-
-    carregando = false;
-
-    if (noticia == null)
-    {
-        naoEncontrada = true;
-        return;
-    }
-
-    await InvokeAsync(StateHasChanged);
-    await CarregarConteudoCompleto(noticia);
-}
-
-private static string Consulta(string? id, string? link) =>
-    !string.IsNullOrWhiteSpace(id)
-        ? $"id={Uri.EscapeDataString(id)}"
-        : $"url={Uri.EscapeDataString(link ?? "")}";
-
-private async Task<Noticia?> BuscarNoArquivoAsync(string? id, string? link)
-{
-    try
-    {
-        var response = await Http.GetAsync($"api/noticias/arquivo?{Consulta(id, link)}");
-
-        if (!response.IsSuccessStatusCode) return null;
-
-        var json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<Noticia>(json, new JsonSerializerOptions
+        if (noticia == null)
         {
-            PropertyNameCaseInsensitive = true
-        });
+            naoEncontrada = true;
+            return;
+        }
+
+        await InvokeAsync(StateHasChanged);
+        await CarregarConteudoCompleto(noticia);
     }
-    catch
+
+    private static string Consulta(string? id, string? link) =>
+        !string.IsNullOrWhiteSpace(id)
+            ? $"id={Uri.EscapeDataString(id)}"
+            : $"url={Uri.EscapeDataString(link ?? "")}";
+
+    private async Task<Noticia?> BuscarNoArquivoAsync(string? id, string? link)
     {
-        return null;
-    }
-}
-
-private async Task CarregarConteudoCompleto(Noticia n)
-{
-    carregandoConteudo = true;
-    await InvokeAsync(StateHasChanged);
-
-    try
-    {
-        var response = await Http.GetAsync($"api/noticias/conteudo?{Consulta(n.Id, n.Link)}");
-
-        if (response.IsSuccessStatusCode)
+        try
         {
+            var response = await Http.GetAsync($"api/noticias/arquivo?{Consulta(id, link)}");
+
+            if (!response.IsSuccessStatusCode) return null;
+
             var json = await response.Content.ReadAsStringAsync();
-            var doc = JsonDocument.Parse(json);
-
-            if (doc.RootElement.TryGetProperty("conteudo", out var prop))
-                conteudoCompleto = prop.GetString();
+            return JsonSerializer.Deserialize<Noticia>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch
+        {
+            return null;
         }
     }
-    catch
+
+    private async Task CarregarConteudoCompleto(Noticia n)
     {
-        // Silencioso — fallback para descrição já exibida
-    }
-    finally
-    {
-        carregandoConteudo = false;
+        carregandoConteudo = true;
         await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var response = await Http.GetAsync($"api/noticias/conteudo?{Consulta(n.Id, n.Link)}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("conteudo", out var prop))
+                    conteudoCompleto = prop.GetString();
+            }
+        }
+        catch
+        {
+            // Silencioso — fallback para descrição já exibida
+        }
+        finally
+        {
+            carregandoConteudo = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
-}
 
     private void Voltar()
     {

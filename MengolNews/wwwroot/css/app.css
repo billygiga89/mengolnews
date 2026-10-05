@@ -623,6 +623,7 @@ html, body {
 }
 
 .news-open-img {
+    box-sizing: border-box;
     width: 100%;
     max-height: 480px;
     object-fit: cover;
@@ -4326,6 +4327,103 @@ html, body {
     margin: 1.5rem 0;
 }
 
+/* ═══ Tabela do Brasileirão — visual refinado ═══ */
+.table-scroll {
+    background: rgba(18, 8, 10, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.seriea-table {
+    background: transparent;
+    border-radius: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+    .seriea-table thead tr {
+        background: linear-gradient(180deg, rgba(200, 16, 46, 0.22), rgba(200, 16, 46, 0.08));
+        border-bottom: 1px solid rgba(200, 16, 46, 0.55);
+    }
+
+    .seriea-table th {
+        padding: .85rem .7rem;
+        color: rgba(255, 255, 255, 0.62);
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .14em;
+    }
+
+    .seriea-table tbody tr {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+        .seriea-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .seriea-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+    .seriea-table td {
+        padding: .7rem;
+        color: rgba(255, 255, 255, 0.72);
+    }
+
+.pos-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: .74rem;
+}
+
+    .pos-badge.zone-lib {
+        background: rgba(59, 130, 246, 0.18);
+        color: #93c5fd;
+    }
+
+    .pos-badge.zone-sul {
+        background: rgba(245, 158, 11, 0.16);
+        color: #fcd34d;
+    }
+
+    .pos-badge.zone-rel {
+        background: rgba(239, 68, 68, 0.18);
+        color: #fca5a5;
+    }
+
+.seriea-table tr.row-fla {
+    background: linear-gradient(90deg, rgba(200, 16, 46, 0.30), rgba(200, 16, 46, 0.06)) !important;
+    animation: none;
+}
+
+.fla-tag {
+    background: rgba(200, 16, 46, 0.2);
+    border: 1px solid rgba(200, 16, 46, 0.65);
+    color: #ff7b93;
+    border-radius: 999px;
+    padding: 1px 7px;
+    letter-spacing: .08em;
+}
+
+.td-pts {
+    font-size: 1rem;
+    letter-spacing: .02em;
+}
+
+.zone-legend {
+    margin-top: 1rem;
+    padding-left: .25rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: .74rem;
+    letter-spacing: .03em;
+}
+
 /* ════════════════════════════════════════════════════════════════
    RESPONSIVO — todos os @media reunidos aqui, do maior breakpoint
    para o menor. Dentro de cada breakpoint, a ordem das regras foi
@@ -4333,13 +4431,13 @@ html, body {
    não alterar qual regra "ganha" em conflitos de especificidade.
    ════════════════════════════════════════════════════════════════ */
 
-/* ===== min-width: 1385px (pix flutuante — desktop grande) ===== */
+/* ===== min-width: 1385px (Pix na margem direita da tela) ===== */
 @media (min-width: 1385px) {
     .pix-float {
         display: block;
         position: fixed;
         top: 16px;
-        left: 6px;
+        right: 12px;
         z-index: 1001;
     }
 
@@ -4411,6 +4509,13 @@ html, body {
             outline-offset: 2px;
         }
 
+    .pix-dropdown {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        z-index: 10;
+    }
+
     .pix-float .pix-flutuante {
         display: flex;
         flex-direction: column;
@@ -4419,9 +4524,11 @@ html, body {
         padding: 12px 8px 8px;
         gap: 6px;
         text-align: center;
+        background: color-mix(in srgb, var(--mn-surface-solid) 92%, transparent);
+        box-shadow: var(--mn-shadow-4);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        transform-origin: top left;
+        transform-origin: top right;
         animation: mn-zoom-in 0.25s var(--mn-spring-soft);
     }
 
@@ -4452,18 +4559,6 @@ html, body {
 
     .pix-flutuante .pix-copy {
         padding: 5px 8px;
-    }
-}
-
-@media (min-width: 900px) {
-    .seriea-content-wrap {
-        flex-direction: row;
-        align-items: flex-start;
-    }
-
-    .seriea-cartoes-card {
-        width: 300px;
-        flex-shrink: 0;
     }
 }
 
@@ -4740,6 +4835,19 @@ html, body {
     .skeleton-img-detalhe {
         height: 220px;
     }
+
+    .news-open-img {
+        max-height: 300px;
+    }
+
+        .news-open-img.news-open-img-fallback {
+            padding: 0;
+            max-height: none;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            object-position: center;
+            background: transparent;
+        }
 
     .sobre-hero {
         flex-direction: row;
