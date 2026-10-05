@@ -13,8 +13,8 @@
         <div class="elenco-hero-inner">
             <img src="https://crests.football-data.org/1783.png" class="elenco-escudo" alt="Flamengo" />
             <div>
-                <h1 class="elenco-titulo">ELENCO <span>2025</span></h1>
-                <p class="elenco-subtitulo">Club de Regatas do Flamengo</p>
+                <h1 class="elenco-titulo">ELENCO <span>@Temporada</span></h1>
+                <p class="elenco-subtitulo">Clube de Regatas do Flamengo</p>
             </div>
         </div>
     </div>
@@ -48,17 +48,17 @@
         @foreach (var grupo in GruposFiltrados)
         {
             <div class="elenco-secao">
-                <h2 class="secao-titulo">@grupo.Key</h2>
+                <h2 class="secao-titulo">@grupo.Key <span class="secao-count">@grupo.Value.Count</span></h2>
                 <div class="elenco-grid">
                     @foreach (var p in grupo.Value)
                     {
                         <div class="player-card @GetPositionClass(p.Position)"
                              @onclick="() => AbrirModal(p)">
-                            <div class="card-numero">@(p.Number > 0 ? p.Number.ToString() : "—")</div>
                             <div class="card-foto-wrap">
                                 <img src="@FotoOuPlaceholder(p.Photo)" class="card-foto" alt="@p.Name"
                                      onerror="this.onerror=null;this.src='images/jogadores/sem-foto.svg';" />
                             </div>
+                            <div class="card-numero">@(p.Number > 0 ? p.Number.ToString() : "—")</div>
                             <div class="card-info">
                                 <span class="card-pos-badge">@MapPosition(p.Position)</span>
                                 <span class="card-nome">@ShortName(p.Name)</span>
@@ -84,7 +84,7 @@
             {
                 <div class="modal-loading">
                     <div class="spinner"></div>
-                    <p style="color:rgba(255,255,255,0.5);font-size:14px;margin-top:12px;">Carregando...</p>
+                    <p class="modal-msg">Carregando...</p>
                 </div>
             }
             else if (statsModal != null)
@@ -123,7 +123,7 @@
                 </div>
 
                 <div class="modal-stats">
-                    <h3 class="stats-titulo">Temporada 2025</h3>
+                    <h3 class="stats-titulo">Temporada @Temporada</h3>
                     <div class="stats-grid">
                         <div class="stat-item">
                             <span class="stat-num">@statsModal.Appearances</span>
@@ -187,9 +187,7 @@
                 <button class="modal-close" @onclick="FecharModal">✕</button>
                 <div class="modal-loading">
                     <span style="font-size:32px">⚠️</span>
-                    <p style="color:rgba(255,255,255,0.5);font-size:14px;margin-top:12px;">
-                        Não foi possível carregar as estatísticas.
-                    </p>
+                    <p class="modal-msg">Não foi possível carregar as estatísticas.</p>
                 </div>
             }
         </div>
@@ -197,6 +195,9 @@
 }
 
 @code {
+    // Temporada exibida no título e no modal. Troque aqui se precisar.
+    private const int Temporada = 2025;
+
     private bool loading = true;
     private bool loadingModal = false;
     private bool modalVisivel = false;
