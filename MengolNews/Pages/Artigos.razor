@@ -1,7 +1,6 @@
 ﻿@page "/artigos"
-@using System.Net.Http.Json
-@inject HttpClient Http
-
+@using MengolNews.Services
+@inject ArtigoService Servico
 
 <PageTitle>Artigos e histórias do Flamengo | MengolNews</PageTitle>
 
@@ -13,9 +12,16 @@
 <div class="artigos-container">
     <h1 class="artigos-titulo">Artigos</h1>
 
-    @if (artigos == null)
+    @if (carregando)
     {
         <p>Carregando...</p>
+    }
+    else if (artigos == null)
+    {
+        <p>Não foi possível carregar os artigos agora.</p>
+        <div class="news-open-actions">
+            <button @onclick="Recarregar">Tentar de novo</button>
+        </div>
     }
     else if (!artigos.Any())
     {
@@ -43,9 +49,19 @@
 
 @code {
     private List<ArtigoDto>? artigos;
+    private bool carregando = true;
 
     protected override async Task OnInitializedAsync()
     {
-        artigos = await Http.GetFromJsonAsync<List<ArtigoDto>>("api/artigos");
+        // se já estiver na memória, termina na hora e a primeira renderização já vem com a lista
+        artigos = await Servico.GetListaAsync();
+        carregando = false;
+    }
+
+    private async Task Recarregar()
+    {
+        carregando = true;
+        artigos = await Servico.GetListaAsync();
+        carregando = false;
     }
 }

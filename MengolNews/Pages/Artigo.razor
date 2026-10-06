@@ -1,8 +1,8 @@
 ﻿@page "/artigo/{Slug}"
-@using System.Net.Http.Json
 @using System.Text.Json
 @using System.Text.RegularExpressions
-@inject HttpClient Http
+@using MengolNews.Services
+@inject ArtigoService Servico
 @inject NavigationManager Nav
 
 <PageTitle>@(artigo?.Titulo ?? "Artigo") | MengolNews</PageTitle>
@@ -34,9 +34,16 @@
 </HeadContent>
 
 <div class="artigo-container">
-    @if (artigo == null)
+    @if (carregando)
     {
         <p>Carregando...</p>
+    }
+    else if (artigo == null)
+    {
+        <p>Não encontramos este artigo.</p>
+        <div class="news-open-actions" style="margin-top: 1.5rem;">
+            <button @onclick="Voltar">⬅ Voltar</button>
+        </div>
     }
     else
     {
@@ -67,10 +74,17 @@
 
     [Parameter] public string Slug { get; set; } = "";
     private ArtigoDto? artigo;
+    private bool carregando = true;
+    private string? slugCarregado;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        artigo = await Http.GetFromJsonAsync<ArtigoDto>($"api/artigos/{Slug}");
+        if (slugCarregado == Slug) return;
+        slugCarregado = Slug;
+
+        carregando = true;
+        artigo = await Servico.GetAsync(Slug);
+        carregando = false;
     }
 
     private string UrlCanonica => $"{SiteUrl}/artigo/{Slug}";

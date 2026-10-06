@@ -11,6 +11,8 @@ builder.RootComponents.Add<App>("#app");
 
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+builder.Services.AddScoped<ArtigoService>();
+
 // URL da API vinda do appsettings.json
 var apiUrl = builder.Configuration["ApiBaseUrl"]
 			 ?? "https://localhost:7221/";

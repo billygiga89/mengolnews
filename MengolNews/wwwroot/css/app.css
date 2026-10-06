@@ -198,6 +198,20 @@ html, body {
     }
 
 /* ── Animações ── */
+@keyframes sobre-shine {
+    0% {
+        background-position: 100% 0, 0 0;
+    }
+
+    35% {
+        background-position: 0% 0, 0 0;
+    }
+
+    100% {
+        background-position: 0% 0, 0 0;
+    }
+}
+
 @keyframes mn-liquid-sheen {
     0% {
         transform: translateX(-140%) skewX(-15deg);
@@ -1514,6 +1528,39 @@ html, body {
     border-radius: 50%;
     border: 3px solid var(--mn-red);
     box-shadow: 0 8px 24px rgba(200, 16, 46, 0.35);
+    cursor: pointer;
+    transition: transform 0.35s var(--mn-spring), box-shadow 0.35s ease;
+}
+
+    .sobre-escudo:hover {
+        transform: scale(1.1);
+        box-shadow: 0 14px 36px rgba(200, 16, 46, 0.55);
+    }
+
+    .sobre-escudo:active {
+        transform: scale(0.96);
+    }
+
+.sobre-titulo {
+    --sobre-shine: rgba(255, 90, 120, 0.95);
+    font-size: 2.9rem;
+    font-weight: 900;
+    margin: 0;
+    padding-bottom: 0.15em;
+    letter-spacing: -1.5px;
+    line-height: 1.15;
+    background-image: linear-gradient(105deg, transparent 46%, var(--sobre-shine) 50%, transparent 54%), linear-gradient(135deg, var(--mn-text) 40%, var(--mn-red) 140%);
+    background-size: 300% 100%, 100% 100%;
+    background-repeat: no-repeat;
+    background-position: 100% 0, 0 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: sobre-shine 6s ease-in-out infinite;
+}
+
+[data-theme="light"] .sobre-titulo {
+    --sobre-shine: rgba(255, 255, 255, 0.95);
 }
 
 .sobre-hero-text {
@@ -1521,19 +1568,6 @@ html, body {
     flex-direction: column;
     gap: 8px;
     align-items: flex-start;
-}
-
-.sobre-titulo {
-    font-size: 2.9rem;
-    font-weight: 900;
-    margin: 0;
-    padding-bottom: 0.15em;
-    letter-spacing: -1.5px;
-    line-height: 1.15;
-    background: linear-gradient(135deg, var(--mn-text) 40%, var(--mn-red) 140%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
 }
 
 .sobre-subtitulo {
