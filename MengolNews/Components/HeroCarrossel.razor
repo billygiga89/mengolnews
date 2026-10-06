@@ -17,10 +17,11 @@ else
             @for (int i = 0; i < TotalSlides; i++)
             {
                 var n = Slides[i];
-                var imagem = ObterImagem(n);
+                var fallback = FallbackDe(i, n);
+                var imagem = ObterImagem(i, n);
                 <div class="carrossel-slide @(EhFallback(n) ? "is-fallback" : "")" @onclick="() => AbrirNoticia(n)" style="cursor:pointer;">
                     <img src="@imagem" alt="@n.Titulo"
-                         onerror="this.onerror=null; this.src='@FallbackImages.ObterPara(n.Titulo)';" />
+                         onerror="this.onerror=null; this.src='@fallback';" />
                     <div class="carrossel-overlay"></div>
                     <div class="hero-content">
                         <h1>@n.Titulo</h1>
@@ -45,6 +46,10 @@ else
 @code {
     [Parameter] public List<NoticiaModel> Noticias { get; set; } = new();
 
+    // Imagens de reserva já escolhidas pela página (mesma ordem da lista Noticias).
+    // Se a página não passar nada, cai na escolha pelo título, como antes.
+    [Parameter] public string[]? Fallbacks { get; set; }
+
     int indiceAtual = 0;
     int TotalSlides => Slides.Count;
     System.Threading.Timer? timer;
@@ -54,14 +59,22 @@ else
 
     private bool EhFallback(NoticiaModel n) => string.IsNullOrWhiteSpace(n.Imagem);
 
-    private string ObterImagem(NoticiaModel n)
+    // Fallback estável — a mesma notícia sempre mostra a mesma imagem,
+    // não fica trocando sozinha a cada re-render do timer.
+    private string FallbackDe(int indice, NoticiaModel n)
+    {
+        if (Fallbacks != null && indice < Fallbacks.Length && !string.IsNullOrWhiteSpace(Fallbacks[indice]))
+            return Fallbacks[indice];
+
+        return FallbackImages.ObterPara(n.Titulo);
+    }
+
+    private string ObterImagem(int indice, NoticiaModel n)
     {
         if (!string.IsNullOrWhiteSpace(n.Imagem))
             return MengolNews.Services.ImageHelper.Proxy(n.Imagem);
 
-        // Fallback estável — mesma notícia sempre mostra a mesma imagem,
-        // não fica trocando sozinha a cada re-render do timer.
-        return FallbackImages.ObterPara(n.Titulo);
+        return FallbackDe(indice, n);
     }
 
     protected override async Task OnParametersSetAsync()

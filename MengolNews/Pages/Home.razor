@@ -25,13 +25,20 @@
 }
 else if (!isLoading && noticias.Any())
 {
+    // Tudo que aparece na tela (5 slides do carrossel + cards da grade) recebe as
+    // imagens de reserva de uma vez só, para não repetir e para a mesma notícia
+    // ter a mesma imagem no carrossel e na grade.
+    var visiveis = noticias.Take(10).ToList();
+    var fallbacks = FallbackImages.Distribuir(
+        visiveis.Select(n => (Chave: n.Titulo, Precisa: true)).ToList());
+
     <div class="content">
-        <HeroCarrossel Noticias="noticias" />
+        <HeroCarrossel Noticias="noticias" Fallbacks="fallbacks" />
         <ProximoJogo />
         <section class="news-list section">
-            @foreach (var noticia in noticias.Skip(1).Take(9))
+            @for (int i = 1; i < visiveis.Count; i++)
             {
-                <NewsCard Noticia="noticia" />
+                <NewsCard Noticia="visiveis[i]" ImagemFallback="@fallbacks[i]" />
             }
         </section>
     </div>

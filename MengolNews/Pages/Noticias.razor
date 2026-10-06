@@ -31,10 +31,14 @@
 }
 else if (NoticiasFiltradas.Any())
 {
+    var lista = NoticiasFiltradas.ToList();
+    var fallbacks = FallbackImages.Distribuir(
+        lista.Select(n => (Chave: n!.Titulo, Precisa: true)).ToList());
+
     <section class="news-list section">
-        @foreach (var noticia in NoticiasFiltradas)
+        @for (int i = 0; i < lista.Count; i++)
         {
-            <NewsCard Noticia="noticia" />
+            <NewsCard Noticia="lista[i]!" ImagemFallback="@fallbacks[i]" />
         }
         @if (PodeCarregarMais && string.IsNullOrWhiteSpace(termoBusca))
         {

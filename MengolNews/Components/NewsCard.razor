@@ -52,9 +52,19 @@
     [Parameter, EditorRequired]
     public Noticia Noticia { get; set; } = default!;
 
+    // imagem reservada para este card, escolhida pela página olhando a lista inteira
+    // (se a página não passar nada, usa a escolha pelo título como antes)
+    [Parameter]
+    public string? ImagemFallback { get; set; }
+
+    private string Fallback =>
+        !string.IsNullOrWhiteSpace(ImagemFallback)
+            ? ImagemFallback
+            : FallbackImages.ObterPara(Noticia.Titulo);
+
     private string ImagemFinal =>
         string.IsNullOrWhiteSpace(Noticia.Imagem)
-            ? FallbackImages.ObterPara(Noticia.Titulo)
+            ? Fallback
             : MengolNews.Services.ImageHelper.Proxy(Noticia.Imagem);
 
     private string HrefNoticia => Noticia.CaminhoSite;
@@ -72,7 +82,7 @@
 
     private void OnImageError()
     {
-        Noticia.Imagem = FallbackImages.ObterPara(Noticia.Titulo);
+        Noticia.Imagem = Fallback;
         StateHasChanged();
     }
 }
