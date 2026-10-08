@@ -74,7 +74,7 @@
             </nav>
         </div>
     </div>
-   
+
     <div id="blazor-error-ui" data-nosnippet>
         Ocorreu um erro inesperado.
         <a href="." class="reload">Recarregar</a>
@@ -84,63 +84,64 @@
     <script src="js/drawer.js"></script>
     <script src="js/ripple.js"></script>
     <script src="js/materialyou.js"></script>
+    <script src="js/share.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="js/infiniteScroll.js"></script>
     <script>
-                function atualizarHora() {
-                    const el = document.getElementById('header-hora');
-                    if (el) {
-                        const agora = new Date();
-                        el.textContent = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    }
-                }
-
-                /** @param {number | string} temp */
-                function aplicarTemp(temp) {
-                    const tentarAtualizar = setInterval(() => {
-                        const el = document.getElementById('header-clima');
-                        if (el) {
-                            el.textContent = `${temp}°C`;
-                            clearInterval(tentarAtualizar);
+                        function atualizarHora() {
+                            const el = document.getElementById('header-hora');
+                            if (el) {
+                                const agora = new Date();
+                                el.textContent = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                            }
                         }
-                    }, 200);
-                }
 
-                /**
-                 * @param {number} lat
-                 * @param {number} lon
-                 */
-                const buscarClima = (lat, lon) => {
-                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
-                        .then(r => r.json())
-                        .then(d => {
-                            const temp = Math.round(d.current_weather.temperature);
-                            localStorage.setItem('clima-temp', String(temp));
-                            aplicarTemp(temp);
-                        }).catch(() => { });
-                };
+                        /** @param {number | string} temp */
+                        function aplicarTemp(temp) {
+                            const tentarAtualizar = setInterval(() => {
+                                const el = document.getElementById('header-clima');
+                                if (el) {
+                                    el.textContent = `${temp}°C`;
+                                    clearInterval(tentarAtualizar);
+                                }
+                            }, 200);
+                        }
 
-                document.addEventListener('DOMContentLoaded', () => {
-                    atualizarHora();
-                    setInterval(atualizarHora, 1000);
+                        /**
+                         * @param {number} lat
+                         * @param {number} lon
+                         */
+                        const buscarClima = (lat, lon) => {
+                            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
+                                .then(r => r.json())
+                                .then(d => {
+                                    const temp = Math.round(d.current_weather.temperature);
+                                    localStorage.setItem('clima-temp', String(temp));
+                                    aplicarTemp(temp);
+                                }).catch(() => { });
+                        };
 
-                    // Mostra cache imediatamente
-                    const cached = localStorage.getItem('clima-temp');
-                    if (cached) aplicarTemp(cached);
+                        document.addEventListener('DOMContentLoaded', () => {
+                            atualizarHora();
+                            setInterval(atualizarHora, 1000);
 
-                    // Busca localização por IP (sem permissão, instantâneo)
-                    fetch('https://ipapi.co/json/')
-                        .then(r => r.json())
-                        .then(d => buscarClima(d.latitude, d.longitude))
-                        .catch(() => buscarClima(-3.72, -38.54)); // fallback Fortaleza
-                });
+                            // Mostra cache imediatamente
+                            const cached = localStorage.getItem('clima-temp');
+                            if (cached) aplicarTemp(cached);
+
+                            // Busca localização por IP (sem permissão, instantâneo)
+                            fetch('https://ipapi.co/json/')
+                                .then(r => r.json())
+                                .then(d => buscarClima(d.latitude, d.longitude))
+                                .catch(() => buscarClima(-3.72, -38.54)); // fallback Fortaleza
+                        });
     </script>
     <script>
-                        function playGolSound() {
-                            const audio = new Audio('/sounds/gol.mp3');
-                            audio.volume = 0.6;
-                            audio.play().catch(() => { });
-                        }
+                                function playGolSound() {
+                                    const audio = new Audio('/sounds/gol.mp3');
+                                    audio.volume = 0.6;
+                                    audio.play().catch(() => { });
+                                }
     </script>
 </body>
 </html>

@@ -1148,57 +1148,56 @@ html, body {
 /* ── Compartilhar ── */
 .news-share {
     position: absolute;
-    top: 10px;
+    bottom: 10px;
     right: 10px;
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
     z-index: 3;
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.news-card:hover .news-share {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.share-btn {
-    display: flex;
+.news-share-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
     border-radius: 50%;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.45);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: #fff;
     cursor: pointer;
-    transition: transform 0.15s ease, opacity 0.15s;
-    text-decoration: none;
+    transition: transform 0.15s ease, background 0.15s ease;
 }
 
-    .share-btn:hover {
-        transform: scale(1.15);
-        opacity: 1 !important;
+    .news-share-btn:hover {
+        transform: scale(1.1);
+        background: rgba(0, 0, 0, 0.6);
     }
 
-    .share-btn.whatsapp {
-        background: #25D366;
+    .news-share-btn svg {
+        width: 17px;
+        height: 17px;
     }
 
-    .share-btn.twitter {
-        background: #000;
-        border: 1px solid rgba(255,255,255,0.15);
-    }
+.news-share-toast {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 12px;
+    white-space: nowrap;
+}
 
-    .share-btn.facebook {
-        background: #1877F2;
-    }
+/* abre espaço embaixo do título pro ícone não ficar em cima do texto */
+.news-card .news-content {
+    padding-bottom: 50px;
+}
 
-    .share-btn svg {
-        width: 16px;
-        height: 16px;
-        fill: #fff;
-    }
+/* (os estilos antigos .share-btn foram removidos — ver aviso abaixo) */
 
 /* ── Busca ── */
 .busca-wrapper {

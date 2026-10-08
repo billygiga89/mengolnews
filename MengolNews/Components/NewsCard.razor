@@ -1,4 +1,5 @@
 ﻿@using MengolNews.Models
+@inject IJSRuntime JS
 
 <article class="news-card">
     <img src="@ImagemFinal"
@@ -6,36 +7,27 @@
          loading="lazy"
          @onerror="OnImageError" />
 
-    <!-- Share buttons — aparecem no hover -->
+    <!-- Compartilhar: ícone único, abre o compartilhamento nativo do aparelho -->
     <div class="news-share" @onclick:stopPropagation="true">
-        <a class="share-btn whatsapp"
-           href="@WhatsappUrl"
-           target="_blank"
-           rel="noopener"
-           title="Compartilhar no WhatsApp">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.126 1.528 5.865L0 24l6.335-1.505A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.032-1.388l-.36-.214-3.762.894.952-3.653-.235-.374A9.798 9.798 0 012.182 12C2.182 6.574 6.574 2.182 12 2.182c5.426 0 9.818 4.392 9.818 9.818 0 5.426-4.392 9.818-9.818 9.818z" />
+        @if (linkCopiado)
+        {
+            <span class="news-share-toast">Link copiado!</span>
+        }
+        <button type="button"
+                class="news-share-btn"
+                @onclick="Compartilhar"
+                @onclick:stopPropagation="true"
+                aria-label="Compartilhar notícia"
+                title="Compartilhar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line>
+                <line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line>
             </svg>
-        </a>
-        <a class="share-btn twitter"
-           href="@TwitterUrl"
-           target="_blank"
-           rel="noopener"
-           title="Compartilhar no X">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            </svg>
-        </a>
-        <a class="share-btn facebook"
-           href="@FacebookUrl"
-           target="_blank"
-           rel="noopener"
-           title="Compartilhar no Facebook">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.675 0h-21.35c-.734 0-1.325.591-1.325 1.325v21.351c0 .733.591 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.734 0 1.325-.591 1.325-1.324v-21.35c0-.734-.591-1.325-1.325-1.325z" />
-            </svg>
-        </a>
+        </button>
     </div>
 
     <div class="news-content">
@@ -57,6 +49,8 @@
     [Parameter]
     public string? ImagemFallback { get; set; }
 
+    private bool linkCopiado;
+
     private string Fallback =>
         !string.IsNullOrWhiteSpace(ImagemFallback)
             ? ImagemFallback
@@ -71,14 +65,19 @@
 
     private string UrlNoSite => "https://www.mengolnews.com.br" + Noticia.CaminhoSite;
 
-    private string WhatsappUrl =>
-        $"https://wa.me/?text={Uri.EscapeDataString(Noticia.Titulo + " " + UrlNoSite)}";
+    private async Task Compartilhar()
+    {
+        var resultado = await JS.InvokeAsync<string>("mnShare", Noticia.Titulo, UrlNoSite);
 
-    private string TwitterUrl =>
-        $"https://twitter.com/intent/tweet?text={Uri.EscapeDataString(Noticia.Titulo)}&url={Uri.EscapeDataString(UrlNoSite)}";
-
-    private string FacebookUrl =>
-        $"https://www.facebook.com/sharer/sharer.php?u={Uri.EscapeDataString(UrlNoSite)}";
+        if (resultado == "copied")
+        {
+            linkCopiado = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            linkCopiado = false;
+            StateHasChanged();
+        }
+    }
 
     private void OnImageError()
     {
