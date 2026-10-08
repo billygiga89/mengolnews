@@ -45,6 +45,9 @@ namespace MengolNews.Api.Services
         private DateTime _ultimaAtualizacao;
         private static readonly TimeSpan _cacheDuracao = TimeSpan.FromMinutes(10);
 
+        // Garante que só uma coleta rode por vez
+        private static readonly SemaphoreSlim _lockAtualizacao = new(1, 1);
+
         // Limita scraping paralelo para não sobrecarregar
         private static readonly SemaphoreSlim _semaforo = new(5, 5);
 
@@ -60,8 +63,6 @@ namespace MengolNews.Api.Services
             _http.DefaultRequestHeaders.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
             _http.DefaultRequestHeaders.Add("Accept-Language", "pt-BR,pt;q=0.9,en;q=0.8");
         }
-
-        private static readonly SemaphoreSlim _lockAtualizacao = new(1, 1);
 
         public async Task<List<NoticiaDto>> GetTodasNoticias()
         {
@@ -112,7 +113,6 @@ namespace MengolNews.Api.Services
 
         private async Task<List<NoticiaDto>> ColetarEAtualizarAsync()
         {
-
             var tarefas = new List<Task<List<NoticiaDto>>>
             {
                 GetEspnNoticias(),
@@ -159,7 +159,7 @@ namespace MengolNews.Api.Services
             Console.WriteLine($"TOTAL FINAL: {noticias.Count}");
 
             // Reescreve títulos/resumos com IA (usa memória/KV; só chama a IA para o que for novo).
-            // O arquivamento no KV agora acontece aqui dentro, já com a versão reescrita.
+            // O arquivamento no KV acontece aqui dentro, já com a versão reescrita.
             await AplicarReescritaAsync(noticias);
 
             _cache = noticias;
@@ -171,7 +171,7 @@ namespace MengolNews.Api.Services
         }
 
         /* =======================
-           ARQUIVAMENTO PERMANENTE (Cloudflare KV)
+           ARQUIVO PERMANENTE (Cloudflare KV)
         ======================= */
 
         private static string ChaveArquivo(string link)
@@ -180,35 +180,6 @@ namespace MengolNews.Api.Services
             var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(link));
             var hex = Convert.ToHexString(bytes).ToLowerInvariant();
             return $"noticia:{hex}";
-        }
-
-        private void ArquivarEmSegundoPlano(List<NoticiaDto> noticias)
-        {
-            _ = Task.Run(async () =>
-            {
-                foreach (var noticia in noticias)
-                {
-                    try
-                    {
-                        if (string.IsNullOrWhiteSpace(noticia.Link)) continue;
-
-                        var chave = ChaveArquivo(noticia.Link);
-
-                        // Só grava se ainda não existir — protege a cota de
-                        // escrita do plano free (1.000/dia), bem mais
-                        // apertada que a de leitura (100.000/dia).
-                        if (await _kv.ExistsAsync(chave)) continue;
-
-                        var json = JsonSerializer.Serialize(noticia);
-                        await _kv.SetAsync(chave, json);
-                    }
-                    catch
-                    {
-                        // Falha silenciosa — arquivamento é best-effort,
-                        // nunca deve atrapalhar a listagem normal.
-                    }
-                }
-            });
         }
 
         private static string HashLink(string link)
@@ -241,6 +212,54 @@ namespace MengolNews.Api.Services
                 await AplicarReescritaAsync(new List<NoticiaDto> { dto });
 
             return dto;
+        }
+
+        /* =======================
+           FOTOS JÁ DESCOBERTAS (memória + KV)
+        ======================= */
+
+        // link -> url da foto lida na página. Evita perder a foto se a leitura falhar numa atualização futura.
+        private static readonly ConcurrentDictionary<string, string> _imagensConhecidas = new();
+
+        private static string ChaveImagem(string link) => $"img:{HashLink(link)}";
+
+        private async Task<string?> ImagemSalvaAsync(string link)
+        {
+            if (_imagensConhecidas.TryGetValue(link, out var emMemoria))
+                return emMemoria;
+
+            await _semaforo.WaitAsync();
+            try
+            {
+                var salva = await _kv.GetAsync(ChaveImagem(link));
+                if (!string.IsNullOrWhiteSpace(salva))
+                {
+                    _imagensConhecidas[link] = salva;
+                    return salva;
+                }
+            }
+            catch { /* best-effort */ }
+            finally
+            {
+                _semaforo.Release();
+            }
+
+            return null;
+        }
+
+        private void GuardarImagem(string link, string imagem)
+        {
+            if (string.IsNullOrWhiteSpace(link) || string.IsNullOrWhiteSpace(imagem)) return;
+
+            if (_imagensConhecidas.Count > 3000) _imagensConhecidas.Clear();
+            if (_imagensConhecidas.TryGetValue(link, out var atual) && atual == imagem) return;
+
+            _imagensConhecidas[link] = imagem;
+
+            _ = Task.Run(async () =>
+            {
+                try { await _kv.SetAsync(ChaveImagem(link), imagem); } catch { }
+            });
         }
 
         /* =======================
@@ -450,7 +469,8 @@ namespace MengolNews.Api.Services
             return dto?.Link;
         }
 
-        // Fontes cuja capa é uma arte com a logo/título dela: ignora a capa e usa o FallbackImages
+        // Fontes cuja imagem do RSS é uma arte com a logo/título dela: ignora a imagem do RSS
+        // e busca a foto real na página da notícia (og:image).
         private static readonly HashSet<string> FontesComCapaDeMarca =
             new(StringComparer.OrdinalIgnoreCase) { "NETFLA" };
 
@@ -599,26 +619,41 @@ namespace MengolNews.Api.Services
                 {
                     var (item, titulo, descricao, link) = entry;
 
-                    // Fontes com capa de marca (ex.: NETFLA): ignora a capa e usa o FallbackImages
-                    var semCapa = FontesComCapaDeMarca.Contains(fonte);
-                    var imagem = semCapa ? "" : NormalizarImagem(ExtrairImagem(item), url);
+                    // Fontes com capa de marca (ex.: NETFLA): ignora a imagem do RSS e vai direto à foto da página
+                    var capaDeMarca = FontesComCapaDeMarca.Contains(fonte);
+                    var imagem = capaDeMarca ? "" : NormalizarImagem(ExtrairImagem(item), url);
 
-                    if (!semCapa && EhImagemInvalida(imagem))
+                    if (EhImagemInvalida(imagem))
                     {
                         imagem = "";
 
                         if (!string.IsNullOrWhiteSpace(link))
                         {
-                            await _semaforo.WaitAsync();
-                            try
+                            // 1) já descobrimos a foto dessa notícia antes?
+                            var salva = await ImagemSalvaAsync(link);
+
+                            if (!EhImagemInvalida(salva))
                             {
-                                var imgPagina = await ExtrairImagemDaPaginaAsync(link);
-                                if (!EhImagemInvalida(imgPagina))
-                                    imagem = imgPagina!;
+                                imagem = salva!;
                             }
-                            finally
+                            else
                             {
-                                _semaforo.Release();
+                                // 2) lê a foto da página da notícia
+                                await _semaforo.WaitAsync();
+                                try
+                                {
+                                    var imgPagina = NormalizarImagem(await ExtrairImagemDaPaginaAsync(link), link);
+
+                                    if (!EhImagemInvalida(imgPagina))
+                                    {
+                                        imagem = imgPagina;
+                                        GuardarImagem(link, imagem);
+                                    }
+                                }
+                                finally
+                                {
+                                    _semaforo.Release();
+                                }
                             }
                         }
                     }
@@ -638,8 +673,6 @@ namespace MengolNews.Api.Services
                         Imagem = string.IsNullOrWhiteSpace(imagem) ? "" : imagem
                     };
                 });
-
-                //lista = (await Task.WhenAll(tarefasImagem)).ToList();
 
                 lista = (await Task.WhenAll(tarefasImagem)).ToList();
             }
@@ -798,6 +831,7 @@ namespace MengolNews.Api.Services
             "default.jpg",
             "tiktokcdn",
             "futbolsites.net/generic",
+            "netfla.com.br/img/", // logo e artes de marca do próprio site da NETFLA
         };
 
         private bool EhImagemInvalida(string? url)
@@ -898,14 +932,14 @@ namespace MengolNews.Api.Services
 
             var containers = new[]
             {
-        "//div[contains(@class,'entry-content')]",
-        "//div[contains(@class,'article-body')]",
-        "//div[contains(@class,'post-content')]",
-        "//div[contains(@class,'content-text')]",
-        "//div[contains(@class,'td-post-content')]",
-        "//article",
-        "//main",
-    };
+                "//div[contains(@class,'entry-content')]",
+                "//div[contains(@class,'article-body')]",
+                "//div[contains(@class,'post-content')]",
+                "//div[contains(@class,'content-text')]",
+                "//div[contains(@class,'td-post-content')]",
+                "//article",
+                "//main",
+            };
 
             foreach (var xp in containers)
             {
@@ -959,7 +993,7 @@ namespace MengolNews.Api.Services
                 {
                     var content = ogImage.GetAttributeValue("content", null);
                     if (!string.IsNullOrWhiteSpace(content))
-                        return content;
+                        return WebUtility.HtmlDecode(content);
                 }
 
                 var twitterImage = doc.DocumentNode
@@ -969,7 +1003,7 @@ namespace MengolNews.Api.Services
                 {
                     var content = twitterImage.GetAttributeValue("content", null);
                     if (!string.IsNullOrWhiteSpace(content))
-                        return content;
+                        return WebUtility.HtmlDecode(content);
                 }
 
                 var img = doc.DocumentNode
