@@ -892,9 +892,18 @@ namespace MengolNews.Api.Services
         {
             try
             {
-                var web = new HtmlWeb { };
-                web.PreRequest += req => { req.Timeout = 5000; return true; };
-                var doc = await web.LoadFromWebAsync(url);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                using var resp = await _http.GetAsync(url, cts.Token);
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[IMG] Página respondeu HTTP {(int)resp.StatusCode}: {url}");
+                    return null;
+                }
+
+                var html = await resp.Content.ReadAsStringAsync(cts.Token);
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
 
                 var ogImage = doc.DocumentNode
                     .SelectSingleNode("//meta[@property='og:image'] | //meta[@name='og:image']");
@@ -921,8 +930,9 @@ namespace MengolNews.Api.Services
 
                 return PegarImagem(img);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[IMG] Falha ao ler imagem da página ({url}): {ex.Message}");
                 return null;
             }
         }
