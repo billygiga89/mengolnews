@@ -61,10 +61,57 @@ namespace MengolNews.Api.Services
             _http.DefaultRequestHeaders.Add("Accept-Language", "pt-BR,pt;q=0.9,en;q=0.8");
         }
 
+        private static readonly SemaphoreSlim _lockAtualizacao = new(1, 1);
+
         public async Task<List<NoticiaDto>> GetTodasNoticias()
         {
-            if (_cache != null && DateTime.Now - _ultimaAtualizacao < _cacheDuracao)
-                return _cache;
+            var cacheAtual = _cache;
+
+            // 1) cache ainda fresco
+            if (cacheAtual != null && DateTime.Now - _ultimaAtualizacao < _cacheDuracao)
+                return cacheAtual;
+
+            // 2) cache vencido: entrega o antigo agora e atualiza por trás
+            if (cacheAtual != null)
+            {
+                _ = AtualizarEmSegundoPlanoAsync();
+                return cacheAtual;
+            }
+
+            // 3) sem cache (primeira abertura): todo mundo espera a mesma coleta
+            await _lockAtualizacao.WaitAsync();
+            try
+            {
+                if (_cache != null) return _cache;
+                return await ColetarEAtualizarAsync();
+            }
+            finally
+            {
+                _lockAtualizacao.Release();
+            }
+        }
+
+        private async Task AtualizarEmSegundoPlanoAsync()
+        {
+            // se já tem uma atualização rodando, não começa outra
+            if (!await _lockAtualizacao.WaitAsync(0)) return;
+
+            try
+            {
+                await ColetarEAtualizarAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Erro ao atualizar notícias em segundo plano: {ex.Message}");
+            }
+            finally
+            {
+                _lockAtualizacao.Release();
+            }
+        }
+
+        private async Task<List<NoticiaDto>> ColetarEAtualizarAsync()
+        {
 
             var tarefas = new List<Task<List<NoticiaDto>>>
             {
