@@ -942,6 +942,7 @@ namespace MengolNews.Api.Services
 
         private string? ExtrairImagem(SyndicationItem item)
         {
+            // 1) media:content
             var media = item.ElementExtensions
                 .ReadElementExtensions<XmlElement>("content", "http://search.yahoo.com/mrss/")
                 .FirstOrDefault();
@@ -949,6 +950,15 @@ namespace MengolNews.Api.Services
             if (media?.HasAttribute("url") == true)
                 return media.GetAttribute("url");
 
+            // 2) media:thumbnail
+            var thumb = item.ElementExtensions
+                .ReadElementExtensions<XmlElement>("thumbnail", "http://search.yahoo.com/mrss/")
+                .FirstOrDefault();
+
+            if (thumb?.HasAttribute("url") == true)
+                return thumb.GetAttribute("url");
+
+            // 3) enclosure de imagem
             var enclosure = item.Links.FirstOrDefault(l =>
                 l.RelationshipType == "enclosure" &&
                 (l.MediaType?.StartsWith("image") == true));
@@ -956,14 +966,33 @@ namespace MengolNews.Api.Services
             if (enclosure != null)
                 return enclosure.Uri.ToString();
 
-            var html = item.Summary?.Text;
-            if (string.IsNullOrWhiteSpace(html)) return null;
+            // 4) primeira <img> do HTML: content:encoded primeiro, depois o resumo
+            var encoded = item.ElementExtensions
+                .ReadElementExtensions<XmlElement>("encoded", "http://purl.org/rss/1.0/modules/content/")
+                .FirstOrDefault()?.InnerText;
 
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
+            foreach (var html in new[] { encoded, item.Summary?.Text })
+            {
+                if (string.IsNullOrWhiteSpace(html)) continue;
 
-            var img = doc.DocumentNode.SelectSingleNode("//img");
-            return img?.GetAttributeValue("src", null);
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
+
+                var imgs = doc.DocumentNode.SelectNodes("//img");
+                if (imgs == null) continue;
+
+                foreach (var img in imgs)
+                {
+                    var src = img.GetAttributeValue("src", null)
+                              ?? img.GetAttributeValue("data-src", null)
+                              ?? img.GetAttributeValue("data-lazy-src", null);
+
+                    if (!string.IsNullOrWhiteSpace(src) && !src.StartsWith("data:"))
+                        return src;
+                }
+            }
+
+            return null;
         }
 
         /* =======================
