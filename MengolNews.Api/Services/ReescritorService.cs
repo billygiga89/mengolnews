@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -9,9 +10,13 @@ namespace MengolNews.Api.Services
         private readonly HttpClient _http;
         private readonly string _apiKey;
         private readonly string _modelo;
+        private readonly bool _habilitada;
 
         // Limita chamadas simultâneas à IA (respeita o limite por minuto do plano gratuito)
         private static readonly SemaphoreSlim _limite = new(2, 2);
+
+        // Pausa global depois de um 429 (cota): evita insistir e gastar ainda mais
+        private static long _pausadoAteTicks;
 
         public ReescritorService(HttpClient http, IConfiguration config)
         {
@@ -19,9 +24,17 @@ namespace MengolNews.Api.Services
             _http.Timeout = TimeSpan.FromSeconds(90);
             _apiKey = config["Gemini:ApiKey"] ?? "";
             _modelo = config["Gemini:Modelo"] ?? "gemini-3.8-flash";
+            _habilitada = config.GetValue("Reescrita:Habilitada", true);
+
+            if (!_habilitada)
+                Console.WriteLine("[IA] ⏸️ Reescrita por IA desligada (Reescrita:Habilitada = false)");
         }
 
-        public bool Configurado => !string.IsNullOrWhiteSpace(_apiKey);
+        public bool Configurado => _habilitada && !string.IsNullOrWhiteSpace(_apiKey);
+
+        /// <summary>true quando dá para chamar a IA agora: ligada, com chave e fora da pausa por cota.</summary>
+        public bool Disponivel =>
+            Configurado && DateTime.UtcNow.Ticks >= Interlocked.Read(ref _pausadoAteTicks);
 
         /* =======================
            PROMPTS
@@ -68,7 +81,7 @@ Responda somente com o texto final da matéria.
             IReadOnlyList<(string Titulo, string Descricao)> itens)
         {
             var resultado = new Dictionary<int, (string Titulo, string Descricao)>();
-            if (!Configurado || itens.Count == 0) return resultado;
+            if (!Disponivel || itens.Count == 0) return resultado;
 
             var sb = new StringBuilder();
             sb.AppendLine(PromptResumos);
@@ -116,7 +129,7 @@ Responda somente com o texto final da matéria.
 
         public async Task<string?> ReescreverCorpoAsync(string titulo, string textoOriginal)
         {
-            if (!Configurado || string.IsNullOrWhiteSpace(textoOriginal)) return null;
+            if (!Disponivel || string.IsNullOrWhiteSpace(textoOriginal)) return null;
 
             var prompt = PromptCorpo
                 + "\n\nTÍTULO DA MATÉRIA: " + titulo
@@ -143,6 +156,8 @@ Responda somente com o texto final da matéria.
 
         private async Task<string?> ChamarGeminiAsync(string prompt, bool respostaJson)
         {
+            if (!Disponivel) return null;
+
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_modelo}:generateContent";
 
             var config = new Dictionary<string, object>
@@ -162,6 +177,9 @@ Responda somente com o texto final da matéria.
             await _limite.WaitAsync();
             try
             {
+                // quem esperou na fila pode ter chegado depois de uma pausa por cota
+                if (!Disponivel) return null;
+
                 for (int tentativa = 1; tentativa <= 3; tentativa++)
                 {
                     using var req = new HttpRequestMessage(HttpMethod.Post, url)
@@ -178,10 +196,18 @@ Responda somente com o texto final da matéria.
                         if (resp.IsSuccessStatusCode) return ExtrairTexto(conteudo);
 
                         var codigo = (int)resp.StatusCode;
+
+                        // Cota esgotada: repetir só gasta mais. Pausa a IA e desiste agora.
+                        if (codigo == 429)
+                        {
+                            PausarPorCota(conteudo);
+                            return null;
+                        }
+
                         Console.WriteLine($"[IA] ⚠️ HTTP {codigo} (tentativa {tentativa}/3): {Cortar(conteudo, 300)}");
 
-                        // só repete em erro transitório
-                        if (codigo is not (429 or 500 or 502 or 503 or 504)) return null;
+                        // só repete em erro transitório do servidor
+                        if (codigo is not (500 or 502 or 503 or 504)) return null;
                     }
                     catch (TaskCanceledException)
                     {
@@ -201,6 +227,30 @@ Responda somente com o texto final da matéria.
             {
                 _limite.Release();
             }
+        }
+
+        private static void PausarPorCota(string corpoErro)
+        {
+            TimeSpan pausa;
+
+            if (corpoErro.Contains("PerDay", StringComparison.OrdinalIgnoreCase))
+            {
+                // cota diária: não adianta insistir; confere de novo daqui a 1 hora
+                pausa = TimeSpan.FromMinutes(60);
+            }
+            else
+            {
+                // cota por minuto: usa o tempo que o próprio Google pede (retryDelay), se vier
+                var m = Regex.Match(corpoErro, @"""retryDelay""\s*:\s*""(\d+(?:\.\d+)?)s""");
+                var segundos = m.Success ? double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : 90;
+                pausa = TimeSpan.FromSeconds(Math.Clamp(segundos + 5, 30, 600));
+            }
+
+            var ate = (DateTime.UtcNow + pausa).Ticks;
+            if (ate > Interlocked.Read(ref _pausadoAteTicks))
+                Interlocked.Exchange(ref _pausadoAteTicks, ate);
+
+            Console.WriteLine($"[IA] ⛔ Cota do Gemini esgotada (429). IA pausada por {pausa.TotalMinutes:0.#} min.");
         }
 
         private static string? ExtrairTexto(string json)

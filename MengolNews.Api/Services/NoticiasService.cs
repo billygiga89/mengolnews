@@ -44,11 +44,16 @@ namespace MengolNews.Api.Services
         // link -> url da foto lida na página (evita perder a foto se a leitura falhar numa atualização futura)
         private static readonly ConcurrentDictionary<string, string> _imagensConhecidas = new();
 
-        public NoticiasService(HttpClient http, CloudflareKvService kv, ReescritorService reescritor)
+        private readonly bool _reescritaHabilitada;
+
+        public NoticiasService(HttpClient http, CloudflareKvService kv, ReescritorService reescritor, IConfiguration config)
         {
             _http = http;
             _kv = kv;
             _reescritor = reescritor;
+            _reescritaHabilitada = config.GetValue("Reescrita:Habilitada", true);
+            if (!_reescritaHabilitada)
+                Console.WriteLine("[IA] ⏸️ Reescrita por IA desligada (Reescrita:Habilitada = false)");
             _http.Timeout = TimeSpan.FromSeconds(15);
             _http.DefaultRequestHeaders.UserAgent.ParseAdd(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
@@ -879,6 +884,9 @@ namespace MengolNews.Api.Services
                 if (pendentes.Count == 0) return;
                 Console.WriteLine($"[IA] ✍️ Reescrevendo {pendentes.Count} títulos/resumos novos");
 
+                if (pendentes.Count == 0) return;
+                if (!_reescritaHabilitada) return; // as já reescritas (memória/KV) continuam sendo aplicadas; só não chama a IA
+
                 // 2) o que é novo vai para a IA, em lotes
                 await Task.WhenAll(pendentes.Chunk(MaxResumosPorLote).Select(async lote =>
                 {
@@ -963,6 +971,8 @@ namespace MengolNews.Api.Services
 
         private void PreAquecerCorposEmSegundoPlano(List<NoticiaDto> noticias)
         {
+            if (!_reescritaHabilitada) return;
+
             _ = Task.Run(async () =>
             {
                 // se já tem um pré-aquecimento rodando, não começa outro
@@ -1004,6 +1014,9 @@ namespace MengolNews.Api.Services
                 }
             }
             catch { }
+
+            // com a IA desligada, não faz mais nada (nem baixa a página da fonte)
+            if (!_reescritaHabilitada) return null;
 
             // 2) título (já reescrito) só para dar contexto à IA
             var titulo = _cache?.FirstOrDefault(n => n.Link == link)?.Titulo
