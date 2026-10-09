@@ -164,9 +164,13 @@ namespace MengolNews.Api.Services
                 .OrderByDescending(n => n.Data)
                 .ToList();
 
+            var antesDaDedup = noticiasBrutas.Count;
+
             var noticias = RemoverDuplicadas(noticiasBrutas)
                 .Take(50)
                 .ToList();
+
+            Console.WriteLine($"[DEDUP] {antesDaDedup} -> {noticias.Count} notícias (repetidas removidas)");
 
             if (!noticias.Any())
             {
@@ -551,69 +555,91 @@ namespace MengolNews.Api.Services
             "NOTÍCIAS FLA",
         };
 
+        // Regra 1: títulos com pelo menos MinPalavrasEmComum palavras iguais e coincidência
+        //          (sobre o MENOR título) a partir deste valor = mesma notícia.
         private const double LimiarSimilaridadeTitulo = 0.5;
+        private const int MinPalavrasEmComum = 3;
 
+        // Regra 2: se a FOTO for a mesma, basta um assunto parecido (bem menos exigente).
+        private const double LimiarComMesmaFoto = 0.25;
+
+        // Palavras que aparecem em quase todo título e não ajudam a diferenciar notícias
+        // (comparadas já sem acento e em minúsculas)
         private static readonly HashSet<string> StopWordsTitulo = new(StringComparer.OrdinalIgnoreCase)
         {
             "a","o","os","as","de","da","do","das","dos","e","em","no","na","nos","nas",
-            "para","por","com","um","uma","que","é","ao","à","se","sobre","apos","antes",
-            "flamengo","fla"
+            "para","por","com","um","uma","que","ao","se","sobre","apos","antes",
+            "como","mais","sua","seu","suas","seus","vai","tem","foi","ser","faz","entre","ate",
+            "flamengo","fla","mengao","rubro","negro","brasileirao","jogo","partida"
         };
 
-        // --- por título ---
+        // --- por título (e foto) ---
 
         private static List<NoticiaDto> RemoverDuplicadas(List<NoticiaDto> noticias)
         {
             var resultado = new List<NoticiaDto>();
+            var tokensResultado = new List<HashSet<string>>();
+            var fotosResultado = new List<string>();
 
             foreach (var noticia in noticias)
             {
-                var tokensAtual = TokenizarTitulo(noticia.Titulo);
+                var tokens = TokenizarTitulo(noticia.Titulo);
+                var foto = IdentidadeDaFoto(noticia.Imagem);
 
-                NoticiaDto? duplicata = null;
-                foreach (var existente in resultado)
+                var idx = -1;
+                for (int i = 0; i < resultado.Count; i++)
                 {
-                    var similaridade = CalcularSimilaridade(tokensAtual, TokenizarTitulo(existente.Titulo));
-                    if (similaridade >= LimiarSimilaridadeTitulo)
+                    if (EhMesmaNoticia(tokens, foto, tokensResultado[i], fotosResultado[i]))
                     {
-                        duplicata = existente;
+                        idx = i;
                         break;
                     }
                 }
 
-                if (duplicata == null)
+                if (idx == -1)
                 {
                     resultado.Add(noticia);
+                    tokensResultado.Add(tokens);
+                    fotosResultado.Add(foto);
                 }
-                else if (EhMelhorVersao(noticia, duplicata))
+                else if (EhMelhorVersao(noticia, resultado[idx]))
                 {
-                    var idx = resultado.IndexOf(duplicata);
                     resultado[idx] = noticia;
+                    tokensResultado[idx] = tokens;
+                    fotosResultado[idx] = foto;
                 }
             }
 
             return resultado;
         }
 
-        private static HashSet<string> TokenizarTitulo(string titulo)
+        private static bool EhMesmaNoticia(HashSet<string> a, string fotoA, HashSet<string> b, string fotoB)
         {
-            var texto = RemoverAcentos(titulo.ToLowerInvariant());
+            if (a.Count == 0 || b.Count == 0) return false;
+
+            var emComum = a.Count(t => b.Contains(t));
+            var coincidencia = (double)emComum / Math.Min(a.Count, b.Count);
+
+            // Regra 1: títulos muito parecidos
+            if (emComum >= MinPalavrasEmComum && coincidencia >= LimiarSimilaridadeTitulo)
+                return true;
+
+            // Regra 2: mesma foto + um pouco de assunto em comum
+            var mesmaFoto = fotoA != "" && fotoA == fotoB;
+            return mesmaFoto && emComum >= 2 && coincidencia >= LimiarComMesmaFoto;
+        }
+
+        private static HashSet<string> TokenizarTitulo(string? titulo)
+        {
+            var texto = RemoverAcentos((titulo ?? "").ToLowerInvariant());
             texto = Regex.Replace(texto, @"[^a-z0-9\s]", " ");
 
             return texto
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                 .Where(t => t.Length > 2 && !StopWordsTitulo.Contains(t))
+                // radical de 5 letras: "empate", "empata", "empatam" -> "empat"
+                .Select(t => t.Length > 5 ? t[..5] : t)
                 .ToHashSet();
-        }
-
-        private static double CalcularSimilaridade(HashSet<string> a, HashSet<string> b)
-        {
-            if (a.Count == 0 || b.Count == 0) return 0;
-
-            var intersecao = a.Intersect(b).Count();
-            var uniao = a.Union(b).Count();
-
-            return (double)intersecao / uniao;
         }
 
         private static string RemoverAcentos(string texto)
