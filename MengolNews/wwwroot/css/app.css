@@ -1239,6 +1239,36 @@ html, body {
     animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.news-open-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.news-open-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--mn-text);
+    border: 1px solid currentColor;
+    cursor: pointer;
+    line-height: 1;
+}
+
+    .news-open-share svg {
+        flex-shrink: 0;
+    }
+
+.news-open-share-msg {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
 .news-open-img {
     box-sizing: border-box;
     width: 100%;

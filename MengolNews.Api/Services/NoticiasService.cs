@@ -556,14 +556,25 @@ namespace MengolNews.Api.Services
 
         private static readonly string[] PadroesImagemInvalida = new[]
         {
+            // placeholders genéricos
             "noimg.jpg",
             "no-image",
             "sem-imagem",
+            "sem-foto",
+            "semfoto",
             "placeholder",
             "default.jpg",
             "tiktokcdn",
             "futbolsites.net/generic",
-            "netfla.com.br/img/", // logo e artes de marca do próprio site da NETFLA
+
+            // logos e artes de marca dos sites de origem (vira fallback do MengolNews)
+            "netfla.com.br/img/",
+            "/logo", "logo.", "-logo", "_logo", "logo-", "logo_",
+            "favicon",
+            "/brand",
+            "og-default", "default-og",
+            "default-share", "share-default", "social-default",
+            "/avatar",
         };
 
         private static bool EhImagemInvalida(string? url)
@@ -885,7 +896,7 @@ namespace MengolNews.Api.Services
                 Console.WriteLine($"[IA] ✍️ Reescrevendo {pendentes.Count} títulos/resumos novos");
 
                 if (pendentes.Count == 0) return;
-                if (!_reescritaHabilitada) return; // as já reescritas (memória/KV) continuam sendo aplicadas; só não chama a IA
+                if (!_reescritor.Disponivel) return; // as já reescritas (memória/KV) continuam sendo aplicadas; só não chama a IA
 
                 // 2) o que é novo vai para a IA, em lotes
                 await Task.WhenAll(pendentes.Chunk(MaxResumosPorLote).Select(async lote =>
@@ -971,7 +982,7 @@ namespace MengolNews.Api.Services
 
         private void PreAquecerCorposEmSegundoPlano(List<NoticiaDto> noticias)
         {
-            if (!_reescritaHabilitada) return;
+            if (!_reescritor.Disponivel) return;
 
             _ = Task.Run(async () =>
             {
@@ -982,6 +993,7 @@ namespace MengolNews.Api.Services
                 {
                     foreach (var n in noticias.Take(15))
                     {
+                        if (!_reescritor.Disponivel) break;
                         if (string.IsNullOrWhiteSpace(n.Link)) continue;
                         if (_corposReescritos.ContainsKey(n.Link)) continue; // já está pronto
 
@@ -1016,7 +1028,7 @@ namespace MengolNews.Api.Services
             catch { }
 
             // com a IA desligada, não faz mais nada (nem baixa a página da fonte)
-            if (!_reescritaHabilitada) return null;
+            if (!_reescritor.Disponivel) return null;
 
             // 2) título (já reescrito) só para dar contexto à IA
             var titulo = _cache?.FirstOrDefault(n => n.Link == link)?.Titulo
