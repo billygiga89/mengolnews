@@ -46,19 +46,35 @@ namespace MengolNews.Api.Services
 
         private readonly bool _reescritaHabilitada;
 
+        // Proxy opcional para fontes que bloqueiam o IP do Render.
+        // Configure no Render: Feeds__ProxyUrl = https://seu-worker.workers.dev/?url=
+        private readonly string? _proxyUrl;
+        private bool TemProxy => !string.IsNullOrWhiteSpace(_proxyUrl);
+
+        private const string UaNavegador =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+        // Muitos sites liberam leitores de feed mesmo quando bloqueiam IPs de datacenter
+        private const string UaLeitorFeed =
+            "Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)";
+
+        static NoticiasService()
+        {
+            // Permite ler feeds em windows-1252 / iso-8859-x (comum em sites brasileiros mais antigos)
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        }
+
         public NoticiasService(HttpClient http, CloudflareKvService kv, ReescritorService reescritor, IConfiguration config)
         {
             _http = http;
             _kv = kv;
             _reescritor = reescritor;
             _reescritaHabilitada = config.GetValue("Reescrita:Habilitada", true);
+            _proxyUrl = config["Feeds:ProxyUrl"];
             if (!_reescritaHabilitada)
                 Console.WriteLine("[IA] ⏸️ Reescrita por IA desligada (Reescrita:Habilitada = false)");
             _http.Timeout = TimeSpan.FromSeconds(15);
-            _http.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
-            );
-            _http.DefaultRequestHeaders.Add("Accept", "application/rss+xml, application/xml, text/xml, */*");
+            _http.DefaultRequestHeaders.UserAgent.ParseAdd(UaNavegador);
             _http.DefaultRequestHeaders.Add("Accept-Language", "pt-BR,pt;q=0.9,en;q=0.8");
         }
 
@@ -184,14 +200,21 @@ namespace MengolNews.Api.Services
         private static readonly HashSet<string> FontesComCapaDeMarca =
             new(StringComparer.OrdinalIgnoreCase) { "NETFLA" };
 
+        // Os endereços depois do 3º parâmetro são alternativas: só são usados se o principal falhar.
+        // Se algum não existir, a tentativa só é pulada.
+
         private Task<List<NoticiaDto>> GetEspnNoticias()
             => LerRss("https://www.espn.com.br/rss/flamengo.xml", "ESPN", filtrarFlamengo: true);
 
         private Task<List<NoticiaDto>> GetColunaDoFla()
-            => LerRss("https://colunadofla.com/feed", "COLUNA DO FLA", filtrarFlamengo: false);
+            => LerRss("https://colunadofla.com/feed", "COLUNA DO FLA", false,
+                "https://colunadofla.com/feed/",
+                "https://colunadofla.com/?feed=rss2");
 
         private Task<List<NoticiaDto>> GetUrubuInterativo()
-            => LerRss("https://noticiasfla.com.br/feed", "NOTÍCIAS FLA", filtrarFlamengo: false);
+            => LerRss("https://noticiasfla.com.br/feed", "NOTÍCIAS FLA", false,
+                "https://noticiasfla.com.br/feed/",
+                "https://noticiasfla.com.br/?feed=rss2");
 
         private Task<List<NoticiaDto>> GetLanceNoticias()
             => LerRss("https://br.bolavip.com/rss/flamengo", "BOLAVIP", filtrarFlamengo: false);
@@ -200,63 +223,92 @@ namespace MengolNews.Api.Services
             => LerRss("https://netfla.com.br/feed", "NETFLA", filtrarFlamengo: true);
 
         private Task<List<NoticiaDto>> GetFlamengoRj()
-            => LerRss("https://urubuinterativo.com/feed/", "URUBU INTERATIVO", filtrarFlamengo: false);
+            => LerRss("https://urubuinterativo.com/feed/", "URUBU INTERATIVO", false,
+                "https://urubuinterativo.com/?feed=rss2");
 
         private Task<List<NoticiaDto>> GetPlacar()
-            => LerRss("https://placar.com.br/feed/", "PLACAR", filtrarFlamengo: true);
+            => LerRss("https://placar.com.br/feed/", "PLACAR", true,
+                "https://placar.com.br/tag/flamengo/feed/",
+                "https://placar.com.br/?feed=rss2");
 
         private Task<List<NoticiaDto>> GetBolEsporte()
-            => LerRss("http://rss.bol.uol.com.br/noticias/esporte/rss.xml", "BOL ESPORTE", filtrarFlamengo: true);
+            => LerRss("http://rss.bol.uol.com.br/noticias/esporte/rss.xml", "BOL ESPORTE", true,
+                "https://rss.bol.uol.com.br/noticias/esporte/rss.xml");
 
         #endregion
 
         #region Leitor RSS
 
-        private Task<List<NoticiaDto>> LerRss(string url, string fonte, bool filtrarFlamengo)
-            => LerRssComHeaders(url, fonte, null, filtrarFlamengo);
+        private Task<List<NoticiaDto>> LerRss(string url, string fonte, bool filtrarFlamengo, params string[] urlsAlternativas)
+            => LerRssComHeaders(url, fonte, null, filtrarFlamengo, urlsAlternativas);
 
         private async Task<List<NoticiaDto>> LerRssComHeaders(
             string url,
             string fonte,
             Dictionary<string, string>? headersExtras,
-            bool filtrarFlamengo = true)
+            bool filtrarFlamengo = true,
+            string[]? urlsAlternativas = null)
         {
             var lista = new List<NoticiaDto>();
 
             try
             {
-                const int maxTentativas = 2;
-                HttpResponseMessage? response = null;
+                // Ordem das tentativas: cada endereço com cara de navegador e depois como leitor de feed.
+                // Por fim, o proxy (se configurado).
+                var tentativas = new List<(string endereco, bool uaLeitor, bool proxy)>();
 
-                for (int tentativa = 1; tentativa <= maxTentativas; tentativa++)
+                foreach (var endereco in new[] { url }.Concat(urlsAlternativas ?? Array.Empty<string>()))
                 {
-                    using var request = new HttpRequestMessage(HttpMethod.Get, url);
-
-                    if (headersExtras != null)
-                        foreach (var kv in headersExtras)
-                            request.Headers.TryAddWithoutValidation(kv.Key, kv.Value);
-
-                    response?.Dispose();
-                    response = await _http.SendAsync(request);
-
-                    Console.WriteLine($"[{fonte}] Status: {(int)response.StatusCode} (tentativa {tentativa}/{maxTentativas})");
-
-                    if (response.IsSuccessStatusCode)
-                        break;
-
-                    if (tentativa < maxTentativas)
-                        await Task.Delay(TimeSpan.FromSeconds(1.5));
+                    tentativas.Add((endereco, false, false));
+                    tentativas.Add((endereco, true, false));
                 }
 
-                using var _ = response;
+                if (TemProxy)
+                    tentativas.Add((url, true, true));
 
-                if (response == null || !response.IsSuccessStatusCode)
+                string? xml = null;
+                var numero = 0;
+
+                foreach (var t in tentativas)
                 {
-                    Console.WriteLine($"[{fonte}] ❌ Falhou com status {(int)(response?.StatusCode ?? 0)} após {maxTentativas} tentativas");
+                    numero++;
+
+                    try
+                    {
+                        using var request = CriarRequisicao(t.endereco, feed: true, t.uaLeitor, t.proxy, headersExtras);
+                        using var response = await _http.SendAsync(request);
+
+                        Console.WriteLine($"[{fonte}] Status: {(int)response.StatusCode} (tentativa {numero}/{tentativas.Count})");
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var corpo = await LerTextoAsync(response);
+
+                            if (ParecerFeed(corpo))
+                            {
+                                xml = corpo;
+                                break;
+                            }
+
+                            Console.WriteLine($"[{fonte}] ⚠️ Respondeu 200, mas não é um feed (provável bloqueio)");
+                        }
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Console.WriteLine($"[{fonte}] ⚠️ Falha de conexão: {ex.Message}");
+                    }
+
+                    if (numero < tentativas.Count)
+                        await Task.Delay(TimeSpan.FromSeconds(1));
+                }
+
+                if (xml == null)
+                {
+                    Console.WriteLine($"[{fonte}] ❌ Falhou após {tentativas.Count} tentativas");
                     return lista;
                 }
 
-                var xml = await response.Content.ReadAsStringAsync();
+                xml = xml.TrimStart('\uFEFF', ' ', '\r', '\n', '\t');
 
                 // Normaliza a versão do RSS (ex.: "0.92" -> "2.0") para o parser aceitar
                 xml = Regex.Replace(
@@ -331,6 +383,124 @@ namespace MengolNews.Api.Services
             }
 
             return lista;
+        }
+
+        // --- requisições com cabeçalhos de navegador / leitor de feed ---
+
+        private HttpRequestMessage CriarRequisicao(
+            string url,
+            bool feed,
+            bool uaLeitor,
+            bool viaProxy,
+            Dictionary<string, string>? extras = null)
+        {
+            var alvo = viaProxy && TemProxy ? _proxyUrl + Uri.EscapeDataString(url) : url;
+            var req = new HttpRequestMessage(HttpMethod.Get, alvo);
+
+            req.Headers.TryAddWithoutValidation("User-Agent", uaLeitor ? UaLeitorFeed : UaNavegador);
+
+            if (feed)
+            {
+                req.Headers.TryAddWithoutValidation("Accept",
+                    "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5");
+            }
+            else
+            {
+                req.Headers.TryAddWithoutValidation("Accept",
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+
+                if (!uaLeitor)
+                {
+                    req.Headers.TryAddWithoutValidation("Upgrade-Insecure-Requests", "1");
+                    req.Headers.TryAddWithoutValidation("Sec-Fetch-Dest", "document");
+                    req.Headers.TryAddWithoutValidation("Sec-Fetch-Mode", "navigate");
+                    req.Headers.TryAddWithoutValidation("Sec-Fetch-Site", "none");
+                    req.Headers.TryAddWithoutValidation("Sec-Fetch-User", "?1");
+                }
+            }
+
+            if (!uaLeitor)
+                req.Headers.Referrer = new Uri("https://www.google.com/");
+
+            if (extras != null)
+                foreach (var kv in extras)
+                    req.Headers.TryAddWithoutValidation(kv.Key, kv.Value);
+
+            return req;
+        }
+
+        /// <summary>Baixa uma página HTML: navegador, depois leitor de feed e, por fim, o proxy (se houver).</summary>
+        private async Task<string?> BaixarPaginaAsync(string url, CancellationToken ct = default)
+        {
+            var modos = new List<(bool uaLeitor, bool proxy)> { (false, false), (true, false) };
+            if (TemProxy) modos.Add((true, true));
+
+            foreach (var (uaLeitor, proxy) in modos)
+            {
+                using var request = CriarRequisicao(url, feed: false, uaLeitor, proxy);
+                using var resp = await _http.SendAsync(request, ct);
+
+                if (resp.IsSuccessStatusCode)
+                    return await LerTextoAsync(resp, ct);
+
+                var status = (int)resp.StatusCode;
+                Console.WriteLine($"[PAG] HTTP {status}{(proxy ? " (via proxy)" : uaLeitor ? " (como leitor de feed)" : "")}: {url}");
+
+                // só vale tentar de novo se parecer bloqueio ou instabilidade
+                if (status != 403 && status != 429 && status != 503 && status != 401)
+                    return null;
+            }
+
+            return null;
+        }
+
+        private static bool ParecerFeed(string? texto)
+            => !string.IsNullOrWhiteSpace(texto) &&
+               (texto.Contains("<rss", StringComparison.OrdinalIgnoreCase) ||
+                texto.Contains("<feed", StringComparison.OrdinalIgnoreCase) ||
+                texto.Contains("<rdf:RDF", StringComparison.OrdinalIgnoreCase));
+
+        // --- leitura do texto com charset à prova de erro ---
+
+        private static readonly Regex RegexCharset =
+            new(@"(?:charset|encoding)\s*=\s*[""']?\s*([\w\-]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static Encoding? EncodingPorNome(string? nome)
+        {
+            if (string.IsNullOrWhiteSpace(nome)) return null;
+
+            try { return Encoding.GetEncoding(nome.Trim().Trim('"', '\'')); }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Lê o corpo pelos bytes, sem depender do charset do header (o ReadAsStringAsync lança erro
+        /// quando o servidor manda um charset que o .NET não conhece).
+        /// </summary>
+        private static async Task<string> LerTextoAsync(HttpResponseMessage resp, CancellationToken ct = default)
+        {
+            var bytes = await resp.Content.ReadAsByteArrayAsync(ct);
+            if (bytes.Length == 0) return "";
+
+            // BOM UTF-8
+            if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+                return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
+
+            // 1) charset do header (se for válido)
+            Encoding? enc = null;
+            try { enc = EncodingPorNome(resp.Content.Headers.ContentType?.CharSet); }
+            catch { /* header malformado: segue para a declaração no conteúdo */ }
+
+            // 2) declaração no começo do arquivo (<?xml encoding="..."?> ou <meta charset="...">)
+            if (enc == null)
+            {
+                var inicio = Encoding.ASCII.GetString(bytes, 0, Math.Min(bytes.Length, 1500));
+                var m = RegexCharset.Match(inicio);
+                if (m.Success) enc = EncodingPorNome(m.Groups[1].Value);
+            }
+
+            // 3) padrão
+            return (enc ?? Encoding.UTF8).GetString(bytes);
         }
 
         private static DateTime ConverterParaBrasilia(DateTime utc)
@@ -680,16 +850,11 @@ namespace MengolNews.Api.Services
         {
             try
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                using var resp = await _http.GetAsync(url, cts.Token);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
-                if (!resp.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"[IMG] Página respondeu HTTP {(int)resp.StatusCode}: {url}");
-                    return null;
-                }
+                var html = await BaixarPaginaAsync(url, cts.Token);
+                if (html == null) return null;
 
-                var html = await resp.Content.ReadAsStringAsync(cts.Token);
                 var doc = new HtmlDocument();
                 doc.LoadHtml(html);
 
@@ -1069,14 +1234,13 @@ namespace MengolNews.Api.Services
         {
             try
             {
-                using var resp = await _http.GetAsync(url);
-                if (!resp.IsSuccessStatusCode)
+                var html = await BaixarPaginaAsync(url);
+                if (html == null)
                 {
-                    Console.WriteLine($"[IA] Página da fonte respondeu HTTP {(int)resp.StatusCode}");
+                    Console.WriteLine("[IA] Não foi possível baixar a página da fonte");
                     return null;
                 }
 
-                var html = await resp.Content.ReadAsStringAsync();
                 var doc = new HtmlDocument();
                 doc.LoadHtml(html);
 
