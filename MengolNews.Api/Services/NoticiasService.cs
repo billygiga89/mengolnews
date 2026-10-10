@@ -1182,7 +1182,7 @@ namespace MengolNews.Api.Services
 
                 try
                 {
-                    foreach (var n in noticias.Take(15))
+                    foreach (var n in noticias.Take(5))
                     {
                         if (!_reescritor.Disponivel) break;
                         if (string.IsNullOrWhiteSpace(n.Link)) continue;
