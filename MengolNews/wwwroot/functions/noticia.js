@@ -8,6 +8,8 @@
 // vindos de bots conhecidos, busca os metadados na API e devolve um HTML já pronto,
 // com todas as meta tags. Usuários reais (navegador) passam direto
 // para o fluxo normal do Blazor.
+//
+// Notícia inexistente + bot -> devolve 404 de verdade (evita "soft 404" no Google).
 
 const BOT_REGEX =
   /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|Googlebot|bingbot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|Baiduspider|YandexBot/i;
@@ -33,6 +35,20 @@ function truncar(texto, max = 160) {
   return limpo.length > max ? limpo.slice(0, max - 3).trimEnd() + "..." : limpo;
 }
 
+function naoEncontrada() {
+  return new Response(
+    `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" />
+<title>Notícia não encontrada | MengolNews</title>
+<meta name="robots" content="noindex" /></head>
+<body><h1>Notícia não encontrada</h1>
+<p><a href="${SITE_URL}/noticias">Ver as últimas notícias do Flamengo</a></p></body></html>`,
+    {
+      status: 404,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    }
+  );
+}
+
 export async function onRequest(context) {
   const { request, next } = context;
   const userAgent = request.headers.get("user-agent") || "";
@@ -46,14 +62,12 @@ export async function onRequest(context) {
   const noticiaId = requestUrl.searchParams.get("id");
   const noticiaUrl = requestUrl.searchParams.get("url"); // links antigos
 
-  // Sem parâmetro de notícia -> deixa o Blazor tratar (tela de "não encontrada")
+  // Sem parâmetro de notícia, ou id inválido -> 404 real para o bot
   if (!noticiaId && !noticiaUrl) {
-    return next();
+    return naoEncontrada();
   }
-
-  // id inválido -> não gasta chamada na API
   if (noticiaId && !ID_REGEX.test(noticiaId)) {
-    return next();
+    return naoEncontrada();
   }
 
   const consulta = noticiaId
@@ -66,6 +80,12 @@ export async function onRequest(context) {
       { cf: { cacheTtl: 300, cacheEverything: true } }
     );
 
+    // Notícia realmente não existe -> 404 real
+    if (apiRes.status === 404) {
+      return naoEncontrada();
+    }
+
+    // Outro erro (cold start do Render, 5xx etc.) -> fluxo normal, sem marcar como 404
     if (!apiRes.ok) {
       return next();
     }

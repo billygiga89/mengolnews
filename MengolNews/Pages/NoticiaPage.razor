@@ -10,6 +10,11 @@
 <PageTitle>@(noticia?.Titulo ?? "Notícia") | MengolNews</PageTitle>
 
 <HeadContent>
+    @if (naoEncontrada)
+    {
+        <meta name="robots" content="noindex" />
+    }
+
     @if (noticia != null)
     {
         <meta name="description" content="@MetaDescricao" />
