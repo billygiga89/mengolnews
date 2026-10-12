@@ -9,16 +9,19 @@
 // com todas as meta tags. Usuários reais (navegador) passam direto
 // para o fluxo normal do Blazor.
 //
-// Notícia inexistente + bot -> devolve 404 de verdade (evita "soft 404" no Google).
+// Notícia inexistente + bot -> 404 de verdade (evita "soft 404" no Google).
+// API fora do ar / acordando (cold start) + bot -> 503 (erro temporário),
+// para o bot tentar de novo depois em vez de indexar uma página vazia.
 
 const BOT_REGEX =
-  /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|Googlebot|bingbot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|Baiduspider|YandexBot/i;
+  /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|Googlebot|Google-InspectionTool|GoogleOther|bingbot|Applebot|Pinterest|redditbot|SkypeUriPreview|vkShare|W3C_Validator|Baiduspider|YandexBot/i;
 
 const ID_REGEX = /^[0-9a-f]{64}$/i;
 
 const API_BASE = "https://mengolnews-api.onrender.com";
 const SITE_URL = "https://www.mengolnews.com.br";
 const IMAGEM_PADRAO = `${SITE_URL}/images/Flamengo.png`;
+const TIMEOUT_API_MS = 8000;
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -45,6 +48,24 @@ function naoEncontrada() {
     {
       status: 404,
       headers: { "content-type": "text/html; charset=utf-8" },
+    }
+  );
+}
+
+function indisponivel() {
+  return new Response(
+    `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" />
+<title>Indisponível no momento | MengolNews</title>
+<meta name="robots" content="noindex" /></head>
+<body><h1>Indisponível no momento</h1>
+<p>Tente novamente em instantes.</p></body></html>`,
+    {
+      status: 503,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "retry-after": "120",
+        "cache-control": "no-store",
+      },
     }
   );
 }
@@ -77,7 +98,14 @@ export async function onRequest(context) {
   try {
     const apiRes = await fetch(
       `${API_BASE}/api/noticias/meta?${consulta}`,
-      { cf: { cacheTtl: 300, cacheEverything: true } }
+      {
+        signal: AbortSignal.timeout(TIMEOUT_API_MS),
+        cf: {
+          cacheEverything: true,
+          // Só guarda em cache respostas boas; erros (cold start) nunca ficam em cache
+          cacheTtlByStatus: { "200-299": 300, "404": 60, "500-599": -1 },
+        },
+      }
     );
 
     // Notícia realmente não existe -> 404 real
@@ -85,9 +113,9 @@ export async function onRequest(context) {
       return naoEncontrada();
     }
 
-    // Outro erro (cold start do Render, 5xx etc.) -> fluxo normal, sem marcar como 404
+    // Outro erro (cold start do Render, 5xx etc.) -> 503 temporário
     if (!apiRes.ok) {
-      return next();
+      return indisponivel();
     }
 
     const noticia = await apiRes.json();
@@ -155,7 +183,7 @@ ${dataPublicacao ? `<meta property="article:published_time" content="${dataPubli
       headers: { "content-type": "text/html; charset=utf-8" },
     });
   } catch (err) {
-    // Qualquer falha -> não trava o bot, deixa cair no fluxo normal
-    return next();
+    // Timeout ou falha de rede ao falar com a API -> 503 temporário
+    return indisponivel();
   }
 }
