@@ -41,6 +41,13 @@ namespace MengolNews.Api.Services
         // Texto original que veio no RSS (plano B para reescrever o corpo)
         private static readonly ConcurrentDictionary<string, string> _textosOriginais = new();
 
+        // Texto original já limpo, mostrado quando a IA não pode reescrever o corpo agora
+        // (cota/pausa/desligada). Fica só na memória e por pouco tempo: nunca vai para o KV,
+        // assim a versão reescrita ainda substitui quando a IA voltar.
+        private static readonly ConcurrentDictionary<string, (string Texto, DateTime Em)> _corposProvisorios = new();
+        private static readonly TimeSpan DuracaoProvisorio = TimeSpan.FromHours(2);
+        private readonly bool _fallbackTextoOriginal;
+
         // link -> url da foto lida na página (evita perder a foto se a leitura falhar numa atualização futura)
         private static readonly ConcurrentDictionary<string, string> _imagensConhecidas = new();
 
@@ -70,6 +77,7 @@ namespace MengolNews.Api.Services
             _kv = kv;
             _reescritor = reescritor;
             _reescritaHabilitada = config.GetValue("Reescrita:Habilitada", true);
+            _fallbackTextoOriginal = config.GetValue("Reescrita:FallbackTextoOriginal", true);
             _proxyUrl = config["Feeds:ProxyUrl"];
             if (!_reescritaHabilitada)
                 Console.WriteLine("[IA] ⏸️ Reescrita por IA desligada (Reescrita:Habilitada = false)");
@@ -1084,10 +1092,12 @@ namespace MengolNews.Api.Services
                         pendentes.Add(noticias[i]);
 
                 if (pendentes.Count == 0) return;
-                Console.WriteLine($"[IA] ✍️ Reescrevendo {pendentes.Count} títulos/resumos novos");
 
-                if (pendentes.Count == 0) return;
-                if (!_reescritor.Disponivel) return; // as já reescritas (memória/KV) continuam sendo aplicadas; só não chama a IA
+                // as já reescritas (memória/KV) continuam sendo aplicadas; só não chama a IA
+                // (pausa por cota, desligada ou orçamento do dia esgotado)
+                if (!_reescritor.PodeReescreverResumos) return;
+
+                Console.WriteLine($"[IA] ✍️ Reescrevendo {pendentes.Count} títulos/resumos novos");
 
                 // 2) o que é novo vai para a IA, em lotes
                 await Task.WhenAll(pendentes.Chunk(MaxResumosPorLote).Select(async lote =>
@@ -1173,7 +1183,8 @@ namespace MengolNews.Api.Services
 
         private void PreAquecerCorposEmSegundoPlano(List<NoticiaDto> noticias)
         {
-            if (!_reescritor.Disponivel) return;
+            // só aquece se a IA puder reescrever corpos agora (cota, pausa e orçamento do dia)
+            if (!_reescritor.PodeReescreverCorpo) return;
 
             _ = Task.Run(async () =>
             {
@@ -1184,7 +1195,7 @@ namespace MengolNews.Api.Services
                 {
                     foreach (var n in noticias.Take(5))
                     {
-                        if (!_reescritor.Disponivel) break;
+                        if (!_reescritor.PodeReescreverCorpo) break;
                         if (string.IsNullOrWhiteSpace(n.Link)) continue;
                         if (_corposReescritos.ContainsKey(n.Link)) continue; // já está pronto
 
@@ -1213,43 +1224,134 @@ namespace MengolNews.Api.Services
                 if (!string.IsNullOrWhiteSpace(salvo))
                 {
                     _corposReescritos[link] = salvo;
+                    _corposProvisorios.TryRemove(link, out _);
                     return salvo;
                 }
             }
             catch { }
 
-            // com a IA desligada, não faz mais nada (nem baixa a página da fonte)
-            if (!_reescritor.Disponivel) return null;
+            // 2) já montamos há pouco um texto provisório (original limpo)?
+            var temProvisorio = _corposProvisorios.TryGetValue(link, out var prov)
+                                && DateTime.UtcNow - prov.Em < DuracaoProvisorio;
 
-            // 2) título (já reescrito) só para dar contexto à IA
+            // se a IA continua sem poder reescrever, entrega o provisório sem baixar a página de novo
+            if (temProvisorio && !_reescritor.PodeReescreverCorpo)
+                return prov.Texto;
+
+            // 3) título (já reescrito) só para dar contexto à IA
             var titulo = _cache?.FirstOrDefault(n => n.Link == link)?.Titulo
                          ?? (await BuscarNoArquivoAsync(link))?.Titulo
                          ?? "";
 
-            // 3) texto original: primeiro a página da fonte, depois o que veio no RSS
-            var original = await ExtrairConteudoDaPaginaAsync(link);
-            var tamanhoPagina = original?.Length ?? 0;
+            // 4) texto original: o provisório (se existir), senão a página da fonte e, por fim, o que veio no RSS
+            string? original;
 
-            if (tamanhoPagina < 300 && _textosOriginais.TryGetValue(link, out var doFeed) && doFeed.Length > tamanhoPagina)
-                original = doFeed;
+            if (temProvisorio)
+            {
+                original = prov.Texto;
+            }
+            else
+            {
+                original = await ExtrairConteudoDaPaginaAsync(link);
+                var tamanhoPagina = original?.Length ?? 0;
 
-            Console.WriteLine($"[IA] Corpo: página={tamanhoPagina} chars, usado={original?.Length ?? 0} chars");
+                if (tamanhoPagina < 300 && _textosOriginais.TryGetValue(link, out var doFeed) && doFeed.Length > tamanhoPagina)
+                    original = doFeed;
+
+                Console.WriteLine($"[IA] Corpo: página={tamanhoPagina} chars, usado={original?.Length ?? 0} chars");
+            }
 
             if (string.IsNullOrWhiteSpace(original) || original.Length < 300) return null;
 
-            // 4) reescreve
-            var novo = await _reescritor.ReescreverCorpoAsync(titulo, original);
-            if (string.IsNullOrWhiteSpace(novo)) return null; // não guarda falha: tenta de novo na próxima abertura
-
-            if (_corposReescritos.Count > 500) _corposReescritos.Clear();
-            _corposReescritos[link] = novo;
-
-            _ = Task.Run(async () =>
+            // 5) tenta reescrever com a IA
+            if (_reescritor.PodeReescreverCorpo)
             {
-                try { await _kv.SetAsync(chave, novo); } catch { }
-            });
+                var novo = await _reescritor.ReescreverCorpoAsync(titulo, original);
 
-            return novo;
+                if (!string.IsNullOrWhiteSpace(novo))
+                {
+                    if (_corposReescritos.Count > 500) _corposReescritos.Clear();
+                    _corposReescritos[link] = novo;
+                    _corposProvisorios.TryRemove(link, out _);
+
+                    _ = Task.Run(async () =>
+                    {
+                        try { await _kv.SetAsync(chave, novo); } catch { }
+                    });
+
+                    return novo;
+                }
+            }
+
+            // 6) plano B: a IA não pôde (ou falhou) -> mostra o texto original limpo, só na memória.
+            //    Não vai para o KV: na próxima abertura, se a IA estiver de volta, ela reescreve.
+            if (!_fallbackTextoOriginal) return null;
+
+            var provisorio = PrepararTextoOriginal(original);
+            if (provisorio.Length < 300) return null;
+
+            if (_corposProvisorios.Count > 300) _corposProvisorios.Clear();
+            _corposProvisorios[link] = (provisorio, DateTime.UtcNow);
+
+            Console.WriteLine($"[IA] Corpo sem reescrita: usando o texto original limpo ({provisorio.Length} chars)");
+            return provisorio;
+        }
+
+        #endregion
+
+        #region Texto original (plano B quando a IA não reescreve)
+
+        // nomes das fontes que costumam aparecer em rodapés e chamadas
+        private static readonly Regex RegexNomeDeFonte = new(
+            @"\b(ESPN|Coluna do Fla|Not[ií]cias FLA|Urubu Interativo|NetFla|Netfl[ãa]|Placar|BolaVip|BOL Esporte|Globo Esporte)\b|\bge\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // palavras de chamada/crédito ("Leia mais...", "Foto: ...", "Fonte: ...")
+        private static readonly Regex RegexChamadaDeFonte = new(
+            @"\b(leia|veja|siga|acesse|confira|fonte|publicad[oa]|originalmente|com informa[çc][õo]es|cr[eé]ditos?|via)\b|foto:|imagem:",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex RegexFimDeFrase = new(
+            @"(?<=[\.\!\?])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ""“])",
+            RegexOptions.Compiled);
+
+        /// <summary>
+        /// Separa em parágrafos. Texto corrido sem quebras (comum em RSS) é agrupado de 3 em 3 frases.
+        /// </summary>
+        private static List<string> ParagrafosDoTexto(string texto)
+        {
+            texto = texto.Replace("\r\n", "\n").Trim();
+
+            var blocos = Regex.Split(texto, @"\n\s*\n")
+                .Select(b => b.Trim())
+                .Where(b => b.Length > 0)
+                .ToList();
+
+            if (blocos.Count == 1 && blocos[0].Length > 700)
+            {
+                var frases = RegexFimDeFrase.Split(blocos[0]);
+                blocos = frases
+                    .Chunk(3)
+                    .Select(g => string.Join(" ", g).Trim())
+                    .Where(b => b.Length > 0)
+                    .ToList();
+            }
+
+            return blocos;
+        }
+
+        /// <summary>
+        /// Texto original pronto para exibir: parágrafos separados e sem os trechos curtos que citam a fonte
+        /// ("Leia mais no ...", "Foto: ...", "Fonte: ...").
+        /// </summary>
+        private static string PrepararTextoOriginal(string texto)
+        {
+            var paragrafos = ParagrafosDoTexto(texto)
+                .Where(p => !(p.Length <= 160
+                              && RegexNomeDeFonte.IsMatch(p)
+                              && RegexChamadaDeFonte.IsMatch(p)));
+
+            return string.Join("\n\n", paragrafos).Trim();
         }
 
         #endregion

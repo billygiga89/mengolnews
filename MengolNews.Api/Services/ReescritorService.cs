@@ -12,6 +12,15 @@ namespace MengolNews.Api.Services
         private readonly string _modelo;
         private readonly bool _habilitada;
 
+        // Orçamento diário de chamadas (a cota gratuita do modelo é de ~20 por dia).
+        // Configurável no Render: Reescrita__LimiteDiario e Reescrita__ReservaResumos
+        private readonly int _limiteDiario;
+        private readonly int _reservaResumos;
+
+        private static readonly object _lockContador = new();
+        private static string _diaContado = "";
+        private static int _chamadasHoje;
+
         // Limita chamadas simultâneas à IA (respeita o limite por minuto do plano gratuito)
         private static readonly SemaphoreSlim _limite = new(2, 2);
 
@@ -26,6 +35,9 @@ namespace MengolNews.Api.Services
             _modelo = config["Gemini:Modelo"] ?? "gemini-3.8-flash";
             _habilitada = config.GetValue("Reescrita:Habilitada", true);
 
+            _limiteDiario = Math.Max(1, config.GetValue("Reescrita:LimiteDiario", 18));
+            _reservaResumos = Math.Clamp(config.GetValue("Reescrita:ReservaResumos", 6), 0, _limiteDiario);
+
             if (!_habilitada)
                 Console.WriteLine("[IA] ⏸️ Reescrita por IA desligada (Reescrita:Habilitada = false)");
         }
@@ -35,6 +47,72 @@ namespace MengolNews.Api.Services
         /// <summary>true quando dá para chamar a IA agora: ligada, com chave e fora da pausa por cota.</summary>
         public bool Disponivel =>
             Configurado && DateTime.UtcNow.Ticks >= Interlocked.Read(ref _pausadoAteTicks);
+
+        /// <summary>Títulos e resumos podem usar todo o orçamento do dia.</summary>
+        public bool PodeReescreverResumos => Disponivel && LerChamadasHoje() < _limiteDiario;
+
+        /// <summary>Corpos das matérias deixam uma reserva do orçamento para os títulos/resumos.</summary>
+        public bool PodeReescreverCorpo => Disponivel && LerChamadasHoje() < _limiteDiario - _reservaResumos;
+
+        public int ChamadasHoje => LerChamadasHoje();
+
+        /* =======================
+           ORÇAMENTO DIÁRIO
+        ======================= */
+
+        // A cota diária do Google zera à meia-noite do horário do Pacífico
+        private static string DiaDaCota()
+        {
+            foreach (var id in new[] { "America/Los_Angeles", "Pacific Standard Time" })
+            {
+                try
+                {
+                    var tz = TimeZoneInfo.FindSystemTimeZoneById(id);
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).ToString("yyyy-MM-dd");
+                }
+                catch { /* tenta o próximo nome */ }
+            }
+
+            return DateTime.UtcNow.AddHours(-8).ToString("yyyy-MM-dd");
+        }
+
+        // chamar sempre dentro do lock
+        private static void RenovarSeVirouODia()
+        {
+            var hoje = DiaDaCota();
+            if (_diaContado != hoje)
+            {
+                _diaContado = hoje;
+                _chamadasHoje = 0;
+            }
+        }
+
+        private static int LerChamadasHoje()
+        {
+            lock (_lockContador)
+            {
+                RenovarSeVirouODia();
+                return _chamadasHoje;
+            }
+        }
+
+        private static int ContarChamada()
+        {
+            lock (_lockContador)
+            {
+                RenovarSeVirouODia();
+                return ++_chamadasHoje;
+            }
+        }
+
+        private void MarcarLimiteDoDiaAtingido()
+        {
+            lock (_lockContador)
+            {
+                RenovarSeVirouODia();
+                if (_chamadasHoje < _limiteDiario) _chamadasHoje = _limiteDiario;
+            }
+        }
 
         /* =======================
            PROMPTS
@@ -81,7 +159,7 @@ Responda somente com o texto final da matéria.
             IReadOnlyList<(string Titulo, string Descricao)> itens)
         {
             var resultado = new Dictionary<int, (string Titulo, string Descricao)>();
-            if (!Disponivel || itens.Count == 0) return resultado;
+            if (!PodeReescreverResumos || itens.Count == 0) return resultado;
 
             var sb = new StringBuilder();
             sb.AppendLine(PromptResumos);
@@ -129,7 +207,7 @@ Responda somente com o texto final da matéria.
 
         public async Task<string?> ReescreverCorpoAsync(string titulo, string textoOriginal)
         {
-            if (!Disponivel || string.IsNullOrWhiteSpace(textoOriginal)) return null;
+            if (!PodeReescreverCorpo || string.IsNullOrWhiteSpace(textoOriginal)) return null;
 
             var prompt = PromptCorpo
                 + "\n\nTÍTULO DA MATÉRIA: " + titulo
@@ -177,8 +255,8 @@ Responda somente com o texto final da matéria.
             await _limite.WaitAsync();
             try
             {
-                // quem esperou na fila pode ter chegado depois de uma pausa por cota
-                if (!Disponivel) return null;
+                // quem esperou na fila pode ter chegado depois de uma pausa por cota ou do fim do orçamento
+                if (!Disponivel || LerChamadasHoje() >= _limiteDiario) return null;
 
                 for (int tentativa = 1; tentativa <= 3; tentativa++)
                 {
@@ -190,6 +268,9 @@ Responda somente com o texto final da matéria.
 
                     try
                     {
+                        var numeroDaChamada = ContarChamada();
+                        Console.WriteLine($"[IA] 📊 Chamada {numeroDaChamada}/{_limiteDiario} do dia");
+
                         using var resp = await _http.SendAsync(req);
                         var conteudo = await resp.Content.ReadAsStringAsync();
 
@@ -229,7 +310,7 @@ Responda somente com o texto final da matéria.
             }
         }
 
-        private static void PausarPorCota(string corpoErro)
+        private void PausarPorCota(string corpoErro)
         {
             TimeSpan pausa;
 
@@ -237,6 +318,7 @@ Responda somente com o texto final da matéria.
             {
                 // cota diária: não adianta insistir; confere de novo daqui a 1 hora
                 pausa = TimeSpan.FromMinutes(60);
+                MarcarLimiteDoDiaAtingido();
             }
             else
             {
