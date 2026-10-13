@@ -51,6 +51,10 @@ namespace MengolNews.Api.Services
         // link -> url da foto lida na página (evita perder a foto se a leitura falhar numa atualização futura)
         private static readonly ConcurrentDictionary<string, string> _imagensConhecidas = new();
 
+        // Imagens que se repetem em 2+ notícias da MESMA fonte = arte/logo padrão da fonte
+        // (aprendido a cada coleta; vale até o servidor reiniciar)
+        private static readonly ConcurrentDictionary<string, byte> _imagensGenericas = new();
+
         private readonly bool _reescritaHabilitada;
 
         // Proxy opcional para fontes que bloqueiam o IP do Render.
@@ -171,6 +175,9 @@ namespace MengolNews.Api.Services
                 .Where(n => n.Data >= DateTime.Now.AddDays(-30))
                 .OrderByDescending(n => n.Data)
                 .ToList();
+
+            // Logo/arte padrão da fonte (mesma imagem em várias notícias dela) não é capa: vira fallback
+            RemoverImagensGenericasDaFonte(noticiasBrutas);
 
             var antesDaDedup = noticiasBrutas.Count;
 
@@ -754,6 +761,40 @@ namespace MengolNews.Api.Services
                 Console.WriteLine($"[IMG] {removidas} imagem(ns) repetida(s) trocada(s) por fallback");
         }
 
+        /// <summary>
+        /// A mesma imagem em 2 ou mais notícias da MESMA fonte é a arte/logo padrão dela, não uma foto da matéria.
+        /// Aprende essas imagens e tira de todas as notícias (o site usa o FallbackImages nelas).
+        /// </summary>
+        private static void RemoverImagensGenericasDaFonte(List<NoticiaDto> noticias)
+        {
+            if (_imagensGenericas.Count > 500) _imagensGenericas.Clear();
+
+            var grupos = noticias
+                .Select(n => (n.Fonte, Foto: IdentidadeDaFoto(n.Imagem)))
+                .Where(x => x.Foto != "")
+                .GroupBy(x => x)
+                .Where(g => g.Count() >= 2);
+
+            foreach (var g in grupos)
+                _imagensGenericas.TryAdd(g.Key.Foto, 0);
+
+            var removidas = 0;
+
+            foreach (var n in noticias)
+            {
+                var foto = IdentidadeDaFoto(n.Imagem);
+
+                if (foto != "" && _imagensGenericas.ContainsKey(foto))
+                {
+                    n.Imagem = "";
+                    removidas++;
+                }
+            }
+
+            if (removidas > 0)
+                Console.WriteLine($"[IMG] {removidas} imagem(ns) padrão da fonte (logo/arte) trocada(s) por fallback");
+        }
+
         #endregion
 
         #region Imagens (capa, validação e leitura)
@@ -781,10 +822,31 @@ namespace MengolNews.Api.Services
             "/avatar",
         };
 
+        // Nome do site de origem dentro do NOME DO ARQUIVO da imagem = logo/arte da marca
+        private static readonly string[] MarcasNoNomeDoArquivo = new[]
+        {
+            "colunadofla", "coluna-do-fla", "coluna_do_fla",
+            "noticiasfla", "noticias-fla", "noticias_fla",
+            "urubuinterativo", "urubu-interativo", "urubu_interativo",
+            "netfla",
+            "bolavip", "bola-vip",
+        };
+
         private static bool EhImagemInvalida(string? url)
         {
             if (string.IsNullOrWhiteSpace(url)) return true;
-            return PadroesImagemInvalida.Any(p => url.Contains(p, StringComparison.OrdinalIgnoreCase));
+
+            if (PadroesImagemInvalida.Any(p => url.Contains(p, StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            // só o nome do arquivo (sem pasta, domínio ou parâmetros)
+            var semParametros = url;
+            var corte = semParametros.IndexOfAny(new[] { '?', '#' });
+            if (corte >= 0) semParametros = semParametros[..corte];
+
+            var nome = semParametros[(semParametros.LastIndexOf('/') + 1)..];
+
+            return MarcasNoNomeDoArquivo.Any(m => nome.Contains(m, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>Descobre a capa: RSS -> foto já conhecida -> foto lida na página da notícia.</summary>
@@ -1223,6 +1285,10 @@ namespace MengolNews.Api.Services
                 var salvo = await _kv.GetAsync(chave);
                 if (!string.IsNullOrWhiteSpace(salvo))
                 {
+                    // limpa menções à fonte que a IA tenha deixado passar (inclusive em textos já salvos)
+                    var limpoSalvo = RemoverReferenciasDaFonte(salvo);
+                    if (limpoSalvo.Length >= 200) salvo = limpoSalvo;
+
                     _corposReescritos[link] = salvo;
                     _corposProvisorios.TryRemove(link, out _);
                     return salvo;
@@ -1270,6 +1336,10 @@ namespace MengolNews.Api.Services
 
                 if (!string.IsNullOrWhiteSpace(novo))
                 {
+                    // rede de segurança: tira frases que citem a fonte, caso a IA deixe passar
+                    var limpoNovo = RemoverReferenciasDaFonte(novo);
+                    if (limpoNovo.Length >= 200) novo = limpoNovo;
+
                     if (_corposReescritos.Count > 500) _corposReescritos.Clear();
                     _corposReescritos[link] = novo;
                     _corposProvisorios.TryRemove(link, out _);
@@ -1299,16 +1369,20 @@ namespace MengolNews.Api.Services
 
         #endregion
 
-        #region Texto original (plano B quando a IA não reescreve)
+        #region Texto original (plano B) e referências à fonte
 
-        // nomes das fontes que costumam aparecer em rodapés e chamadas
-        private static readonly Regex RegexNomeDeFonte = new(
-            @"\b(ESPN|Coluna do Fla|Not[ií]cias FLA|Urubu Interativo|NetFla|Netfl[ãa]|Placar|BolaVip|BOL Esporte|Globo Esporte)\b|\bge\b",
+        // Nomes que só existem como fonte (nunca são informação útil para o torcedor): a frase inteira sai.
+        // (?-i:...) = esse trecho diferencia maiúsculas de minúsculas ("PLACAR" e "GE", sem pegar "placar" do jogo)
+        private static readonly Regex RegexMarcaDeFonte = new(
+            @"Coluna\s+do\s+Fla|colunadofla|Not[ií]cias\s+FLA|noticiasfla|Urubu\s+Interativo|urubuinterativo|Netfl[ãa]|netfla|Bola\s?vip|BOL\s+Esporte|Globo\s+Esporte|ge\.globo|Placar\s+Aberto|(?-i:PLACAR)|(?-i:\bGE\b)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // palavras de chamada/crédito ("Leia mais...", "Foto: ...", "Fonte: ...")
-        private static readonly Regex RegexChamadaDeFonte = new(
-            @"\b(leia|veja|siga|acesse|confira|fonte|publicad[oa]|originalmente|com informa[çc][õo]es|cr[eé]ditos?|via)\b|foto:|imagem:",
+        // ESPN também aparece como informação útil ("o jogo passa na ESPN"): só sai a frase
+        // que também tiver cara de atribuição/chamada ("segundo a ESPN", "leia mais na ESPN")
+        private static readonly Regex RegexEspn = new(@"\bESPN\b", RegexOptions.Compiled);
+
+        private static readonly Regex RegexAtribuicao = new(
+            @"\b(segundo|de acordo com|informou|informa|publicou|revelou|apurou|reportou|reportagem|mat[ée]ria|noticiou|afirmou|afirma|site|portal|ve[ií]culo|jornal|revista|leia|veja|siga|acesse|confira|fonte|cr[eé]ditos?|foto)\b|foto:|imagem:",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex RegexFimDeFrase = new(
@@ -1340,19 +1414,38 @@ namespace MengolNews.Api.Services
             return blocos;
         }
 
+        private static bool FrasePareceReferenciaDaFonte(string frase)
+            => RegexMarcaDeFonte.IsMatch(frase)
+               || (RegexEspn.IsMatch(frase) && RegexAtribuicao.IsMatch(frase));
+
         /// <summary>
-        /// Texto original pronto para exibir: parágrafos separados e sem os trechos curtos que citam a fonte
-        /// ("Leia mais no ...", "Foto: ...", "Fonte: ...").
+        /// Tira do texto as FRASES que citam o site/portal de origem (ex.: "O Coluna do Fla reuniu as notícias...").
+        /// O resto do parágrafo é mantido; parágrafos que ficarem vazios somem.
         /// </summary>
-        private static string PrepararTextoOriginal(string texto)
+        private static string RemoverReferenciasDaFonte(string? texto)
         {
-            var paragrafos = ParagrafosDoTexto(texto)
-                .Where(p => !(p.Length <= 160
-                              && RegexNomeDeFonte.IsMatch(p)
-                              && RegexChamadaDeFonte.IsMatch(p)));
+            if (string.IsNullOrWhiteSpace(texto)) return "";
+
+            var paragrafos = new List<string>();
+
+            foreach (var paragrafo in Regex.Split(texto.Replace("\r\n", "\n").Trim(), @"\n\s*\n"))
+            {
+                if (string.IsNullOrWhiteSpace(paragrafo)) continue;
+
+                var mantidas = RegexFimDeFrase.Split(paragrafo.Trim())
+                    .Where(f => !FrasePareceReferenciaDaFonte(f))
+                    .ToList();
+
+                if (mantidas.Count > 0)
+                    paragrafos.Add(string.Join(" ", mantidas).Trim());
+            }
 
             return string.Join("\n\n", paragrafos).Trim();
         }
+
+        /// <summary>Texto original pronto para exibir: parágrafos separados e sem frases que citem a fonte.</summary>
+        private static string PrepararTextoOriginal(string texto)
+            => RemoverReferenciasDaFonte(string.Join("\n\n", ParagrafosDoTexto(texto)));
 
         #endregion
 
