@@ -55,6 +55,9 @@ namespace MengolNews.Api.Services
         // (aprendido a cada coleta; vale até o servidor reiniciar)
         private static readonly ConcurrentDictionary<string, byte> _imagensGenericas = new();
 
+        // Fontes que só responderam pelo proxy: nas próximas coletas vão direto nele
+        private static readonly ConcurrentDictionary<string, byte> _fontesViaProxy = new();
+
         private readonly bool _reescritaHabilitada;
 
         // Proxy opcional para fontes que bloqueiam o IP do Render.
@@ -288,7 +291,13 @@ namespace MengolNews.Api.Services
                 }
 
                 if (TemProxy)
-                    tentativas.Add((url, true, true));
+                {
+                    // fonte que já precisou do proxy antes: tenta o proxy primeiro
+                    if (_fontesViaProxy.ContainsKey(fonte))
+                        tentativas.Insert(0, (url, true, true));
+                    else
+                        tentativas.Add((url, true, true));
+                }
 
                 string? xml = null;
                 var numero = 0;
@@ -311,6 +320,11 @@ namespace MengolNews.Api.Services
                             if (ParecerFeed(corpo))
                             {
                                 xml = corpo;
+
+                                // lembra se esta fonte precisa do proxy (ou se voltou a funcionar direto)
+                                if (t.proxy) _fontesViaProxy.TryAdd(fonte, 0);
+                                else _fontesViaProxy.TryRemove(fonte, out _);
+
                                 break;
                             }
 
@@ -1338,13 +1352,23 @@ namespace MengolNews.Api.Services
             }
             else
             {
-                original = await ExtrairConteudoDaPaginaAsync(link);
-                var tamanhoPagina = original?.Length ?? 0;
+                // o feed já trouxe a matéria inteira (ex.: Coluna do Fla): não precisa baixar a página
+                // (evita o 403 e é mais rápido)
+                if (_textosOriginais.TryGetValue(link, out var textoDoFeed) && textoDoFeed.Length >= 1500)
+                {
+                    original = textoDoFeed;
+                    Console.WriteLine($"[IA] Corpo: usando o texto do feed ({original.Length} chars), sem baixar a página");
+                }
+                else
+                {
+                    original = await ExtrairConteudoDaPaginaAsync(link);
+                    var tamanhoPagina = original?.Length ?? 0;
 
-                if (tamanhoPagina < 300 && _textosOriginais.TryGetValue(link, out var doFeed) && doFeed.Length > tamanhoPagina)
-                    original = doFeed;
+                    if (tamanhoPagina < 300 && _textosOriginais.TryGetValue(link, out var doFeed) && doFeed.Length > tamanhoPagina)
+                        original = doFeed;
 
-                Console.WriteLine($"[IA] Corpo: página={tamanhoPagina} chars, usado={original?.Length ?? 0} chars");
+                    Console.WriteLine($"[IA] Corpo: página={tamanhoPagina} chars, usado={original?.Length ?? 0} chars");
+                }
             }
 
             if (string.IsNullOrWhiteSpace(original) || original.Length < 300) return null;
