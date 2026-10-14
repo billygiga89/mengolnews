@@ -176,6 +176,11 @@ namespace MengolNews.Api.Services
                 .OrderByDescending(n => n.Data)
                 .ToList();
 
+            // Tira menções às fontes (nome do site em título/resumo/texto) logo na entrada:
+            // a IA e o plano B já recebem o texto limpo
+            foreach (var n in noticiasBrutas)
+                LimparMencoesDaFonte(n);
+
             // Logo/arte padrão da fonte (mesma imagem em várias notícias dela) não é capa: vira fallback
             RemoverImagensGenericasDaFonte(noticiasBrutas);
 
@@ -1090,12 +1095,20 @@ namespace MengolNews.Api.Services
 
             // 1) versão já reescrita
             var dto = LerNoticia(await _kv.GetAsync(ChaveReescrita(link)));
-            if (dto != null) return dto;
+            if (dto != null)
+            {
+                // limpa menções à fonte também em textos que já estavam salvos
+                LimparMencoesDaFonte(dto);
+                return dto;
+            }
 
             // 2) arquivo antigo (texto original da fonte): reescreve agora e passa a usar a versão nova
             dto = LerNoticia(await _kv.GetAsync(ChaveArquivo(link)));
             if (dto != null)
+            {
                 await AplicarReescritaAsync(new List<NoticiaDto> { dto });
+                LimparMencoesDaFonte(dto);
+            }
 
             return dto;
         }
@@ -1176,6 +1189,10 @@ namespace MengolNews.Api.Services
                         n.Descricao = novo.Descricao;
                         n.Conteudo = novo.Descricao;
 
+                        // rede de segurança: tira menções à fonte que a IA tenha deixado passar
+                        // (antes de salvar, para o KV guardar a versão limpa)
+                        LimparMencoesDaFonte(n);
+
                         var salvo = new NoticiaDto
                         {
                             Titulo = n.Titulo,
@@ -1217,6 +1234,9 @@ namespace MengolNews.Api.Services
             n.Titulo = salvo!.Titulo;
             n.Descricao = salvo.Descricao;
             n.Conteudo = salvo.Descricao;
+
+            // limpa menções à fonte também em reescritas antigas (memória/KV), sem gastar IA
+            LimparMencoesDaFonte(n);
             return true;
         }
 
@@ -1371,11 +1391,35 @@ namespace MengolNews.Api.Services
 
         #region Texto original (plano B) e referências à fonte
 
-        // Nomes que só existem como fonte (nunca são informação útil para o torcedor): a frase inteira sai.
-        // (?-i:...) = esse trecho diferencia maiúsculas de minúsculas ("PLACAR" e "GE", sem pegar "placar" do jogo)
-        private static readonly Regex RegexMarcaDeFonte = new(
-            @"Coluna\s+do\s+Fla|colunadofla|Not[ií]cias\s+FLA|noticiasfla|Urubu\s+Interativo|urubuinterativo|Netfl[ãa]|netfla|Bola\s?vip|BOL\s+Esporte|Globo\s+Esporte|ge\.globo|Placar\s+Aberto|(?-i:PLACAR)|(?-i:\bGE\b)",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // ---------------------------------------------------------------------------------
+        // Nomes de sites/portais. Termos que também são palavras comuns (placar, lance, globo)
+        // só valem em MAIÚSCULA e, nas listas "Chamada", só logo depois de "segundo o...", "informou..." etc.
+        // (?-i:...) = esse trecho diferencia maiúsculas de minúsculas.
+        // ---------------------------------------------------------------------------------
+
+        // Nomes que só existem como fonte: qualquer frase que os cite sai inteira
+        private const string MarcasBase =
+            @"(?:Coluna\s+do\s+Fla|colunadofla(?:\.com(?:\.br)?)?|Not[ií]cias\s+FLA|noticiasfla(?:\.com(?:\.br)?)?" +
+            @"|Urubu\s+Interativo|urubuinterativo(?:\.com(?:\.br)?)?|Netfl[ãa]|netfla(?:\.com(?:\.br)?)?" +
+            @"|Bola\s?vip|BOL\s+Esporte|Globo\s+Esporte|globoesporte(?:\.com)?|ge\.globo(?:\.com)?" +
+            @"|Placar\s+Aberto|Revista\s+Placar|Gazeta\s+Esportiva|Jogada\s?10|Mundo\s+Rubro[-\s]?Negro|Torcedores\.com" +
+            @"|(?-i:PLACAR)|(?-i:GE)|(?-i:UOL)|(?-i:BOL))";
+
+        // Em chamadas de atribuição ("segundo o Lance!", "o Globo informou"), vale também:
+        private const string MarcasChamadaSemEspn =
+            @"(?:" + MarcasBase + @"|(?-i:Placar)|(?-i:Lance!?)|(?-i:O\s+Globo)|(?-i:Globo))";
+
+        // ESPN também aparece como informação útil ("o jogo passa na ESPN"): só entra nas chamadas
+        private const string MarcasChamada =
+            @"(?:" + MarcasChamadaSemEspn + @"|ESPN(?:\.com(?:\.br)?)?)";
+
+        private const string VerbosDeAtribuicao =
+            @"(?:informou|informa|publicou|publica|revelou|revela|apurou|apura|reportou|reporta|noticiou|afirmou|afirma|divulgou|divulga|adiantou|adianta|contou|detalhou)";
+
+        private const RegexOptions OpcoesTexto = RegexOptions.IgnoreCase | RegexOptions.Compiled;
+
+        private static readonly Regex RegexMarcaDeFonte =
+            new(@"\b" + MarcasBase + @"(?!\w)", OpcoesTexto);
 
         // ESPN também aparece como informação útil ("o jogo passa na ESPN"): só sai a frase
         // que também tiver cara de atribuição/chamada ("segundo a ESPN", "leia mais na ESPN")
@@ -1388,6 +1432,25 @@ namespace MengolNews.Api.Services
         private static readonly Regex RegexFimDeFrase = new(
             @"(?<=[\.\!\?])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ""“])",
             RegexOptions.Compiled);
+
+        // Chamadas de fonte: tira só a "chamada" e mantém a informação da frase
+        private static readonly Regex[] RegexClausulasDeFonte =
+        {
+            // "Segundo o Coluna do Fla, ..." / "de acordo com o site GE: ..." / "como informou a ESPN, ..."
+            new(@"\b(?:segundo|de\s+acordo\s+com|conforme|como\s+" + VerbosDeAtribuicao +
+                @"|em\s+(?:mat[ée]ria|reportagem|publica[çc][ãa]o)\s+d[oa])\s+" +
+                @"(?:(?:o|a|os|as)\s+)?(?:(?:site|portal|jornal|ve[ií]culo|blog|canal|perfil|p[aá]gina)\s+)?(?:(?:o|a|d[oa])\s+)?" +
+                MarcasChamada + @"(?!\w)\s*[,:]?\s*", OpcoesTexto),
+
+            // "O Coluna do Fla informou que ..." (ESPN fica de fora: "a ESPN mostra o jogo" é informação útil)
+            new(@"\b(?:(?:o|a)\s+)?(?:(?:site|portal|jornal|blog|canal|perfil|p[aá]gina)\s+)?" +
+                MarcasChamadaSemEspn + @"(?!\w)\s+" + VerbosDeAtribuicao + @"(?:\s+que)?\s*[,:]?\s*", OpcoesTexto),
+        };
+
+        // "Fulano chega | Coluna do Fla" / "GE: Fulano chega" -> tira a marca do começo ou do fim do título
+        private static readonly Regex RegexMarcaNoTitulo = new(
+            @"^\s*" + MarcasChamada + @"\s*[:|\-–—•]\s*|\s*[|\-–—•:]\s*" + MarcasChamada + @"\s*$",
+            OpcoesTexto);
 
         /// <summary>
         /// Separa em parágrafos. Texto corrido sem quebras (comum em RSS) é agrupado de 3 em 3 frases.
@@ -1419,8 +1482,34 @@ namespace MengolNews.Api.Services
                || (RegexEspn.IsMatch(frase) && RegexAtribuicao.IsMatch(frase));
 
         /// <summary>
-        /// Tira do texto as FRASES que citam o site/portal de origem (ex.: "O Coluna do Fla reuniu as notícias...").
-        /// O resto do parágrafo é mantido; parágrafos que ficarem vazios somem.
+        /// Limpa uma frase: tira a chamada da fonte mantendo a informação; se ainda sobrar menção
+        /// à fonte (ex.: "O Coluna do Fla reuniu as notícias..."), devolve null e a frase some.
+        /// </summary>
+        private static string? LimparFrase(string frase)
+        {
+            var f = frase;
+
+            foreach (var rx in RegexClausulasDeFonte)
+                f = rx.Replace(f, " ");
+
+            if (f != frase)
+            {
+                f = Regex.Replace(f, @"\s+([,;:.!?])", "$1");
+                f = Regex.Replace(f, @",\s*,", ",");
+                f = Regex.Replace(f, @",\s*([.!?])", "$1");
+                f = Regex.Replace(f, @"\s{2,}", " ").Trim().TrimStart(',', ';', ':', '-', ' ');
+
+                if (f.Length < 15) return null;
+
+                f = char.ToUpperInvariant(f[0]) + f[1..];
+            }
+
+            return FrasePareceReferenciaDaFonte(f) ? null : f;
+        }
+
+        /// <summary>
+        /// Tira do texto as menções ao site/portal de origem. Chamadas ("segundo o GE,") saem e a
+        /// informação fica; frases que só falam da fonte somem. Parágrafos que ficarem vazios somem.
         /// </summary>
         private static string RemoverReferenciasDaFonte(string? texto)
         {
@@ -1433,7 +1522,9 @@ namespace MengolNews.Api.Services
                 if (string.IsNullOrWhiteSpace(paragrafo)) continue;
 
                 var mantidas = RegexFimDeFrase.Split(paragrafo.Trim())
-                    .Where(f => !FrasePareceReferenciaDaFonte(f))
+                    .Select(LimparFrase)
+                    .Where(f => !string.IsNullOrWhiteSpace(f))
+                    .Select(f => f!)
                     .ToList();
 
                 if (mantidas.Count > 0)
@@ -1441,6 +1532,26 @@ namespace MengolNews.Api.Services
             }
 
             return string.Join("\n\n", paragrafos).Trim();
+        }
+
+        /// <summary>Limpa o texto, mas nunca deixa vazio: se tudo era menção à fonte, mantém o original.</summary>
+        private static string LimparOuManter(string? texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return texto ?? "";
+
+            var limpo = RemoverReferenciasDaFonte(texto);
+            return string.IsNullOrWhiteSpace(limpo) ? texto : limpo;
+        }
+
+        /// <summary>Limpa título, resumo e conteúdo de uma notícia (lista, arquivo ou resposta da IA).</summary>
+        private static void LimparMencoesDaFonte(NoticiaDto n)
+        {
+            var tituloLimpo = RegexMarcaNoTitulo.Replace(n.Titulo ?? "", "").Trim();
+            if (tituloLimpo.Length >= 10) n.Titulo = tituloLimpo;
+
+            var descricaoAntes = n.Descricao;
+            n.Descricao = LimparOuManter(n.Descricao);
+            n.Conteudo = n.Conteudo == descricaoAntes ? n.Descricao : LimparOuManter(n.Conteudo);
         }
 
         /// <summary>Texto original pronto para exibir: parágrafos separados e sem frases que citem a fonte.</summary>
