@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -9,55 +10,83 @@ namespace MengolNews.Api.Services
     {
         private readonly HttpClient _http;
         private readonly string _apiKey;
-        private readonly string _modelo;
         private readonly bool _habilitada;
 
-        // Orçamento diário de chamadas (a cota gratuita do modelo é de ~20 por dia).
-        // Configurável no Render: Reescrita__LimiteDiario e Reescrita__ReservaResumos
-        private readonly int _limiteDiario;
+        // Modelos em ordem de uso. Cada modelo tem a sua própria cota diária no Google,
+        // então quando um esgota a chamada segue para o próximo.
+        // Render: Gemini__Modelos = gemini-3.8-flash,gemini-3-flash-preview,gemini-3.1-flash-lite
+        // (se não existir, usa Gemini__Modelo; se também não existir, gemini-3.8-flash)
+        private readonly string[] _modelos;
+
+        // Orçamento diário POR MODELO (a cota gratuita é ~20 por dia em cada um).
+        // Reescrita__LimiteDiario e Reescrita__ReservaResumos (esta é separada do total para os títulos).
+        private readonly int _limiteDiarioPorModelo;
         private readonly int _reservaResumos;
 
         private static readonly object _lockContador = new();
         private static string _diaContado = "";
-        private static int _chamadasHoje;
+        private static readonly Dictionary<string, int> _chamadasPorModelo = new(StringComparer.OrdinalIgnoreCase);
+
+        // Pausa depois de um 429 (por modelo) e modelos que responderam 404 (não existem / foram desligados)
+        private static readonly ConcurrentDictionary<string, long> _pausadoAteTicks = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, byte> _modelosIndisponiveis = new(StringComparer.OrdinalIgnoreCase);
 
         // Limita chamadas simultâneas à IA (respeita o limite por minuto do plano gratuito)
         private static readonly SemaphoreSlim _limite = new(2, 2);
-
-        // Pausa global depois de um 429 (cota): evita insistir e gastar ainda mais
-        private static long _pausadoAteTicks;
 
         public ReescritorService(HttpClient http, IConfiguration config)
         {
             _http = http;
             _http.Timeout = TimeSpan.FromSeconds(90);
             _apiKey = config["Gemini:ApiKey"] ?? "";
-            _modelo = config["Gemini:Modelo"] ?? "gemini-3.8-flash";
             _habilitada = config.GetValue("Reescrita:Habilitada", true);
 
-            _limiteDiario = Math.Max(1, config.GetValue("Reescrita:LimiteDiario", 18));
-            _reservaResumos = Math.Clamp(config.GetValue("Reescrita:ReservaResumos", 6), 0, _limiteDiario);
+            var lista = config["Gemini:Modelos"];
+            if (string.IsNullOrWhiteSpace(lista))
+                lista = config["Gemini:Modelo"] ?? "gemini-3.8-flash";
+
+            var modelos = lista
+                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            _modelos = modelos.Length > 0 ? modelos : new[] { "gemini-3.8-flash" };
+
+            _limiteDiarioPorModelo = Math.Max(1, config.GetValue("Reescrita:LimiteDiario", 18));
+            _reservaResumos = Math.Clamp(config.GetValue("Reescrita:ReservaResumos", 6), 0, _limiteDiarioPorModelo);
 
             if (!_habilitada)
                 Console.WriteLine("[IA] ⏸️ Reescrita por IA desligada (Reescrita:Habilitada = false)");
+            else
+                Console.WriteLine($"[IA] Modelos em ordem de uso: {string.Join(" -> ", _modelos)} (até {_limiteDiarioPorModelo} chamadas por dia em cada)");
         }
 
         public bool Configurado => _habilitada && !string.IsNullOrWhiteSpace(_apiKey);
 
-        /// <summary>true quando dá para chamar a IA agora: ligada, com chave e fora da pausa por cota.</summary>
-        public bool Disponivel =>
-            Configurado && DateTime.UtcNow.Ticks >= Interlocked.Read(ref _pausadoAteTicks);
+        /// <summary>true quando dá para chamar a IA agora: ligada, com chave e com algum modelo sem pausa e com sobra no dia.</summary>
+        public bool Disponivel => Configurado && ModelosAtivos.Any(ModeloLivreAgora);
 
         /// <summary>Títulos e resumos podem usar todo o orçamento do dia.</summary>
-        public bool PodeReescreverResumos => Disponivel && LerChamadasHoje() < _limiteDiario;
+        public bool PodeReescreverResumos => Disponivel;
 
-        /// <summary>Corpos das matérias deixam uma reserva do orçamento para os títulos/resumos.</summary>
-        public bool PodeReescreverCorpo => Disponivel && LerChamadasHoje() < _limiteDiario - _reservaResumos;
+        /// <summary>Corpos das matérias deixam uma reserva do orçamento total para os títulos/resumos.</summary>
+        public bool PodeReescreverCorpo =>
+            Disponivel && TotalChamadasHoje() < ModelosAtivos.Count() * _limiteDiarioPorModelo - _reservaResumos;
 
-        public int ChamadasHoje => LerChamadasHoje();
+        public int ChamadasHoje => TotalChamadasHoje();
+
+        private IEnumerable<string> ModelosAtivos => _modelos.Where(m => !_modelosIndisponiveis.ContainsKey(m));
+
+        private bool ModeloLivreAgora(string modelo) =>
+            !_modelosIndisponiveis.ContainsKey(modelo)
+            && DateTime.UtcNow.Ticks >= PausadoAte(modelo)
+            && LerChamadas(modelo) < _limiteDiarioPorModelo;
+
+        private static long PausadoAte(string modelo) =>
+            _pausadoAteTicks.TryGetValue(modelo, out var t) ? t : 0;
 
         /* =======================
-           ORÇAMENTO DIÁRIO
+           ORÇAMENTO DIÁRIO (por modelo)
         ======================= */
 
         // A cota diária do Google zera à meia-noite do horário do Pacífico
@@ -83,34 +112,47 @@ namespace MengolNews.Api.Services
             if (_diaContado != hoje)
             {
                 _diaContado = hoje;
-                _chamadasHoje = 0;
+                _chamadasPorModelo.Clear();
+                _pausadoAteTicks.Clear(); // dia novo = cota nova
             }
         }
 
-        private static int LerChamadasHoje()
+        private static int LerChamadas(string modelo)
         {
             lock (_lockContador)
             {
                 RenovarSeVirouODia();
-                return _chamadasHoje;
+                return _chamadasPorModelo.TryGetValue(modelo, out var n) ? n : 0;
             }
         }
 
-        private static int ContarChamada()
+        private static int ContarChamada(string modelo)
         {
             lock (_lockContador)
             {
                 RenovarSeVirouODia();
-                return ++_chamadasHoje;
+                _chamadasPorModelo.TryGetValue(modelo, out var n);
+                _chamadasPorModelo[modelo] = ++n;
+                return n;
             }
         }
 
-        private void MarcarLimiteDoDiaAtingido()
+        private int TotalChamadasHoje()
         {
             lock (_lockContador)
             {
                 RenovarSeVirouODia();
-                if (_chamadasHoje < _limiteDiario) _chamadasHoje = _limiteDiario;
+                return ModelosAtivos.Sum(m => _chamadasPorModelo.TryGetValue(m, out var n) ? n : 0);
+            }
+        }
+
+        private void MarcarLimiteDoDiaAtingido(string modelo)
+        {
+            lock (_lockContador)
+            {
+                RenovarSeVirouODia();
+                _chamadasPorModelo.TryGetValue(modelo, out var n);
+                _chamadasPorModelo[modelo] = Math.Max(n, _limiteDiarioPorModelo);
             }
         }
 
@@ -229,77 +271,25 @@ Responda somente com o texto final da matéria.
         }
 
         /* =======================
-           CHAMADA AO GEMINI
+           CHAMADA AO GEMINI (com troca de modelo)
         ======================= */
 
         private async Task<string?> ChamarGeminiAsync(string prompt, bool respostaJson)
         {
             if (!Disponivel) return null;
 
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_modelo}:generateContent";
-
-            var config = new Dictionary<string, object>
-            {
-                ["temperature"] = respostaJson ? 0.3 : 0.5,
-                ["maxOutputTokens"] = 16384,
-                ["thinkingConfig"] = new { thinkingLevel = "low" } // pensa pouco: mais rápido e gasta menos cota
-            };
-            if (respostaJson) config["responseMimeType"] = "application/json";
-
-            var corpo = JsonSerializer.Serialize(new
-            {
-                contents = new[] { new { role = "user", parts = new[] { new { text = prompt } } } },
-                generationConfig = config
-            });
-
             await _limite.WaitAsync();
             try
             {
-                // quem esperou na fila pode ter chegado depois de uma pausa por cota ou do fim do orçamento
-                if (!Disponivel || LerChamadasHoje() >= _limiteDiario) return null;
-
-                for (int tentativa = 1; tentativa <= 3; tentativa++)
+                foreach (var modelo in _modelos)
                 {
-                    using var req = new HttpRequestMessage(HttpMethod.Post, url)
-                    {
-                        Content = new StringContent(corpo, Encoding.UTF8, "application/json")
-                    };
-                    req.Headers.Add("x-goog-api-key", _apiKey);
+                    // pausado, sem sobra no dia ou inexistente: pula para o próximo
+                    if (!ModeloLivreAgora(modelo)) continue;
 
-                    try
-                    {
-                        var numeroDaChamada = ContarChamada();
-                        Console.WriteLine($"[IA] 📊 Chamada {numeroDaChamada}/{_limiteDiario} do dia");
+                    var (terminou, texto) = await TentarModeloAsync(modelo, prompt, respostaJson);
+                    if (terminou) return texto;
 
-                        using var resp = await _http.SendAsync(req);
-                        var conteudo = await resp.Content.ReadAsStringAsync();
-
-                        if (resp.IsSuccessStatusCode) return ExtrairTexto(conteudo);
-
-                        var codigo = (int)resp.StatusCode;
-
-                        // Cota esgotada: repetir só gasta mais. Pausa a IA e desiste agora.
-                        if (codigo == 429)
-                        {
-                            PausarPorCota(conteudo);
-                            return null;
-                        }
-
-                        Console.WriteLine($"[IA] ⚠️ HTTP {codigo} (tentativa {tentativa}/3): {Cortar(conteudo, 300)}");
-
-                        // só repete em erro transitório do servidor
-                        if (codigo is not (500 or 502 or 503 or 504)) return null;
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        Console.WriteLine($"[IA] ⏱️ Timeout (tentativa {tentativa}/3)");
-                    }
-                    catch (HttpRequestException ex)
-                    {
-                        Console.WriteLine($"[IA] ❌ {ex.Message}");
-                    }
-
-                    if (tentativa < 3) await Task.Delay(TimeSpan.FromSeconds(2 * tentativa));
+                    // não terminou (429, 404 ou erro repetido): segue para o próximo modelo
                 }
 
                 return null;
@@ -310,15 +300,122 @@ Responda somente com o texto final da matéria.
             }
         }
 
-        private void PausarPorCota(string corpoErro)
+        private async Task<(bool Terminou, string? Texto)> TentarModeloAsync(string modelo, string prompt, bool respostaJson)
+        {
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent";
+            var comPensamento = true;
+
+            for (int tentativa = 1; tentativa <= 3; tentativa++)
+            {
+                // outra chamada pode ter pausado este modelo enquanto esperávamos
+                if (!ModeloLivreAgora(modelo)) return (false, null);
+
+                var corpo = MontarCorpo(modelo, prompt, respostaJson, comPensamento);
+
+                using var req = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(corpo, Encoding.UTF8, "application/json")
+                };
+                req.Headers.Add("x-goog-api-key", _apiKey);
+
+                try
+                {
+                    var numero = ContarChamada(modelo);
+                    Console.WriteLine($"[IA] 📊 {modelo}: chamada {numero}/{_limiteDiarioPorModelo} do dia");
+
+                    using var resp = await _http.SendAsync(req);
+                    var conteudo = await resp.Content.ReadAsStringAsync();
+
+                    if (resp.IsSuccessStatusCode) return (true, ExtrairTexto(conteudo));
+
+                    var codigo = (int)resp.StatusCode;
+
+                    // Cota esgotada neste modelo: repetir só gasta mais. Pausa o modelo e tenta o próximo.
+                    if (codigo == 429)
+                    {
+                        PausarPorCota(modelo, conteudo);
+                        return (false, null);
+                    }
+
+                    // Modelo inexistente ou desligado: descarta até o servidor reiniciar
+                    if (codigo == 404)
+                    {
+                        _modelosIndisponiveis.TryAdd(modelo, 0);
+                        Console.WriteLine($"[IA] ❌ Modelo '{modelo}' não existe ou foi desligado (404). Ignorando-o. Confira o nome em Gemini__Modelos.");
+                        return (false, null);
+                    }
+
+                    // Modelo que não aceita a configuração de raciocínio: repete sem ela
+                    if (codigo == 400 && comPensamento &&
+                        conteudo.Contains("thinking", StringComparison.OrdinalIgnoreCase))
+                    {
+                        comPensamento = false;
+                        Console.WriteLine($"[IA] ⚠️ {modelo} não aceitou a configuração de raciocínio; repetindo sem ela");
+                        continue;
+                    }
+
+                    Console.WriteLine($"[IA] ⚠️ {modelo} HTTP {codigo} (tentativa {tentativa}/3): {Cortar(conteudo, 300)}");
+
+                    // só repete no mesmo modelo em erro transitório do servidor; os outros erros vão para o próximo modelo
+                    if (codigo is not (500 or 502 or 503 or 504)) return (false, null);
+                }
+                catch (TaskCanceledException)
+                {
+                    Console.WriteLine($"[IA] ⏱️ {modelo}: timeout (tentativa {tentativa}/3)");
+                }
+                catch (HttpRequestException ex)
+                {
+                    Console.WriteLine($"[IA] ❌ {modelo}: {ex.Message}");
+                }
+
+                if (tentativa < 3) await Task.Delay(TimeSpan.FromSeconds(2 * tentativa));
+            }
+
+            return (false, null);
+        }
+
+        private static string MontarCorpo(string modelo, string prompt, bool respostaJson, bool comPensamento)
+        {
+            var config = new Dictionary<string, object>
+            {
+                ["temperature"] = respostaJson ? 0.3 : 0.5,
+                ["maxOutputTokens"] = 16384
+            };
+
+            if (respostaJson) config["responseMimeType"] = "application/json";
+
+            // pensa pouco: mais rápido e gasta menos cota
+            var pensamento = comPensamento ? ConfigDePensamento(modelo) : null;
+            if (pensamento != null) config["thinkingConfig"] = pensamento;
+
+            return JsonSerializer.Serialize(new
+            {
+                contents = new[] { new { role = "user", parts = new[] { new { text = prompt } } } },
+                generationConfig = config
+            });
+        }
+
+        // A família 3 usa "thinkingLevel"; a 2.5 usa "thinkingBudget"; modelos desconhecidos ficam sem a configuração
+        private static object? ConfigDePensamento(string modelo)
+        {
+            if (modelo.StartsWith("gemini-3", StringComparison.OrdinalIgnoreCase))
+                return new { thinkingLevel = "low" };
+
+            if (modelo.StartsWith("gemini-2.5", StringComparison.OrdinalIgnoreCase))
+                return new { thinkingBudget = 0 };
+
+            return null;
+        }
+
+        private void PausarPorCota(string modelo, string corpoErro)
         {
             TimeSpan pausa;
 
             if (corpoErro.Contains("PerDay", StringComparison.OrdinalIgnoreCase))
             {
-                // cota diária: não adianta insistir; confere de novo daqui a 1 hora
+                // cota diária: não adianta insistir neste modelo hoje; confere de novo daqui a 1 hora
                 pausa = TimeSpan.FromMinutes(60);
-                MarcarLimiteDoDiaAtingido();
+                MarcarLimiteDoDiaAtingido(modelo);
             }
             else
             {
@@ -329,10 +426,9 @@ Responda somente com o texto final da matéria.
             }
 
             var ate = (DateTime.UtcNow + pausa).Ticks;
-            if (ate > Interlocked.Read(ref _pausadoAteTicks))
-                Interlocked.Exchange(ref _pausadoAteTicks, ate);
+            _pausadoAteTicks.AddOrUpdate(modelo, ate, (_, atual) => Math.Max(atual, ate));
 
-            Console.WriteLine($"[IA] ⛔ Cota do Gemini esgotada (429). IA pausada por {pausa.TotalMinutes:0.#} min.");
+            Console.WriteLine($"[IA] ⛔ {modelo}: cota esgotada (429). Modelo pausado por {pausa.TotalMinutes:0.#} min.");
         }
 
         private static string? ExtrairTexto(string json)
