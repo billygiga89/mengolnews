@@ -48,6 +48,15 @@ namespace MengolNews.Api.Services
         private static readonly TimeSpan DuracaoProvisorio = TimeSpan.FromHours(2);
         private readonly bool _fallbackTextoOriginal;
 
+        // Notícias para as quais não achamos texto nenhum (página bloqueada e feed curto):
+        // não insiste por um tempo, para não gastar download nem vaga do pré-aquecimento
+        private static readonly ConcurrentDictionary<string, DateTime> _semTextoRecente = new();
+        private static readonly TimeSpan EsperaSemTexto = TimeSpan.FromMinutes(15);
+
+        private static bool EstaSemTextoRecente(string link)
+            => _semTextoRecente.TryGetValue(link, out var quando)
+               && DateTime.UtcNow - quando < EsperaSemTexto;
+
         // link -> url da foto lida na página (evita perder a foto se a leitura falhar numa atualização futura)
         private static readonly ConcurrentDictionary<string, string> _imagensConhecidas = new();
 
@@ -468,25 +477,55 @@ namespace MengolNews.Api.Services
         }
 
         /// <summary>Baixa uma página HTML: navegador, depois leitor de feed e, por fim, o proxy (se houver).</summary>
-        private async Task<string?> BaixarPaginaAsync(string url, CancellationToken ct = default)
+        private async Task<string?> BaixarPaginaAsync(string url, CancellationToken ct = default, bool apenasProxy = false)
         {
-            var modos = new List<(bool uaLeitor, bool proxy)> { (false, false), (true, false) };
-            if (TemProxy) modos.Add((true, true));
+            var modos = new List<(bool uaLeitor, bool proxy)>();
+
+            if (apenasProxy)
+            {
+                if (TemProxy) modos.Add((true, true));
+            }
+            else
+            {
+                modos.Add((false, false));
+                modos.Add((true, false));
+                if (TemProxy) modos.Add((true, true));
+            }
 
             foreach (var (uaLeitor, proxy) in modos)
             {
-                using var request = CriarRequisicao(url, feed: false, uaLeitor, proxy);
-                using var resp = await _http.SendAsync(request, ct);
+                var rotulo = proxy ? " (via proxy)" : uaLeitor ? " (como leitor de feed)" : "";
 
-                if (resp.IsSuccessStatusCode)
-                    return await LerTextoAsync(resp, ct);
+                try
+                {
+                    using var request = CriarRequisicao(url, feed: false, uaLeitor, proxy);
+                    using var resp = await _http.SendAsync(request, ct);
 
-                var status = (int)resp.StatusCode;
-                Console.WriteLine($"[PAG] HTTP {status}{(proxy ? " (via proxy)" : uaLeitor ? " (como leitor de feed)" : "")}: {url}");
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        var html = await LerTextoAsync(resp, ct);
+                        if (!string.IsNullOrWhiteSpace(html)) return html;
 
-                // só vale tentar de novo se parecer bloqueio ou instabilidade
-                if (status != 403 && status != 429 && status != 503 && status != 401)
-                    return null;
+                        Console.WriteLine($"[PAG] Resposta vazia{rotulo}: {url}");
+                        continue;
+                    }
+
+                    var status = (int)resp.StatusCode;
+                    Console.WriteLine($"[PAG] HTTP {status}{rotulo}: {url}");
+
+                    // só vale tentar de novo se parecer bloqueio ou instabilidade
+                    if (status != 403 && status != 429 && status != 503 && status != 401)
+                        return null;
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    // timeout ou falha de conexão neste modo: tenta o próximo
+                    Console.WriteLine($"[PAG] Falha{rotulo}: {ex.Message}");
+                }
             }
 
             return null;
@@ -1289,7 +1328,8 @@ namespace MengolNews.Api.Services
 
                 try
                 {
-                    foreach (var n in noticias.Take(5))
+                    // pula as que estão sem texto disponível (página bloqueada): aquece as próximas da lista
+                    foreach (var n in noticias.Where(x => !EstaSemTextoRecente(x.Link)).Take(5))
                     {
                         if (!_reescritor.PodeReescreverCorpo) break;
                         if (string.IsNullOrWhiteSpace(n.Link)) continue;
@@ -1325,6 +1365,7 @@ namespace MengolNews.Api.Services
 
                     _corposReescritos[link] = salvo;
                     _corposProvisorios.TryRemove(link, out _);
+                    _semTextoRecente.TryRemove(link, out _);
                     return salvo;
                 }
             }
@@ -1338,40 +1379,26 @@ namespace MengolNews.Api.Services
             if (temProvisorio && !_reescritor.PodeReescreverCorpo)
                 return prov.Texto;
 
+            // não achamos texto dessa notícia há pouco: não insiste agora
+            if (!temProvisorio && EstaSemTextoRecente(link))
+                return null;
+
             // 3) título (já reescrito) só para dar contexto à IA
             var titulo = _cache?.FirstOrDefault(n => n.Link == link)?.Titulo
                          ?? (await BuscarNoArquivoAsync(link))?.Titulo
                          ?? "";
 
-            // 4) texto original: o provisório (se existir), senão a página da fonte e, por fim, o que veio no RSS
-            string? original;
+            // 4) texto original: o provisório (se existir) ou o melhor entre feed e página da fonte
+            var original = temProvisorio ? prov.Texto : await ObterTextoOriginalAsync(link);
 
-            if (temProvisorio)
+            if (string.IsNullOrWhiteSpace(original) || original.Length < 300)
             {
-                original = prov.Texto;
-            }
-            else
-            {
-                // o feed já trouxe a matéria inteira (ex.: Coluna do Fla): não precisa baixar a página
-                // (evita o 403 e é mais rápido)
-                if (_textosOriginais.TryGetValue(link, out var textoDoFeed) && textoDoFeed.Length >= 1500)
-                {
-                    original = textoDoFeed;
-                    Console.WriteLine($"[IA] Corpo: usando o texto do feed ({original.Length} chars), sem baixar a página");
-                }
-                else
-                {
-                    original = await ExtrairConteudoDaPaginaAsync(link);
-                    var tamanhoPagina = original?.Length ?? 0;
-
-                    if (tamanhoPagina < 300 && _textosOriginais.TryGetValue(link, out var doFeed) && doFeed.Length > tamanhoPagina)
-                        original = doFeed;
-
-                    Console.WriteLine($"[IA] Corpo: página={tamanhoPagina} chars, usado={original?.Length ?? 0} chars");
-                }
+                if (_semTextoRecente.Count > 500) _semTextoRecente.Clear();
+                _semTextoRecente[link] = DateTime.UtcNow;
+                return null;
             }
 
-            if (string.IsNullOrWhiteSpace(original) || original.Length < 300) return null;
+            _semTextoRecente.TryRemove(link, out _);
 
             // 5) tenta reescrever com a IA
             if (_reescritor.PodeReescreverCorpo)
@@ -1409,6 +1436,27 @@ namespace MengolNews.Api.Services
 
             Console.WriteLine($"[IA] Corpo sem reescrita: usando o texto original limpo ({provisorio.Length} chars)");
             return provisorio;
+        }
+
+        /// <summary>Texto-base para a IA: se o feed já trouxe a matéria inteira, usa ele; senão pega o maior entre página e feed.</summary>
+        private async Task<string?> ObterTextoOriginalAsync(string link)
+        {
+            _textosOriginais.TryGetValue(link, out var doFeed);
+            doFeed ??= "";
+
+            // o feed já trouxe a matéria inteira (ex.: Coluna do Fla): não baixa a página (evita o 403)
+            if (doFeed.Length >= 1500)
+            {
+                Console.WriteLine($"[IA] Corpo: usando o texto do feed ({doFeed.Length} chars), sem baixar a página");
+                return doFeed;
+            }
+
+            var pagina = await ExtrairConteudoDaPaginaAsync(link);
+            var tamanhoPagina = pagina?.Length ?? 0;
+            var usado = tamanhoPagina >= doFeed.Length ? pagina : doFeed;
+
+            Console.WriteLine($"[IA] Corpo: página={tamanhoPagina} chars, feed={doFeed.Length} chars, usado={usado?.Length ?? 0} chars");
+            return usado;
         }
 
         #endregion
@@ -1597,23 +1645,43 @@ namespace MengolNews.Api.Services
                     return null;
                 }
 
-                var doc = new HtmlDocument();
-                doc.LoadHtml(html);
+                var corpo = ExtrairCorpoDoHtml(html);
 
-                // 1) Muitos sites entregam o texto inteiro no JSON-LD (dados estruturados para o Google)
-                var corpo = ArticleBodyDoJsonLd(doc);
+                // a página veio (200), mas sem o texto da matéria: bloqueio disfarçado ou página montada
+                // por JavaScript. Uma tentativa extra pelo proxy, que costuma entregar o HTML completo.
+                if (corpo == null && TemProxy)
+                {
+                    Console.WriteLine($"[IA] Página veio com {html.Length} chars, mas sem texto da matéria; tentando pelo proxy");
 
-                // 2) Senão, lê os parágrafos do container principal do artigo
-                if (string.IsNullOrWhiteSpace(corpo))
-                    corpo = ParagrafosDoArtigo(doc);
+                    var htmlProxy = await BaixarPaginaAsync(url, apenasProxy: true);
+                    if (htmlProxy != null) corpo = ExtrairCorpoDoHtml(htmlProxy);
+                }
 
-                return string.IsNullOrWhiteSpace(corpo) ? null : LimparTextoRss(corpo);
+                if (corpo == null)
+                    Console.WriteLine($"[IA] Nenhum texto de matéria encontrado na página: {url}");
+
+                return corpo;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[IA] Erro ao ler página da fonte: {ex.Message}");
                 return null;
             }
+        }
+
+        private static string? ExtrairCorpoDoHtml(string html)
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            // 1) Muitos sites entregam o texto inteiro no JSON-LD (dados estruturados para o Google)
+            var corpo = ArticleBodyDoJsonLd(doc);
+
+            // 2) Senão, lê os parágrafos do container principal do artigo
+            if (string.IsNullOrWhiteSpace(corpo))
+                corpo = ParagrafosDoArtigo(doc);
+
+            return string.IsNullOrWhiteSpace(corpo) ? null : LimparTextoRss(corpo);
         }
 
         private static string? ArticleBodyDoJsonLd(HtmlDocument doc)
@@ -1673,8 +1741,11 @@ namespace MengolNews.Api.Services
 
             var containers = new[]
             {
-                "//div[contains(@class,'entry-content')]",
+                "//*[@itemprop='articleBody']",
                 "//div[contains(@class,'article-body')]",
+                "//div[contains(@class,'Story__Body')]",
+                "//div[contains(@class,'story-body')]",
+                "//div[contains(@class,'entry-content')]",
                 "//div[contains(@class,'post-content')]",
                 "//div[contains(@class,'content-text')]",
                 "//div[contains(@class,'td-post-content')]",
