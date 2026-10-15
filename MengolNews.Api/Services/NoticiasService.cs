@@ -65,7 +65,8 @@ namespace MengolNews.Api.Services
         private static readonly ConcurrentDictionary<string, byte> _imagensGenericas = new();
 
         // Fontes que só responderam pelo proxy: nas próximas coletas vão direto nele
-        private static readonly ConcurrentDictionary<string, byte> _fontesViaProxy = new();
+        private static readonly ConcurrentDictionary<string, byte> _fontesViaProxy = new(
+    new[] { new KeyValuePair<string, byte>("NOTÍCIAS FLA", 0) });
 
         private readonly bool _reescritaHabilitada;
 
@@ -243,8 +244,8 @@ namespace MengolNews.Api.Services
             => LerRss("https://www.espn.com.br/rss/flamengo.xml", "ESPN", filtrarFlamengo: true);
 
         private Task<List<NoticiaDto>> GetColunaDoFla()
-            => LerRss("https://colunadofla.com/feed", "COLUNA DO FLA", false,
-                "https://colunadofla.com/feed/",
+            => LerRss("https://colunadofla.com/feed/", "COLUNA DO FLA", false,
+                "https://colunadofla.com/feed",
                 "https://colunadofla.com/?feed=rss2");
 
         private Task<List<NoticiaDto>> GetUrubuInterativo()
@@ -304,8 +305,9 @@ namespace MengolNews.Api.Services
                     // fonte que já precisou do proxy antes: tenta o proxy primeiro
                     if (_fontesViaProxy.ContainsKey(fonte))
                         tentativas.Insert(0, (url, true, true));
-                    else
-                        tentativas.Add((url, true, true));
+
+                    // e sempre deixa uma tentativa pelo proxy no fim (o bloqueio dos sites oscila)
+                    tentativas.Add((url, true, true));
                 }
 
                 string? xml = null;
@@ -503,7 +505,16 @@ namespace MengolNews.Api.Services
 
                     if (resp.IsSuccessStatusCode)
                     {
+                        // 202 = "aceito", mas sem conteúdo (a ESPN responde assim para navegador e proxy):
+                        // não serve, tenta o próximo modo
+                        if (resp.StatusCode == HttpStatusCode.Accepted)
+                        {
+                            Console.WriteLine($"[PAG] HTTP 202 sem conteúdo{rotulo}: {url}");
+                            continue;
+                        }
+
                         var html = await LerTextoAsync(resp, ct);
+
                         if (!string.IsNullOrWhiteSpace(html)) return html;
 
                         Console.WriteLine($"[PAG] Resposta vazia{rotulo}: {url}");
